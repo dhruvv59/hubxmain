@@ -678,6 +678,9 @@ model Achievement {
   type             String    // "first_assessment", "score_threshold", "streak", "ranking", "perfect_score", etc.
   threshold        Int?      // e.g., 90 for 90% score, 5 for 5 assessments
 
+  // Reverse relation to UserAchievement
+  userAchievements UserAchievement[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
