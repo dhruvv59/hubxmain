@@ -1,0 +1,770 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum UserRole {
+  SUPER_ADMIN
+  TEACHER
+  STUDENT
+}
+
+enum PaperStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum PaperType {
+  TIME_BOUND
+  NO_LIMIT
+}
+
+enum Difficulty {
+  EASY
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum QuestionType {
+  TEXT
+  MCQ
+  FILL_IN_THE_BLANKS
+}
+
+enum ExamStatus {
+  ONGOING
+  SUBMITTED
+  AUTO_SUBMITTED
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+enum OrganizationType {
+  UNIVERSITY
+  SCHOOL
+  COLLEGE
+  INSTITUTE
+}
+
+// Users table
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  firstName String
+  lastName  String
+  role      UserRole
+  avatar    String? // Profile picture URL (S3)
+  streak        Int      @default(0)
+  lastActiveAt  DateTime? // To track streak continuity
+  teacherPapers           Paper[]
+  studentAnswers          StudentAnswer[]
+  examAttempts            ExamAttempt[]
+  purchases               PaperPurchase[]
+  payments                Payment[]
+  standards               Standard[]
+  doubts                  Doubt[]
+  doubtReplies            Doubt[]              @relation("DoubtReplies")
+  chatMessages            ChatMessage[]
+  organizationMemberships OrganizationMember[]
+  paperCoupons            PaperCoupon[]
+  notifications           Notification[]
+  questionBank            QuestionBank[]
+
+  // New relations for fixed features
+  profile                 StudentProfile?
+  settings                StudentSettings?
+  achievements            UserAchievement[]
+  supportTickets          SupportTicket[]
+  supportTicketReplies    SupportTicketReply[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email])
+  @@index([role])
+}
+
+// Standard (created by teachers) - e.g., Class 9, Class 10
+model Standard {
+  id        String @id @default(cuid())
+  name      String // e.g., "9", "10", "11", "12"
+  teacherId String
+  teacher   User   @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  // Relations
+  subjects Subject[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([teacherId, name])
+  @@index([teacherId])
+}
+
+// Subject (created by teachers under Standard)
+model Subject {
+  id         String   @id @default(cuid())
+  name       String
+  standardId String
+  standard   Standard @relation(fields: [standardId], references: [id], onDelete: Cascade)
+
+  // Relations
+  chapters     Chapter[]
+  papers       Paper[]
+  questionBank QuestionBank[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([standardId, name])
+  @@index([standardId])
+}
+
+// Chapter (created by teachers)
+model Chapter {
+  id        String  @id @default(cuid())
+  name      String
+  subjectId String
+  subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  // Relations
+  papers               PaperChapter[]
+  questionBankChapters QuestionBankChapter[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([subjectId, name])
+  @@index([subjectId])
+}
+
+// Many-to-many: Paper to Chapter
+model PaperChapter {
+  id        String  @id @default(cuid())
+  paperId   String
+  paper     Paper   @relation(fields: [paperId], references: [id], onDelete: Cascade)
+  chapterId String
+  chapter   Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([paperId, chapterId])
+  @@index([chapterId])
+}
+
+// Paper (Question paper/exam)
+model Paper {
+  id          String  @id @default(cuid())
+  title       String
+  description String?
+  standard    Int
+  teacherId   String
+  teacher     User    @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  subjectId   String
+  subject     Subject @relation(fields: [subjectId], references: [id])
+
+  difficulty Difficulty
+  type       PaperType
+  duration   Int? // in minutes, required if TIME_BOUND
+  status     PaperStatus
+
+  // Public paper fields
+  isPublic Boolean @default(false)
+  price    Float? // required if isPublic
+
+  // Relations
+  questions    Question[]
+  examAttempts ExamAttempt[]
+  purchases    PaperPurchase[]
+  chapters     PaperChapter[]
+  chatRoom     ChatRoom?
+  coupons      PaperCoupon[]
+
+  totalAttempts Int   @default(0)
+  averageScore  Float @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([teacherId])
+  @@index([subjectId])
+  @@index([status])
+  @@index([isPublic])
+}
+
+// Question
+model Question {
+  id      String @id @default(cuid())
+  paperId String
+  paper   Paper  @relation(fields: [paperId], references: [id], onDelete: Cascade)
+
+  type          QuestionType
+  difficulty    Difficulty
+  questionText  String       @db.LongText
+  questionImage String? // S3 URL
+
+  // For MCQ
+  options       Json? // For MCQ: Array of 4 option strings | For FILL_IN_THE_BLANKS: Array of arrays (answers per blank)
+  correctOption Int? // For MCQ: Index 0-3 | Not used for FILL_IN_THE_BLANKS
+
+  // For FILL_IN_THE_BLANKS
+  caseSensitive Boolean @default(false) // Whether blank answers are case-sensitive
+
+  // Solution
+  solutionText  String? @db.LongText
+  solutionImage String? // S3 URL
+
+  marks Float @default(1)
+  order Int // Question order in paper
+
+  // Relations
+  studentAnswers StudentAnswer[]
+  doubts         Doubt[]
+  bankSource     QuestionBankPaperLink?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([paperId])
+  @@index([type])
+}
+
+// Exam Attempt
+model ExamAttempt {
+  id        String @id @default(cuid())
+  paperId   String
+  paper     Paper  @relation(fields: [paperId], references: [id])
+  studentId String
+  student   User   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  status      ExamStatus
+  startedAt   DateTime
+  submittedAt DateTime?
+
+  totalScore Float @default(0)
+  totalMarks Float @default(0)
+  percentage Float @default(0)
+  timeSpent  Int? // in seconds
+
+  // Relations
+  answers StudentAnswer[]
+  doubts  Doubt[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([paperId, studentId])
+  @@index([studentId])
+  @@index([status])
+}
+
+// Student Answer
+model StudentAnswer {
+  id         String      @id @default(cuid())
+  attemptId  String
+  attempt    ExamAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  questionId String
+  question   Question    @relation(fields: [questionId], references: [id])
+  studentId  String
+  student    User        @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  // Answer data
+  answerText     String? @db.LongText // For TEXT questions
+  selectedOption Int? // For MCQ: 0-3
+
+  isCorrect       Boolean? // null for TEXT, true/false for MCQ
+  marksObtained   Float    @default(0)
+  markedForReview Boolean  @default(false)
+
+  // Difficulty Feedback
+  markedTooHard Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([attemptId, questionId])
+  @@index([attemptId])
+  @@index([studentId])
+}
+
+// Paper Purchase (Student buying public papers)
+model PaperPurchase {
+  id        String @id @default(cuid())
+  paperId   String
+  paper     Paper  @relation(fields: [paperId], references: [id], onDelete: Cascade)
+  studentId String
+  student   User   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  paymentId String
+  payment   Payment @relation(fields: [paymentId], references: [id])
+
+  price Float
+
+  createdAt DateTime @default(now())
+
+  @@unique([paperId, studentId])
+  @@index([studentId])
+  @@index([paymentId])
+}
+
+// Payment (Razorpay)
+model Payment {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  orderId   String  @unique // Razorpay order ID
+  paymentId String? @unique // Razorpay payment ID
+  signature String? // Razorpay signature
+
+  amount Float
+  status PaymentStatus
+
+  // Relations
+  purchases PaperPurchase[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+}
+
+// Doubt
+model Doubt {
+  id         String      @id @default(cuid())
+  attemptId  String
+  attempt    ExamAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  questionId String
+  question   Question    @relation(fields: [questionId], references: [id])
+  studentId  String
+  student    User        @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  doubtText String @db.LongText
+
+  // Teacher Reply Fields
+  teacherReply String?   @db.LongText
+  repliedAt    DateTime?
+  repliedBy    String?
+  teacher      User?     @relation("DoubtReplies", fields: [repliedBy], references: [id])
+
+  isResolved Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([attemptId])
+  @@index([studentId])
+  @@index([questionId])
+  @@index([isResolved])
+}
+
+// Chat Room (one per paper)
+model ChatRoom {
+  id      String @id @default(cuid())
+  paperId String @unique
+  paper   Paper  @relation(fields: [paperId], references: [id], onDelete: Cascade)
+
+  // Relations
+  messages ChatMessage[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([paperId])
+}
+
+// Chat Message
+model ChatMessage {
+  id     String   @id @default(cuid())
+  roomId String
+  room   ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  senderId String
+  sender   User   @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  receiverId String? // null for teacher messages to all, specific studentId for teacher replies
+
+  message String  @db.LongText
+  isRead  Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([roomId])
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([createdAt])
+}
+
+// Organization (University/School/College)
+model Organization {
+  id          String           @id @default(cuid())
+  name        String
+  type        OrganizationType
+  code        String           @unique // e.g., "UNIV_A", "SCHOOL_A"
+  description String?
+
+  // Hierarchical structure (optional parent)
+  parentId String?
+  parent   Organization?  @relation("OrganizationHierarchy", fields: [parentId], references: [id])
+  children Organization[] @relation("OrganizationHierarchy")
+
+  // Contact info
+  email   String?
+  phone   String?
+  address String?
+
+  // Relations
+  memberships OrganizationMember[]
+
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([type])
+  @@index([parentId])
+  @@index([code])
+}
+
+// Organization Membership (Links Users to Organizations)
+model OrganizationMember {
+  id             String       @id @default(cuid())
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  // Role within organization
+  role UserRole // TEACHER or STUDENT
+
+  // Additional metadata
+  employeeId  String? // For teachers
+  studentId   String? // For students
+  department  String?
+  joiningDate DateTime @default(now())
+
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, organizationId])
+  @@index([userId])
+  @@index([organizationId])
+  @@index([role])
+}
+
+// Coupon Code for Paper Access
+model PaperCoupon {
+  id      String @id @default(cuid())
+  paperId String
+  paper   Paper  @relation(fields: [paperId], references: [id], onDelete: Cascade)
+
+  studentId String
+  student   User   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  code String @unique // Unique coupon code (e.g., "PAPER-MATH-ABC123")
+
+  isUsed Boolean   @default(false)
+  usedAt DateTime?
+
+  expiresAt DateTime? // Optional expiration date
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([paperId, studentId]) // One coupon per student per paper
+  @@index([paperId])
+  @@index([studentId])
+  @@index([code])
+  @@index([isUsed])
+}
+
+// Notification System
+model Notification {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title   String
+  message String  @db.LongText
+  type    String // INFO, WARNING, SUCCESS, ERROR
+  isRead  Boolean @default(false)
+
+  // Optional link
+  actionUrl String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([isRead])
+}
+
+// Question Bank (Standalone question library for teachers)
+model QuestionBank {
+  id        String @id @default(cuid())
+  teacherId String
+  teacher   User   @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  type          QuestionType
+  difficulty    Difficulty
+  questionText  String       @db.LongText
+  questionImage String? // S3 URL
+
+  // For MCQ
+  options       Json? // Array of 4 option strings
+  correctOption Int? // Index 0-3
+
+  // For FILL_IN_THE_BLANKS
+  caseSensitive  Boolean @default(false)
+  correctAnswers Json? // Array of arrays for multiple blanks
+
+  // Solution
+  solutionText  String? @db.LongText
+  solutionImage String? // S3 URL
+
+  marks Float @default(1)
+
+  // Metadata for organization
+  subjectId String?
+  subject   Subject? @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  tags      Json? // Array of string tags for categorization
+
+  // Usage tracking
+  usageCount Int @default(0)
+
+  // Relations
+  chapters   QuestionBankChapter[]
+  paperLinks QuestionBankPaperLink[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([teacherId])
+  @@index([subjectId])
+  @@index([type])
+  @@index([difficulty])
+}
+
+// Many-to-Many: QuestionBank to Chapter
+model QuestionBankChapter {
+  id             String       @id @default(cuid())
+  questionBankId String
+  questionBank   QuestionBank @relation(fields: [questionBankId], references: [id], onDelete: Cascade)
+  chapterId      String
+  chapter        Chapter      @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([questionBankId, chapterId])
+  @@index([chapterId])
+  @@index([questionBankId])
+}
+
+// Link between QuestionBank and Paper Questions (when bank question is added to a paper)
+model QuestionBankPaperLink {
+  id             String       @id @default(cuid())
+  questionBankId String
+  questionBank   QuestionBank @relation(fields: [questionBankId], references: [id], onDelete: Cascade)
+  questionId     String       @unique
+  question       Question     @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([questionBankId, questionId])
+  @@index([questionId])
+  @@index([questionBankId])
+}
+
+// ============================================
+// NEW MODELS FOR FIXED FEATURES
+// ============================================
+
+enum NotificationType {
+  EMAIL
+  PUSH
+  IN_APP
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+  REOPENED
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum TicketCategory {
+  PAYMENT
+  TECHNICAL
+  CONTENT
+  ACCOUNT
+  OTHER
+}
+
+// Extended Student Profile
+model StudentProfile {
+  id               String    @id @default(cuid())
+  userId           String    @unique
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  phone            String?
+  address          String?   @db.LongText
+  dateOfBirth      DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// Student Settings (Notification, Privacy, Preferences)
+model StudentSettings {
+  id               String    @id @default(cuid())
+  userId           String    @unique
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Notification Settings
+  emailNotifications       Boolean @default(true)
+  pushNotifications        Boolean @default(false)
+  assignmentNotifications  Boolean @default(true)
+  assessmentNotifications  Boolean @default(true)
+  announcementNotifications Boolean @default(false)
+
+  // Privacy Settings
+  profileVisibility String @default("public")  // "public", "private", "friends"
+  showPerformance   Boolean @default(true)
+
+  // Preference Settings
+  language String @default("en")  // "en", "gu", "hi"
+  theme    String @default("light")  // "light", "dark"
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// Achievement System
+model Achievement {
+  id               String    @id @default(cuid())
+  title            String
+  description      String    @db.LongText
+  icon             String    // Icon identifier (e.g., "star", "medal")
+  color            String    // Tailwind gradient (e.g., "from-yellow-400 to-orange-500")
+
+  // Achievement requirement logic
+  type             String    // "first_assessment", "score_threshold", "streak", "ranking", "perfect_score", etc.
+  threshold        Int?      // e.g., 90 for 90% score, 5 for 5 assessments
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Track which achievements user has earned
+model UserAchievement {
+  id               String    @id @default(cuid())
+  userId           String
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  achievementId    String
+  achievement      Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  earnedAt         DateTime  @default(now())
+
+  @@unique([userId, achievementId])
+  @@index([userId])
+  @@index([achievementId])
+}
+
+// Support Tickets
+model SupportTicket {
+  id               String    @id @default(cuid())
+  studentId        String
+  student          User      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  subject          String
+  message          String    @db.LongText
+  category         TicketCategory
+  status           TicketStatus @default(OPEN)
+  priority         TicketPriority @default(MEDIUM)
+
+  assignedTo       String?   // Teacher/Admin ID
+
+  resolution       String?   @db.LongText
+  resolvedAt       DateTime?
+
+  // Relations
+  attachments      SupportTicketAttachment[]
+  replies          SupportTicketReply[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([studentId])
+  @@index([status])
+  @@index([category])
+  @@index([createdAt])
+}
+
+// Support Ticket Replies
+model SupportTicketReply {
+  id               String    @id @default(cuid())
+  ticketId         String
+  ticket           SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  userId           String
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  message          String    @db.LongText
+
+  // Relations
+  attachments      SupportTicketAttachment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ticketId])
+  @@index([userId])
+}
+
+// Support Ticket Attachments
+model SupportTicketAttachment {
+  id               String    @id @default(cuid())
+
+  ticketId         String?
+  ticket           SupportTicket? @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  replyId          String?
+  reply            SupportTicketReply? @relation(fields: [replyId], references: [id], onDelete: Cascade)
+
+  fileUrl          String    // S3 URL
+  fileName         String
+  fileSize         Int       // in bytes
+
+  createdAt DateTime @default(now())
+
+  @@index([ticketId])
+  @@index([replyId])
+}

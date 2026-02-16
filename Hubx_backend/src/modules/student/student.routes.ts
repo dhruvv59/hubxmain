@@ -1,0 +1,32 @@
+import { Router } from "express"
+import { studentController } from "./student.controller"
+import { authMiddleware, roleMiddleware } from "@middlewares/auth"
+import { ROLES } from "@utils/constants"
+
+const router = Router()
+
+// Middleware
+router.use(authMiddleware)
+router.use(roleMiddleware(ROLES.STUDENT, ROLES.TEACHER, ROLES.SUPER_ADMIN))
+
+
+router.get("/dashboard", studentController.getDashboard)
+router.get("/public-papers", studentController.getPublicPapers)
+router.get("/practice-exams", studentController.getPracticeExams)
+router.get("/exam-history", studentController.getExamHistory)
+router.get("/exam-result/:attemptId", studentController.getExamResult)
+
+// New Dashboard Metrics Endpoints
+router.get("/performance-metrics", studentController.getPerformanceMetrics)
+router.get("/subject-performance", studentController.getSubjectPerformance)
+router.get("/syllabus-coverage", studentController.getSyllabusCoverage)
+router.get("/notifications", studentController.getNotifications)
+router.get("/test-recommendations", studentController.getTestRecommendations)
+router.get("/upcoming-exams", studentController.getUpcomingExams)
+
+// NEW: Subject and Assessment Generation Endpoints
+router.get("/subjects", studentController.getAllSubjects)
+router.post("/generate-assessment", studentController.generateAssessment)
+
+export default router
+

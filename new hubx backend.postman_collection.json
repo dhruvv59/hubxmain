@@ -1,0 +1,4234 @@
+{
+  "info": {
+    "_postman_id": "1c146a2b-502d-4a93-8b9f-6b646277693b",
+    "name": "new hubx backend",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "27596011"
+  },
+  "item": [
+    {
+      "name": "TEACHER",
+      "item": [
+        {
+          "name": "TEACHER - SUBJECT MANAGEMENT Copy",
+          "item": [
+            {
+              "name": "Create Subject",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"name\": \"Computer Science\",\r\n  \"description\": \"Programming fundamentals, data structures, algorithms, and database basics\"\r\n}\r\n",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:3000/api/teacher/standards/:standardId/subjects",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "teacher",
+                    "standards",
+                    ":standardId",
+                    "subjects"
+                  ],
+                  "variable": [
+                    {
+                      "key": "standardId",
+                      "value": "cml7zdkmg00095gp3lyjreshh"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get All Subjects (in a Standard)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:3000/api/teacher/standards/:standardId/subjects",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "teacher",
+                    "standards",
+                    ":standardId",
+                    "subjects"
+                  ],
+                  "variable": [
+                    {
+                      "key": "standardId",
+                      "value": "cmkuye11x00021aytl8e6cvtf"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Single Subject",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:3000/api/teacher/standards/:standardId/subjects/:subjectId",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "teacher",
+                    "standards",
+                    ":standardId",
+                    "subjects",
+                    ":subjectId"
+                  ],
+                  "variable": [
+                    {
+                      "key": "standardId",
+                      "value": "cmkuq167h0002fyx4hycb22nv"
+                    },
+                    {
+                      "key": "subjectId",
+                      "value": "cmkuqf4or0004fyx4l2utxgj4"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Update Subject",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"name\": \"Chemestry Updated\",\r\n  \"description\": \"Fundamentals of Chemestry for Class 11 and 12\"\r\n}\r\n",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:3000/api/teacher/standards/:standardId/subjects/:subjectId",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "teacher",
+                    "standards",
+                    ":standardId",
+                    "subjects",
+                    ":subjectId"
+                  ],
+                  "variable": [
+                    {
+                      "key": "standardId",
+                      "value": "cmkuq167h0002fyx4hycb22nv"
+                    },
+                    {
+                      "key": "subjectId",
+                      "value": "cmkuqf4or0004fyx4l2utxgj4"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Subject",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:3000/api/teacher/standards/:standardId/subjects/:subjectId",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "teacher",
+                    "standards",
+                    ":standardId",
+                    "subjects",
+                    ":subjectId"
+                  ],
+                  "variable": [
+                    {
+                      "key": "standardId",
+                      "value": "cmkuq167h0002fyx4hycb22nv"
+                    },
+                    {
+                      "key": "subjectId",
+                      "value": "cmkuqf4or0004fyx4l2utxgj4"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "TEACHER - CHAPTER MANAGEMENT Copy",
+          "item": [
+            {
+              "name": "Create Chapter",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"name\": \"Computer Hardware and Software\"\r\n}\r\n",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:3000/api/teacher/standards/:standardId/subjects/:subjectId/chapters",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "teacher",
+                    "standards",
+                    ":standardId",
+                    "subjects",
+                    ":subjectId",
+                    "chapters"
+                  ],
+                  "variable": [
+                    {
+                      "key": "standardId",
+                      "value": "cml7zdkmg00095gp3lyjreshh"
+                    },
+                    {
+                      "key": "subjectId",
+                      "value": "cml7zegpn000b5gp30ti1o81r"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get All Chapters",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:3000/api/teacher/standards/:standardId/subjects/:subjectId/chapters",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "teacher",
+                    "standards",
+                    ":standardId",
+                    "subjects",
+                    ":subjectId",
+                    "chapters"
+                  ],
+                  "variable": [
+                    {
+                      "key": "standardId",
+                      "value": "cml28rcr20002950xfg3r9jwp"
+                    },
+                    {
+                      "key": "subjectId",
+                      "value": "cml28rpx30004950xmbtcimsi"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Update Chapter",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"name\": \"Physics\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:3000/api/teacher/standards/:standardId/subjects/:subjectId/chapters/:chapterId",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "teacher",
+                    "standards",
+                    ":standardId",
+                    "subjects",
+                    ":subjectId",
+                    "chapters",
+                    ":chapterId"
+                  ],
+                  "variable": [
+                    {
+                      "key": "standardId",
+                      "value": "cmkuq167h0002fyx4hycb22nv"
+                    },
+                    {
+                      "key": "subjectId",
+                      "value": "cmkuqf4or0004fyx4l2utxgj4"
+                    },
+                    {
+                      "key": "chapterId",
+                      "value": "cmkurvm060006fyx4u7v2vs43"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Chapter",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:3000/api/teacher/standards/:standardId/subjects/:subjectId/chapters/:chapterId",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "teacher",
+                    "standards",
+                    ":standardId",
+                    "subjects",
+                    ":subjectId",
+                    "chapters",
+                    ":chapterId"
+                  ],
+                  "variable": [
+                    {
+                      "key": "standardId",
+                      "value": "cmkuq167h0002fyx4hycb22nv"
+                    },
+                    {
+                      "key": "subjectId",
+                      "value": "cmkuqf4or0004fyx4l2utxgj4"
+                    },
+                    {
+                      "key": "chapterId",
+                      "value": "cmkurvm060006fyx4u7v2vs43"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "TEACHER - PAPER CREATION",
+          "item": [
+            {
+              "name": "Create Paper",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"title\": \"Computer Science Practice Test – Programming Basics\",\r\n  \"subjectId\": \"cml7zegpn000b5gp30ti1o81r\",\r\n  \"standard\": 9,\r\n  \"difficulty\": \"INTERMEDIATE\",\r\n  \"chapterIds\": [\r\n    \"cml7zf8ln000d5gp31i07g4i8\"\r\n  ],\r\n  \"type\": \"TIME_BOUND\",\r\n  \"duration\": 50,\r\n  \"isPublic\": true,\r\n  \"price\": 199,\r\n  \"description\": \"Practice exam covering programming fundamentals, data types, and control structures\"\r\n}\r\n",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:3000/api/teacher/papers",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "teacher",
+                    "papers"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Update Paper",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"title\": \"Physics Practice Test – Mechanics Updated\",\r\n  \"subjectId\": \"cmknrkq1f0003ij9n6flruubg\",\r\n  \"standard\": 11,\r\n  \"difficulty\": \"INTERMEDIATE\",\r\n  \"chapterIds\": [\r\n    \"cmknt1q030007ij9nil031gmr\"\r\n  ],\r\n  \"type\": \"NO_LIMIT\",\r\n  \"duration\": 45,\r\n  \"isPublic\": false,\r\n  \"description\": \"Practice demo demop demo exam for laws of motion and kinematics\"\r\n}\r\n",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:3000/api/teacher/papers/:paperId",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "teacher",
+                    "papers",
+                    ":paperId"
+                  ],
+                  "variable": [
+                    {
+                      "key": "paperId",
+                      "value": "cmknt42fn0009ij9ns91fekwh"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Paper",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:3000/api/teacher/papers/:paperId",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "teacher",
+                    "papers",
+                    ":paperId"
+                  ],
+                  "variable": [
+                    {
+                      "key": "paperId",
+                      "value": "cmknt42fn0009ij9ns91fekwh"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get All Papers",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:3000/api/teacher/papers",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "teacher",
+                    "papers"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get All Papers Pagination",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:3000/api/teacher/papers?page=1&limit=10",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "teacher",
+                    "papers"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Paper Details",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:3000/api/teacher/papers/:paperId",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "teacher",
+                    "papers",
+                    ":paperId"
+                  ],
+                  "variable": [
+                    {
+                      "key": "paperId",
+                      "value": "cmkmeo3n40009599wnf61sv7f"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Publish Paper",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:3000/api/teacher/papers/:paperId/publish",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "teacher",
+                    "papers",
+                    ":paperId",
+                    "publish"
+                  ],
+                  "variable": [
+                    {
+                      "key": "paperId",
+                      "value": "cml80k7m90008ivfvtazh7ego"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "TEACHER - QUESTION MANAGEMENT",
+          "item": [
+            {
+              "name": "Add MCQ Question",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "multipart/form-data",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "type",
+                      "value": "MCQ",
+                      "type": "text"
+                    },
+                    {
+                      "key": "difficulty",
+                      "value": "INTERMEDIATE",
+                      "type": "text"
+                    },
+                    {
+                      "key": "questionText",
+                      "value": "Which data structure follows the FIFO principle?",
+                      "type": "text"
+                    },
+                    {
+                      "key": "options",
+                      "value": "[\"Stack\", \"Queue\", \"Array\", \"Tree\"]",
+                      "type": "text"
+                    },
+                    {
+                      "key": "correctOption",
+                      "value": "1",
+                      "type": "text"
+                    },
+                    {
+                      "key": "marks",
+                      "value": "2",
+                      "type": "text"
+                    },
+                    {
+                      "key": "solutionText",
+                      "value": "Queue follows the FIFO (First In First Out) principle.",
+                      "type": "text"
+                    },
+                    {
+                      "key": "questionImage",
+                      "type": "file",
+                      "uuid": "8b7e8841-c1f9-4a0f-8f6d-9267d5fafb2a",
+                      "src": "postman-cloud:///1f100bac-3480-44b0-a9f5-d81bb84a6df6"
+                    },
+                    {
+                      "key": "solutionImage",
+                      "type": "file",
+                      "uuid": "f015234a-2a3f-4ac9-87cf-183d8f5a5609",
+                      "src": "postman-cloud:///1f100bac-3480-44b0-a9f5-d81bb84a6df6"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "http://localhost:3000/api/teacher/papers/:paperId/questions",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "teacher",
+                    "papers",
+                    ":paperId",
+                    "questions"
+                  ],
+                  "variable": [
+                    {
+                      "key": "paperId",
+                      "value": "cml80k7m90008ivfvtazh7ego"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Update MCQ Question",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"type\": \"MCQ\",\r\n    \"difficulty\": \"INTERMEDIATE\",\r\n    \"questionText\": \"Which law demo demo demo of thermodynamics states energy cannot be created or destroyed?\",\r\n    \"options\": [\r\n        \"First Law demo\",\r\n        \"Second Law demo\",\r\n        \"Third Law demo\",\r\n        \"Zeroth Law demo\"\r\n    ],\r\n    \"correctOption\": 1,\r\n    \"marks\": 2,\r\n    \"solutionText\": \"The First Law of Thermodynamics states that energy is conserved.\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:3000/api/teacher/papers/:paperId/questions/:questionId",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "teacher",
+                    "papers",
+                    ":paperId",
+                    "questions",
+                    ":questionId"
+                  ],
+                  "variable": [
+                    {
+                      "key": "paperId",
+                      "value": "cmknt42fn0009ij9ns91fekwh"
+                    },
+                    {
+                      "key": "questionId",
+                      "value": "cmknta510000dij9nv54ojkzo"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Delete MCQ Question",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:3000/api/teacher/papers/:paperId/questions/:questionId",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "teacher",
+                    "papers",
+                    ":paperId",
+                    "questions",
+                    ":questionId"
+                  ],
+                  "variable": [
+                    {
+                      "key": "paperId",
+                      "value": "cmknt42fn0009ij9ns91fekwh"
+                    },
+                    {
+                      "key": "questionId",
+                      "value": "cmknta510000dij9nv54ojkzo"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Add Text Question",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "multipart/form-data",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "type",
+                      "value": "TEXT",
+                      "type": "text"
+                    },
+                    {
+                      "key": "difficulty",
+                      "value": "ADVANCED",
+                      "type": "text"
+                    },
+                    {
+                      "key": "questionText",
+                      "value": "Explain the process management functions of an operating system.",
+                      "type": "text"
+                    },
+                    {
+                      "key": "marks",
+                      "value": "5",
+                      "type": "text"
+                    },
+                    {
+                      "key": "solutionText",
+                      "value": "Process management involves creating, scheduling, and terminating processes. The operating system manages CPU allocation, process synchronization, inter-process communication, and deadlock handling to ensure efficient execution of programs.",
+                      "type": "text"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "http://localhost:3000/api/teacher/papers/:paperId/questions",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "teacher",
+                    "papers",
+                    ":paperId",
+                    "questions"
+                  ],
+                  "variable": [
+                    {
+                      "key": "paperId",
+                      "value": "cml28x194000c950xnkvbgqo3"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Update Text Question",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"type\": \"TEXT\",\r\n    \"difficulty\": \"ADVANCED\",\r\n    \"questionText\": \"Explain the working principle manmuyhof an electric motor.\",\r\n    \"marks\": 52,\r\n    \"solutionText\": \"An electric motor works onUpdated the principle that a current-carrying conductor placed in a magnetic field experiences a force, which causes rotational motion.\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:3000/api/teacher/papers/:paperId/questions/:questionId",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "teacher",
+                    "papers",
+                    ":paperId",
+                    "questions",
+                    ":questionId"
+                  ],
+                  "variable": [
+                    {
+                      "key": "paperId",
+                      "value": "cmknt42fn0009ij9ns91fekwh"
+                    },
+                    {
+                      "key": "questionId",
+                      "value": "cmkntgxeb000fij9n9vhe6lqi"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Text Question",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:3000/api/teacher/papers/:paperId/questions/:questionId",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "teacher",
+                    "papers",
+                    ":paperId",
+                    "questions",
+                    ":questionId"
+                  ],
+                  "variable": [
+                    {
+                      "key": "paperId",
+                      "value": "cmknt42fn0009ij9ns91fekwh"
+                    },
+                    {
+                      "key": "questionId",
+                      "value": "cmkntgxeb000fij9n9vhe6lqi"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Add Fill In The Blanks Question",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "multipart/form-data",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "type",
+                      "value": "FILL_IN_THE_BLANKS",
+                      "type": "text"
+                    },
+                    {
+                      "key": "difficulty",
+                      "value": "INTERMEDIATE",
+                      "type": "text"
+                    },
+                    {
+                      "key": "questionText",
+                      "value": "The brain of the computer is the _____ and it performs all _____ operations.",
+                      "type": "text"
+                    },
+                    {
+                      "key": "marks",
+                      "value": "5",
+                      "type": "text"
+                    },
+                    {
+                      "key": "solutionText",
+                      "value": "The CPU is known as the brain of the computer and it performs all processing operations.",
+                      "type": "text"
+                    },
+                    {
+                      "key": "correctAnswers",
+                      "value": "[[\"CPU\", \"cpu\"], [\"processing\", \"Processing\"]]",
+                      "type": "text",
+                      "uuid": "47d6058b-1206-4e07-b808-8ec8e64db3d9"
+                    },
+                    {
+                      "key": "caseSensitive",
+                      "value": "false",
+                      "type": "text",
+                      "uuid": "4e2468ec-7518-4f91-b477-0debaf0c2da0"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "http://localhost:3000/api/teacher/papers/:paperId/questions",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "teacher",
+                    "papers",
+                    ":paperId",
+                    "questions"
+                  ],
+                  "variable": [
+                    {
+                      "key": "paperId",
+                      "value": "cml28x194000c950xnkvbgqo3"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get All Questions in Paper",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "multipart/form-data",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "http://localhost:3000/api/teacher/papers/:paperId/questions",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "teacher",
+                    "papers",
+                    ":paperId",
+                    "questions"
+                  ],
+                  "variable": [
+                    {
+                      "key": "paperId",
+                      "value": "cml28x194000c950xnkvbgqo3"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Bulk Upload With Excel",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "multipart/form-data",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "file",
+                      "type": "file",
+                      "uuid": "19dec650-1e95-414e-b219-83bac3e3608b",
+                      "src": "postman-cloud:///1f0ff8b6-3c24-4b20-bb18-d625ad24a8fb"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "http://localhost:3000/api/teacher/papers/:{paperId}/questions/bulk-upload",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "teacher",
+                    "papers",
+                    ":{paperId}",
+                    "questions",
+                    "bulk-upload"
+                  ],
+                  "variable": [
+                    {
+                      "key": "{paperId}",
+                      "value": "cml3xu22b00015va4uwj4wa5r"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "TEACHER - ANALYTICS",
+          "item": [
+            {
+              "name": "Get Teacher Dashboard Analytics",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:3000/api/analytics/teacher",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "analytics",
+                    "teacher"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Paper Analytics",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:3000/api/analytics/paper/:paperId",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "analytics",
+                    "paper",
+                    ":paperId"
+                  ],
+                  "variable": [
+                    {
+                      "key": "paperId",
+                      "value": "cmkuz4aon0005chezm5uf23tt"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Doubts",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:3000/api/teacher/papers/:paperId/doubts",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "teacher",
+                    "papers",
+                    ":paperId",
+                    "doubts"
+                  ],
+                  "variable": [
+                    {
+                      "key": "paperId",
+                      "value": "cml80k7m90008ivfvtazh7ego"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Reply to Doubt",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"reply\": \"The answer is very understandable.\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:3000/api/teacher/doubts/:doubtId/reply",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "teacher",
+                    "doubts",
+                    ":doubtId",
+                    "reply"
+                  ],
+                  "variable": [
+                    {
+                      "key": "doubtId",
+                      "value": "cml8a5f210001uowk7f0n1njt"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Teacher API - Doubt statistics",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:3000/api/teacher/papers/:paperId/doubt-stats",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "teacher",
+                    "papers",
+                    ":paperId",
+                    "doubt-stats"
+                  ],
+                  "variable": [
+                    {
+                      "key": "paperId",
+                      "value": "cml80k7m90008ivfvtazh7ego"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Teacher API - Difficulty statistics",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:3000/api/teacher/papers/:paperId/difficulty-stats",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "teacher",
+                    "papers",
+                    ":paperId",
+                    "difficulty-stats"
+                  ],
+                  "variable": [
+                    {
+                      "key": "paperId",
+                      "value": "cml80k7m90008ivfvtazh7ego"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "TEACHER - Standard",
+          "item": [
+            {
+              "name": "create standard",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"name\": \"9\",\r\n  \"teacherId\":\"cml7z9tni00025gp395q0pdl1\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:3000/api/teacher/standards",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "teacher",
+                    "standards"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "get all standard",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:3000/api/teacher/standards",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "teacher",
+                    "standards"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Single Standard",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:3000/api/teacher/standards/:standardId",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "teacher",
+                    "standards",
+                    ":standardId"
+                  ],
+                  "variable": [
+                    {
+                      "key": "standardId",
+                      "value": "cmkuq167h0002fyx4hycb22nv"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Update Standard",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"name\": \"10\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:3000/api/teacher/standards/:standardId",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "teacher",
+                    "standards",
+                    ":standardId"
+                  ],
+                  "variable": [
+                    {
+                      "key": "standardId",
+                      "value": "cmkuq167h0002fyx4hycb22nv"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Standard",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:3000/api/teacher/standards/:standardId",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "teacher",
+                    "standards",
+                    ":standardId"
+                  ],
+                  "variable": [
+                    {
+                      "key": "standardId",
+                      "value": "cmkuq167h0002fyx4hycb22nv"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "TEACHER - CHAT MODULE",
+          "item": [
+            {
+              "name": "Teacher Replies to Student",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"paperId\": \"cml28x194000c950xnkvbgqo3\",\r\n  \"message\": \"Vitamin 9okm is mainly beneficial 9okm 9okm for skin.\",\r\n  \"receiverId\": \"cml29ruez0007xdin2gricv2v\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:3000/api/chat/messages",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "chat",
+                    "messages"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Teacher Gets All Messages",
+              "protocolProfileBehavior": {
+                "disableBodyPruning": true
+              },
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"paperId\": \"cml0lsm0c0001wfyrci1nm85i\",\r\n    \"studentId\": \"cmkuu30gu0008ukllnmg11kpw\"\r\n}"
+                },
+                "url": {
+                  "raw": "http://localhost:3000/api/chat/messages/:paperId",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "chat",
+                    "messages",
+                    ":paperId"
+                  ],
+                  "variable": [
+                    {
+                      "key": "paperId",
+                      "value": "cml28x194000c950xnkvbgqo3"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Unread Count",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:3000/api/chat/unread/:paperId",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "chat",
+                    "unread",
+                    ":paperId"
+                  ],
+                  "variable": [
+                    {
+                      "key": "paperId",
+                      "value": "cml28x194000c950xnkvbgqo3"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Mark Message as Read Copy",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:3000/api/chat/messages/:messageId/read",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "chat",
+                    "messages",
+                    ":messageId",
+                    "read"
+                  ],
+                  "variable": [
+                    {
+                      "key": "messageId",
+                      "value": "cml29cu6a0004xdin3ezjc55l"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "register",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"email\": \"john@demo.com\",\r\n  \"password\": \"SecurePassword123\",\r\n  \"firstName\":\"JOHN\",\r\n  \"lastName\":\"DOE\",\r\n  \"role\": \"TEACHER\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/auth/register",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "login",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"email\": \"john@appifly.com\",\r\n  \"password\": \"SecurePassword123\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/auth/login",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get User Profile",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJjbWt1cHpueWIwMDAwZnl4NDhiaHJmY2JxIiwicm9sZSI6IlRFQUNIRVIiLCJpYXQiOjE3Njk0MDQ5MTAsImV4cCI6MTc2OTQwNTgxMH0.yPFRaze4nSEAsM5TM7FLr0xu3fxv6m4LL6z_DqBbEqY",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/auth/profile",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "auth",
+                "profile"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "new request token",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"refreshToken\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJjbWt1eWJhcncwMDAwMWF5dHJlNXNlNmptIiwicm9sZSI6IlRFQUNIRVIiLCJpYXQiOjE3Njk0MTg4NzYsImV4cCI6MTc3MDAyMzY3Nn0.oHCwHofSDeJ6W1BiA4dYzOnuBaWXfsnuV-zwimfbuGU\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/auth/refresh-token",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "auth",
+                "refresh-token"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "STUDENT - DASHBOARD & PAPERS",
+      "item": [
+        {
+          "name": "Student Dashboard",
+          "item": [
+            {
+              "name": "Get Student Dashboard",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{student access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:3000/api/student/dashboard",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "student",
+                    "dashboard"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "EXAM ENGINE - START & ATTEMPT",
+          "item": [
+            {
+              "name": "Start Exam",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{student access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:3000/api/exam/start/:paperId",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "exam",
+                    "start",
+                    ":paperId"
+                  ],
+                  "variable": [
+                    {
+                      "key": "paperId",
+                      "value": "cml80k7m90008ivfvtazh7ego"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get First Question",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{student access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:3000/api/exam/:attemptId/question",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "exam",
+                    ":attemptId",
+                    "question"
+                  ],
+                  "variable": [
+                    {
+                      "key": "attemptId",
+                      "value": "cml80qrt7000mivfvrjsv1dvm"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get First Question Copy",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{student access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:3000/api/exam/:attemptId/question?questionIndex=1",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "exam",
+                    ":attemptId",
+                    "question"
+                  ],
+                  "query": [
+                    {
+                      "key": "questionIndex",
+                      "value": "1"
+                    }
+                  ],
+                  "variable": [
+                    {
+                      "key": "attemptId",
+                      "value": "cmklejqn40001rwt2g67gdtuc"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Save Answer to Question",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{student access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"selectedOptionIndex\": 1\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:3000/api/exam/:attemptId/answer/:questionId",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "exam",
+                    ":attemptId",
+                    "answer",
+                    ":questionId"
+                  ],
+                  "variable": [
+                    {
+                      "key": "attemptId",
+                      "value": "cml80qrt7000mivfvrjsv1dvm"
+                    },
+                    {
+                      "key": "questionId",
+                      "value": "cml80kp40000eivfvv2nfg4ao"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Save Answer to Question Copy",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{student access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"answerText\": \"Process management is a function of the operating system. It is used to handle processes in a computer. The operating system controls how programs run.\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:3000/api/exam/:attemptId/answer/:questionId",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "exam",
+                    ":attemptId",
+                    "answer",
+                    ":questionId"
+                  ],
+                  "variable": [
+                    {
+                      "key": "attemptId",
+                      "value": "cml0l5h770001eb2sh37d8pa2"
+                    },
+                    {
+                      "key": "questionId",
+                      "value": "cmkzmze2s000zwvo4f8bacc12"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Save Answer to Fill in the blanks Question",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{student access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"answerText\": \"CPU|Processing\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:3000/api/exam/:attemptId/answer/:questionId",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "exam",
+                    ":attemptId",
+                    "answer",
+                    ":questionId"
+                  ],
+                  "variable": [
+                    {
+                      "key": "attemptId",
+                      "value": "cml0iiuka000129ptwp5s1kng"
+                    },
+                    {
+                      "key": "questionId",
+                      "value": "cmkzn4vfk0011wvo4bppugq4l"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Raise Doubt on Question",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{student access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"doubtText\": \"I'm confused about the solution approach\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:3000/api/exam/:attemptId/:questionId/doubt",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "exam",
+                    ":attemptId",
+                    ":questionId",
+                    "doubt"
+                  ],
+                  "variable": [
+                    {
+                      "key": "attemptId",
+                      "value": "cml80qrt7000mivfvrjsv1dvm"
+                    },
+                    {
+                      "key": "questionId",
+                      "value": "cml80kp40000eivfvv2nfg4ao"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Raise Doubt on Question Copy",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{student access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"isTooHard\": true\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:3000/api/exam/:attemptId/:questionId/mark-hard",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "exam",
+                    ":attemptId",
+                    ":questionId",
+                    "mark-hard"
+                  ],
+                  "variable": [
+                    {
+                      "key": "attemptId",
+                      "value": "cml80qrt7000mivfvrjsv1dvm"
+                    },
+                    {
+                      "key": "questionId",
+                      "value": "cml80kp40000eivfvv2nfg4ao"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Navigate to Next Question",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{student access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:3000/api/exam/:attemptId/next-question",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "exam",
+                    ":attemptId",
+                    "next-question"
+                  ],
+                  "variable": [
+                    {
+                      "key": "attemptId",
+                      "value": "cml298psn0002xdinq07dpdts"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Navigate to Previous Question",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{student access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:3000/api/exam/:attemptId/previous-question",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "exam",
+                    ":attemptId",
+                    "previous-question"
+                  ],
+                  "variable": [
+                    {
+                      "key": "attemptId",
+                      "value": "cml0l5h770001eb2sh37d8pa2"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Submit Exam",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{student access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:3000/api/exam/:attemptId/submit",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "exam",
+                    ":attemptId",
+                    "submit"
+                  ],
+                  "variable": [
+                    {
+                      "key": "attemptId",
+                      "value": "cml80qrt7000mivfvrjsv1dvm"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Exam Result",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{student access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:3000/api/exam/:attemptId/result",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "exam",
+                    ":attemptId",
+                    "result"
+                  ],
+                  "variable": [
+                    {
+                      "key": "attemptId",
+                      "value": "cml80qrt7000mivfvrjsv1dvm"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "STUDENT - EXAM HISTORY",
+          "item": [
+            {
+              "name": "Get Exam History",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{student access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:3000/api/student/exam-history",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "student",
+                    "exam-history"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "STUDENT - CHAT MODULE",
+          "item": [
+            {
+              "name": "Get Chat Room",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{student access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:3000/api/chat/rooms/:paperId",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "chat",
+                    "rooms",
+                    ":paperId"
+                  ],
+                  "variable": [
+                    {
+                      "key": "paperId",
+                      "value": "cml28x194000c950xnkvbgqo3"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Send Messages via REST API",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{student access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"paperId\": \"cml28x194000c950xnkvbgqo3\",\r\n  \"message\": \"Hello, what are the benefits of Vitamin 9okm?\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:3000/api/chat/messages",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "chat",
+                    "messages"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Student Gets Their Messages",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{student access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:3000/api/chat/messages/:paperId",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "chat",
+                    "messages",
+                    ":paperId"
+                  ],
+                  "variable": [
+                    {
+                      "key": "paperId",
+                      "value": "cml28x194000c950xnkvbgqo3"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Unread Count",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{student access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:3000/api/chat/unread/:paperId",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "chat",
+                    "unread",
+                    ":paperId"
+                  ],
+                  "variable": [
+                    {
+                      "key": "paperId",
+                      "value": "cml28x194000c950xnkvbgqo3"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Mark Message as Read",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{student access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:3000/api/chat/messages/:messageId/read",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "chat",
+                    "messages",
+                    ":messageId",
+                    "read"
+                  ],
+                  "variable": [
+                    {
+                      "key": "messageId",
+                      "value": "cml29f1w70006xdinrinzkgpv"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "STUDENT - COUPEN MODULE",
+          "item": [
+            {
+              "name": "Student Checks for Coupon",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{student access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:3000/api/coupons/my-coupon/:paperId",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "coupons",
+                    "my-coupon",
+                    ":paperId"
+                  ],
+                  "variable": [
+                    {
+                      "key": "paperId",
+                      "value": "cml80k7m90008ivfvtazh7ego"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Student Applies Coupon",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{student access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"code\": \"COMP-Z4WBNKCL\",\r\n  \"paperId\": \"cml80k7m90008ivfvtazh7ego\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:3000/api/coupons/validate",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "coupons",
+                    "validate"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "login student",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"email\": \"john@student.com\",\r\n  \"password\": \"SecurePassword123\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/auth/login",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "register student",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"email\": \"john@student.com\",\r\n  \"password\": \"SecurePassword123\",\r\n  \"firstName\":\"JOHN\",\r\n  \"lastName\":\"DOE\",\r\n  \"role\": \"STUDENT\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/auth/register",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get User Profile Student",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{student access token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/auth/profile",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "auth",
+                "profile"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "new request token student",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"refreshToken\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJjbWt1dTMwZ3UwMDA4dWtsbG5tZzExa3B3Iiwicm9sZSI6IlNUVURFTlQiLCJpYXQiOjE3Njk0MTE3NzEsImV4cCI6MTc3MDAxNjU3MX0.AJmnWbVgcVjh2ScxvjcSEi4C3S-6M0Ekqj5-4UARFkY\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/auth/refresh-token",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "auth",
+                "refresh-token"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "STUDENT - DASHBOARD & PAPERS Copy",
+      "item": [
+        {
+          "name": "Student Dashboard",
+          "item": [
+            {
+              "name": "Get Student Dashboard",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{student access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:3000/api/student/dashboard",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "student",
+                    "dashboard"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "EXAM ENGINE - START & ATTEMPT",
+          "item": [
+            {
+              "name": "Start Exam",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{new student access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:3000/api/exam/start/:paperId",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "exam",
+                    "start",
+                    ":paperId"
+                  ],
+                  "variable": [
+                    {
+                      "key": "paperId",
+                      "value": "cml80k7m90008ivfvtazh7ego"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get First Question",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{student access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:3000/api/exam/:attemptId/question",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "exam",
+                    ":attemptId",
+                    "question"
+                  ],
+                  "variable": [
+                    {
+                      "key": "attemptId",
+                      "value": "cml0h5tpp0001467xehe6t2ko"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get First Question Copy",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{student access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:3000/api/exam/:attemptId/question?questionIndex=1",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "exam",
+                    ":attemptId",
+                    "question"
+                  ],
+                  "query": [
+                    {
+                      "key": "questionIndex",
+                      "value": "1"
+                    }
+                  ],
+                  "variable": [
+                    {
+                      "key": "attemptId",
+                      "value": "cmklejqn40001rwt2g67gdtuc"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Save Answer to Question",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{student access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"selectedOptionIndex\": 1\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:3000/api/exam/:attemptId/answer/:questionId",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "exam",
+                    ":attemptId",
+                    "answer",
+                    ":questionId"
+                  ],
+                  "variable": [
+                    {
+                      "key": "attemptId",
+                      "value": "cml0m55fi000hwfyrcygt47ny"
+                    },
+                    {
+                      "key": "questionId",
+                      "value": "cml0lt61j000bwfyr2znki1d5"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Save Answer to Question Copy",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{student access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"answerText\": \"Process management is a function of the operating system. It is used to handle processes in a computer. The operating system controls how programs run.\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:3000/api/exam/:attemptId/answer/:questionId",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "exam",
+                    ":attemptId",
+                    "answer",
+                    ":questionId"
+                  ],
+                  "variable": [
+                    {
+                      "key": "attemptId",
+                      "value": "cml0l5h770001eb2sh37d8pa2"
+                    },
+                    {
+                      "key": "questionId",
+                      "value": "cmkzmze2s000zwvo4f8bacc12"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Save Answer to Fill in the blanks Question",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{student access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"answerText\": \"CPU|Processing\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:3000/api/exam/:attemptId/answer/:questionId",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "exam",
+                    ":attemptId",
+                    "answer",
+                    ":questionId"
+                  ],
+                  "variable": [
+                    {
+                      "key": "attemptId",
+                      "value": "cml0iiuka000129ptwp5s1kng"
+                    },
+                    {
+                      "key": "questionId",
+                      "value": "cmkzn4vfk0011wvo4bppugq4l"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Raise Doubt on Question",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{student access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"doubtText\": \"I'm confused about the solution approach\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:3000/api/exam/:attemptId/:questionId/doubt",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "exam",
+                    ":attemptId",
+                    ":questionId",
+                    "doubt"
+                  ],
+                  "variable": [
+                    {
+                      "key": "attemptId",
+                      "value": "cmknhy0xk000p599wnif0gq7n"
+                    },
+                    {
+                      "key": "questionId",
+                      "value": "cmkmf66v5000n599wn5l54b4h"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Navigate to Next Question",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{student access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:3000/api/exam/:attemptId/next-question",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "exam",
+                    ":attemptId",
+                    "next-question"
+                  ],
+                  "variable": [
+                    {
+                      "key": "attemptId",
+                      "value": "cml298psn0002xdinq07dpdts"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Navigate to Previous Question",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{student access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:3000/api/exam/:attemptId/previous-question",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "exam",
+                    ":attemptId",
+                    "previous-question"
+                  ],
+                  "variable": [
+                    {
+                      "key": "attemptId",
+                      "value": "cml0l5h770001eb2sh37d8pa2"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Submit Exam",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{student access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:3000/api/exam/:attemptId/submit",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "exam",
+                    ":attemptId",
+                    "submit"
+                  ],
+                  "variable": [
+                    {
+                      "key": "attemptId",
+                      "value": "cml0l5h770001eb2sh37d8pa2"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Exam Result",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{student access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:3000/api/exam/:attemptId/result",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "exam",
+                    ":attemptId",
+                    "result"
+                  ],
+                  "variable": [
+                    {
+                      "key": "attemptId",
+                      "value": "cml0l5h770001eb2sh37d8pa2"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "STUDENT - EXAM HISTORY",
+          "item": [
+            {
+              "name": "Get Exam History",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{student access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:3000/api/student/exam-history",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "student",
+                    "exam-history"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "STUDENT - CHAT MODULE",
+          "item": [
+            {
+              "name": "Get Chat Room",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{student access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:3000/api/chat/rooms/:paperId",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "chat",
+                    "rooms",
+                    ":paperId"
+                  ],
+                  "variable": [
+                    {
+                      "key": "paperId",
+                      "value": "cml28x194000c950xnkvbgqo3"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Send Messages via REST API",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{student access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"paperId\": \"cml28x194000c950xnkvbgqo3\",\r\n  \"message\": \"Hello, what are the benefits of Vitamin 9okm?\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:3000/api/chat/messages",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "chat",
+                    "messages"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Student Gets Their Messages",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{student access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:3000/api/chat/messages/:paperId",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "chat",
+                    "messages",
+                    ":paperId"
+                  ],
+                  "variable": [
+                    {
+                      "key": "paperId",
+                      "value": "cml28x194000c950xnkvbgqo3"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Unread Count",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{student access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:3000/api/chat/unread/:paperId",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "chat",
+                    "unread",
+                    ":paperId"
+                  ],
+                  "variable": [
+                    {
+                      "key": "paperId",
+                      "value": "cml28x194000c950xnkvbgqo3"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Mark Message as Read",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{student access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:3000/api/chat/messages/:messageId/read",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "chat",
+                    "messages",
+                    ":messageId",
+                    "read"
+                  ],
+                  "variable": [
+                    {
+                      "key": "messageId",
+                      "value": "cml29f1w70006xdinrinzkgpv"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Student Checks for Coupon",
+          "item": [
+            {
+              "name": "Student Checks for Coupon",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{student access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:3000/api/coupons/my-coupon/:paperId",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "coupons",
+                    "my-coupon",
+                    ":paperId"
+                  ],
+                  "variable": [
+                    {
+                      "key": "paperId",
+                      "value": "cml7zi6v5000f5gp3vhio4xgs"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Student Applies Coupon",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{student access token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"code\": \"COMP-ZZJIZKSC\",\r\n  \"paperId\": \"cml7zi6v5000f5gp3vhio4xgs\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:3000/api/coupons/validate",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "coupons",
+                    "validate"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "login student",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"email\": \"john@student.com\",\r\n  \"password\": \"SecurePassword123\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/auth/login",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "register student",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"email\": \"ashitamipara443.com\",\r\n  \"password\": \"SecurePassword123\",\r\n  \"firstName\":\"JOHN\",\r\n  \"lastName\":\"DOE\",\r\n  \"role\": \"STUDENT\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/auth/register",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get User Profile Student",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{student access token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/auth/profile",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "auth",
+                "profile"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "new request token student",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"refreshToken\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJjbWt1dTMwZ3UwMDA4dWtsbG5tZzExa3B3Iiwicm9sZSI6IlNUVURFTlQiLCJpYXQiOjE3Njk0MTE3NzEsImV4cCI6MTc3MDAxNjU3MX0.AJmnWbVgcVjh2ScxvjcSEi4C3S-6M0Ekqj5-4UARFkY\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/auth/refresh-token",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "auth",
+                "refresh-token"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "SUPER ADMIN",
+      "item": [
+        {
+          "name": "Create a Super Admin Account",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"email\": \"admin@hubx.com\",\r\n  \"password\": \"admin123\",\r\n  \"firstName\": \"Super\",\r\n  \"lastName\": \"Admin\",\r\n  \"role\": \"SUPER_ADMIN\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/auth/register",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create an Organization (Super Admin Only)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin access token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"name\": \"Test University\",\r\n  \"type\": \"UNIVERSITY\",\r\n  \"code\": \"TEST_UNIV\",\r\n  \"description\": \"Test University for demonstration\",\r\n  \"email\": \"admin@testuniv.edu\",\r\n  \"phone\": \"+1234567890\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/organization",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "organization"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Add Teacher to Organization (Super Admin Only)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin access token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"userId\": \"cml7z9tni00025gp395q0pdl1\",\r\n  \"role\": \"TEACHER\",\r\n  \"employeeId\": \"EMP001\",\r\n  \"department\": \"Mathematics\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/organization/:orgId/members",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "organization",
+                ":orgId",
+                "members"
+              ],
+              "variable": [
+                {
+                  "key": "orgId",
+                  "value": "cml7z84fi00015gp3212ww73i"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Add Students to Organization",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin access token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"userId\": \"cml7zaxox00055gp3zzedsuq7\",\r\n  \"role\": \"STUDENT\",\r\n  \"studentId\": \"STU001\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/organization/:orgId/members",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "organization",
+                ":orgId",
+                "members"
+              ],
+              "variable": [
+                {
+                  "key": "orgId",
+                  "value": "cml7z84fi00015gp3212ww73i"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "access token",
+      "value": ""
+    },
+    {
+      "key": "student access token",
+      "value": ""
+    },
+    {
+      "key": "admin access token",
+      "value": ""
+    },
+    {
+      "key": "new student access token",
+      "value": ""
+    }
+  ]
+}

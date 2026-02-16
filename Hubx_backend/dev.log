@@ -1,0 +1,10 @@
+
+> hubx-exam-backend@1.0.0 dev
+> tsx watch src/server.ts
+
+Server running on port 8000
+Socket.IO initialized
+Redis connected
+[0mPOST /api/auth/login [32m200[0m 74.016 ms - 630[0m
+[0mPOST /api/auth/login [32m200[0m 55.201 ms - 628[0m
+[0mGET /api/auth/profile [36m304[0m 8.774 ms - -[0m

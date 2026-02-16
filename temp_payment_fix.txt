@@ -1,0 +1,21 @@
+    const handlePayment = async () => {
+        setIsProcessing(true);
+        setError(null);
+
+        try {
+            // Handle Free Coupon Case
+            if (finalAmount === 0 && appliedCoupon) {
+                // NEW: Claim free access instead of just verifying
+                try {
+                    await paymentService.claimFreeAccess(paperId);
+                    setIsSuccess(true);
+                } catch (claimError: any) {
+                    console.error("Free coupon claim failed:", claimError);
+                    setError(claimError.message || "Failed to claim free access");
+                } finally {
+                    setIsProcessing(false);
+                }
+                return;
+            }
+
+            // Standard Razorpay Flow
