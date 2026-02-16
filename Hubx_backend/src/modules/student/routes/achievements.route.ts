@@ -1,5 +1,5 @@
 import { Router, Request, Response } from "express";
-import { authenticate } from "@/middlewares/auth.middleware";
+import { authenticate } from "@middlewares/auth";
 import { achievementsService } from "../services/achievements.service";
 
 const router = Router();

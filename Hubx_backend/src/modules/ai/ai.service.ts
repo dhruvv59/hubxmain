@@ -1,7 +1,7 @@
 import { OpenAI } from "openai";
 import prisma from "@config/database";
 import { AppError } from "@utils/errors";
-import { QuestionType, QuestionDifficulty } from "@prisma/client";
+import { QuestionType, Difficulty } from "@prisma/client";
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY || "",
@@ -56,8 +56,8 @@ export class AIService {
             const prompt = this.buildPrompt(request, paper);
 
             // Call OpenAI API
-            const message = await openai.messages.create({
-                model: "claude-3-5-sonnet-20241022", // Using Claude from Anthropic
+            const message = await (openai as any).chat.completions.create({
+                model: "gpt-4",
                 max_tokens: 4096,
                 messages: [
                     {
@@ -68,8 +68,7 @@ export class AIService {
             });
 
             // Extract the response text
-            const responseText =
-                message.content[0].type === "text" ? message.content[0].text : "";
+            const responseText = message.choices[0]?.message?.content || "";
 
             // Parse the questions from the response
             const questions = this.parseQuestionsFromResponse(responseText, request.difficulty);

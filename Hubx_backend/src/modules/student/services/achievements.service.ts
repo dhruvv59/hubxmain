@@ -1,4 +1,4 @@
-import { prisma } from "@/config/database";
+import prisma from "@config/database";
 
 export class AchievementsService {
   /**
@@ -85,10 +85,10 @@ export class AchievementsService {
     });
 
     const earnedIds = new Set(
-      earnedAchievements.map((a) => a.achievementId)
+      earnedAchievements.map((a: any) => a.achievementId)
     );
     const earnedMap = new Map(
-      earnedAchievements.map((a) => [a.achievementId, a.earnedAt])
+      earnedAchievements.map((a: any) => [a.achievementId, a.earnedAt])
     );
 
     // Get user's exam stats for progress calculation
@@ -98,7 +98,7 @@ export class AchievementsService {
     });
 
     // Calculate progress for each achievement
-    const achievements = allAchievements.map((achievement) => {
+    const achievements = allAchievements.map((achievement: any) => {
       const earned = earnedIds.has(achievement.id);
       let progress = 0;
 
@@ -111,7 +111,7 @@ export class AchievementsService {
 
           case "score_threshold":
             const highScores = examStats.filter(
-              (e) => e.percentage >= 90
+              (e: any) => e.percentage >= 90
             ).length;
             progress = Math.min(100, (highScores / (achievement.threshold || 1)) * 100);
             break;
@@ -124,7 +124,7 @@ export class AchievementsService {
             break;
 
           case "perfect_score":
-            const perfect = examStats.filter((e) => e.percentage === 100).length;
+            const perfect = examStats.filter((e: any) => e.percentage === 100).length;
             progress = perfect > 0 ? 100 : 0;
             break;
 
@@ -183,13 +183,13 @@ export class AchievementsService {
     }
 
     // Award "Perfect Score" if any exam has 100%
-    const hasPerf = examStats.some((e) => e.percentage === 100);
+    const hasPerf = examStats.some((e: any) => e.percentage === 100);
     if (hasPerf) {
       await this.awardAchievement(studentId, "ach_perfect_score");
     }
 
     // Award "Quick Learner" if 5 exams with 90%+
-    const highScores = examStats.filter((e) => e.percentage >= 90).length;
+    const highScores = examStats.filter((e: any) => e.percentage >= 90).length;
     if (highScores >= 5) {
       await this.awardAchievement(studentId, "ach_score_threshold");
     }

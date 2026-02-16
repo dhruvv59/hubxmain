@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { authenticate } from "@/middlewares/auth.middleware";
+import { authenticate } from "@middlewares/auth";
 import { profileService } from "../services/profile.service";
 import {
   validateProfileUpdate,

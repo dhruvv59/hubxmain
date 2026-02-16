@@ -1,4 +1,4 @@
-import { prisma } from "@/config/database";
+import prisma from "@config/database";
 import { Prisma } from "@prisma/client";
 
 export class ProfileService {
@@ -65,7 +65,7 @@ export class ProfileService {
     }
   ) {
     // Start transaction to ensure consistency
-    return await prisma.$transaction(async (tx) => {
+    return await prisma.$transaction(async (tx: any) => {
       // Parse full name if provided
       let firstName = "";
       let lastName = "";

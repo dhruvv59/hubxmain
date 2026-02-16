@@ -1,5 +1,5 @@
-import { prisma } from "@/config/database";
-import { TicketStatus, TicketCategory } from "@prisma/client";
+import prisma from "@config/database";
+import type { TicketStatus, TicketCategory } from "@prisma/client";
 
 export class SupportTicketService {
   /**
@@ -82,7 +82,7 @@ export class SupportTicketService {
     ]);
 
     return {
-      data: tickets.map((t) => ({
+      data: tickets.map((t: any) => ({
         id: t.id,
         subject: t.subject,
         status: t.status,
@@ -151,7 +151,7 @@ export class SupportTicketService {
       resolution: ticket.resolution,
       createdAt: ticket.createdAt,
       resolvedAt: ticket.resolvedAt,
-      replies: ticket.replies.map((r) => ({
+      replies: ticket.replies.map((r: any) => ({
         id: r.id,
         message: r.message,
         sender: `${r.user.firstName} ${r.user.lastName}`,
