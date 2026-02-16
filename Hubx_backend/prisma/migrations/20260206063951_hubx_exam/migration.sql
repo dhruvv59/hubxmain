@@ -1,12 +1,12 @@
 -- AlterTable
-ALTER TABLE `doubt` ADD COLUMN `isResolved` BOOLEAN NOT NULL DEFAULT false,
+ALTER TABLE `Doubt` ADD COLUMN `isResolved` BOOLEAN NOT NULL DEFAULT false,
     ADD COLUMN `repliedAt` DATETIME(3) NULL,
     ADD COLUMN `repliedBy` VARCHAR(191) NULL,
     ADD COLUMN `teacherReply` LONGTEXT NULL,
     ADD COLUMN `updatedAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3);
 
 -- AlterTable
-ALTER TABLE `studentanswer` ADD COLUMN `markedTooHard` BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE `StudentAnswer` ADD COLUMN `markedTooHard` BOOLEAN NOT NULL DEFAULT false;
 
 -- CreateIndex
 CREATE INDEX `Doubt_isResolved_idx` ON `Doubt`(`isResolved`);
