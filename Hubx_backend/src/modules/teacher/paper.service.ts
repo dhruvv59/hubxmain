@@ -391,9 +391,13 @@ export class PaperService {
     }
 
     if (filters?.search) {
-      publicPapersWhere.OR = [
-        { title: { contains: filters.search } },
-        { description: { contains: filters.search } },
+      publicPapersWhere.AND = [
+        {
+          OR: [
+            { title: { contains: filters.search } },
+            { description: { contains: filters.search } },
+          ]
+        }
       ]
     }
 
@@ -420,7 +424,11 @@ export class PaperService {
       orderBy: { createdAt: "desc" },
     })
 
-    // Get other teachers' public papers (with pagination)
+    // Get other teachers' public papers
+    // If filtering by rating, we need ALL papers to calculate ratings first
+    // Otherwise, use pagination (skip/take)
+    const shouldGetAllPapers = filters?.rating ? true : false
+
     const otherPapers = await prisma.paper.findMany({
       where: {
         ...publicPapersWhere,
@@ -440,10 +448,17 @@ export class PaperService {
           select: { id: true },
         },
       },
-      skip,
-      take: limit,
+      ...(shouldGetAllPapers ? {} : { skip, take: limit }),
       orderBy: { createdAt: "desc" },
     })
+
+    const totalOtherPapers = !shouldGetAllPapers ? otherPapers.length :
+      await prisma.paper.count({
+        where: {
+          ...publicPapersWhere,
+          teacherId: { not: teacherId },
+        },
+      })
 
     // Calculate ratings for all papers
     const ownPapersWithRatings = await Promise.all(
@@ -498,23 +513,35 @@ export class PaperService {
       })
     )
 
-    // Apply rating filter and sort
+    // Apply rating filter and pagination for filtered results
     let filteredOtherPapers = otherPapersWithRatings
 
     if (filters?.rating === "4 ★ & above") {
+      // Filter by rating >= 4
       filteredOtherPapers = filteredOtherPapers.filter(p => p.rating >= 4)
     } else if (filters?.rating === "Most Popular") {
+      // Sort by attempts for "Most Popular"
       filteredOtherPapers = filteredOtherPapers.sort((a, b) => b.totalAttempts - a.totalAttempts)
+    }
+
+    // Apply pagination to filtered results if rating filter was used
+    let finalOtherPapers = filteredOtherPapers
+    let finalTotal = shouldGetAllPapers ? filteredOtherPapers.length : totalOtherPapers
+
+    if (shouldGetAllPapers) {
+      // Apply pagination after filtering
+      const paginatedStart = (page - 1) * limit
+      finalOtherPapers = filteredOtherPapers.slice(paginatedStart, paginatedStart + limit)
     }
 
     return {
       ownPapers: ownPapersWithRatings,
-      otherPapers: filteredOtherPapers,
+      otherPapers: finalOtherPapers,
       pagination: {
         page,
         limit,
-        total: filteredOtherPapers.length,
-        pages: Math.ceil(filteredOtherPapers.length / limit),
+        total: finalTotal,
+        pages: Math.ceil(finalTotal / limit),
       },
     }
   }
