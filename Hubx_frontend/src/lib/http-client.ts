@@ -91,14 +91,21 @@ export async function apiClient<T>(
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), timeout);
 
+            const headers: Record<string, string> = {
+                ...authHeaders,
+                ...fetchOptions.headers,
+            };
+
+            // Only set Content-Type if body is not FormData
+            // When FormData is sent, let the browser set Content-Type with proper boundary
+            if (!(fetchOptions.body instanceof FormData)) {
+                headers['Content-Type'] = 'application/json';
+            }
+
             const response = await fetch(url, {
                 ...fetchOptions,
                 signal: controller.signal,
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...authHeaders,
-                    ...fetchOptions.headers,
-                },
+                headers,
             });
 
             clearTimeout(timeoutId);
@@ -176,14 +183,14 @@ export const http = {
         apiClient<T>(url, {
             ...options,
             method: 'POST',
-            body: body ? JSON.stringify(body) : undefined,
+            body: body ? (body instanceof FormData ? body : JSON.stringify(body)) : undefined,
         }),
 
     put: <T>(url: string, body?: any, options?: RequestOptions) =>
         apiClient<T>(url, {
             ...options,
             method: 'PUT',
-            body: body ? JSON.stringify(body) : undefined,
+            body: body ? (body instanceof FormData ? body : JSON.stringify(body)) : undefined,
         }),
 
     delete: <T>(url: string, options?: RequestOptions) =>
@@ -193,6 +200,6 @@ export const http = {
         apiClient<T>(url, {
             ...options,
             method: 'PATCH',
-            body: body ? JSON.stringify(body) : undefined,
+            body: body ? (body instanceof FormData ? body : JSON.stringify(body)) : undefined,
         }),
 };

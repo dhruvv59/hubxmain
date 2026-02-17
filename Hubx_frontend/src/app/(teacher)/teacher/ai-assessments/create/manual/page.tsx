@@ -17,6 +17,7 @@ function ManualPageContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const draftId = searchParams.get("draftId");
+    const formRef = React.useRef<any>(null);
 
     const [config, setConfig] = useState<PaperConfig | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -48,24 +49,20 @@ function ManualPageContent() {
         setIsSubmitting(true);
         try {
             await addQuestionToDraft(draftId, question);
-            // In a real app we might redirect to a list or clear form.
-            // For this flow, maybe we stay here or go back to list?
-            // User says "Add Question".
-            // The image shows "Question 1". If we add, do we go to "Question 2"?
-            // Or does "Add Question" finish it?
-            // The image has "Save Question Paper" at top.
-            // I'll assume it appends and clears form for next question, or shows success.
-            // I'll reload config to update summary (if summary involves question count?).
+
+            // Reload config to update summary with new question count
             const updated = await getDraft(draftId);
             if (updated) setConfig(updated);
 
-            // Reset form? The component is controlled internally. 
-            // I'll just show an alert for now or Refresh.
-            // Actually, best UX: Navigate to "Review" or stay?
-            // I'll assume stay and allow adding another.
+            // Clear the form for adding the next question
+            if (formRef.current?.resetForm) {
+                formRef.current.resetForm();
+            }
+
             alert("Question added successfully!"); // Placeholder for notification
         } catch (error) {
             console.error(error);
+            alert("Failed to add question. Please try again.");
         } finally {
             setIsSubmitting(false);
         }
@@ -158,6 +155,7 @@ function ManualPageContent() {
 
                     {/* Question Form */}
                     <ManualQuestionForm
+                        ref={formRef}
                         questionNumber={(config.questions?.length || 0) + 1}
                         onAdd={handleAddQuestion}
                         onCancel={() => router.back()}

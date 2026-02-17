@@ -1,6 +1,6 @@
  "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from "react";
 import { Paperclip, HelpCircle, Loader2, Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { QuestionType, Difficulty, Question, MCQOption, FillInTheBlank } from "@/types/generate-paper";
@@ -14,7 +14,12 @@ interface ManualQuestionFormProps {
     isSubmitting?: boolean;
 }
 
-export function ManualQuestionForm({ questionNumber, onAdd, onCancel, onOpenBank, isSubmitting }: ManualQuestionFormProps) {
+export interface ManualQuestionFormRef {
+    resetForm: () => void;
+}
+
+export const ManualQuestionForm = forwardRef<ManualQuestionFormRef, ManualQuestionFormProps>(
+    function ManualQuestionFormComponent({ questionNumber, onAdd, onCancel, onOpenBank, isSubmitting }, ref) {
     const [type, setType] = useState<QuestionType>("Text");
     const [difficulty, setDifficulty] = useState<Difficulty>("Intermediate");
     const [content, setContent] = useState("");
@@ -58,6 +63,27 @@ export function ManualQuestionForm({ questionNumber, onAdd, onCancel, onOpenBank
             ]);
         }
     }, [type]);
+
+    // Expose reset function to parent component
+    useImperativeHandle(ref, () => ({
+        resetForm: () => {
+            setType("Text");
+            setDifficulty("Intermediate");
+            setContent("");
+            setSolution("");
+            setShowQuestionPreview(false);
+            setShowSolutionPreview(false);
+            setOptions([
+                { id: "opt-1", text: "", isCorrect: false },
+                { id: "opt-2", text: "", isCorrect: false },
+                { id: "opt-3", text: "", isCorrect: false },
+                { id: "opt-4", text: "", isCorrect: false },
+            ]);
+            setBlanks([
+                { id: "blank-1", position: 0, correctAnswer: "", placeholder: "Answer 1" }
+            ]);
+        }
+    }), []);
 
     const handleTypeChange = (newType: QuestionType) => {
         setType(newType);
@@ -481,4 +507,5 @@ export function ManualQuestionForm({ questionNumber, onAdd, onCancel, onOpenBank
             </div>
         </div>
     );
-}
+    }
+);

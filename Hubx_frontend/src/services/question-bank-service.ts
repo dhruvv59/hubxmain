@@ -96,14 +96,24 @@ export async function getBankQuestions(filters: QuestionBankFilter = {}): Promis
 
         if (filters.page) params.append('page', String(filters.page));
         if (filters.limit) params.append('limit', String(filters.limit));
-        if (filters.subject) params.append('subjectId', filters.subject);
+        // NOTE: Subject filter disabled - frontend sends subject NAME but backend expects ID
+        // TODO: Fetch actual subject IDs from backend and map them before sending
+        // if (filters.subject) params.append('subjectId', filters.subject);
         if (filters.search) params.append('search', filters.search);
 
         // Handle difficulty filter (array)
         if (filters.difficulty && filters.difficulty.length > 0 && !filters.difficulty.includes("All")) {
             // For now, we'll just use the first difficulty
             // Backend supports single difficulty, not array
-            params.append('difficulty', filters.difficulty[0].toUpperCase());
+            // Map frontend difficulty names to backend enum values
+            const difficultyMap: Record<string, string> = {
+                'Beginner': 'EASY',
+                'Intermediate': 'INTERMEDIATE',
+                'Advanced': 'ADVANCED',
+                'Easy': 'EASY',
+            };
+            const difficulty = difficultyMap[filters.difficulty[0]] || filters.difficulty[0].toUpperCase();
+            params.append('difficulty', difficulty);
         }
 
         const response = await http.get<BackendResponse>(

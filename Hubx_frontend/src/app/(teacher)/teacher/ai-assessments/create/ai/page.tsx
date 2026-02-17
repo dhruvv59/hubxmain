@@ -65,14 +65,24 @@ function AiGeneratorPageContent() {
 
             // Convert generated questions to draft format and add them
             for (const q of generatedQuestions) {
-                await addQuestionToDraft(draftId, {
+                const questionData: Question = {
                     id: q.id || `q-ai-${Date.now()}-${Math.random()}`,
-                    type: q.type === "MCQ" ? "MCQ" : "Text",
+                    type: q.type === "MCQ" ? "MCQ" : (q.type === "FILL_IN_THE_BLANKS" ? "Fill in the Blanks" : "Text"),
                     difficulty: q.difficulty === "EASY" ? "Easy" : q.difficulty === "HARD" ? "Advanced" : "Intermediate",
                     content: q.questionText,
                     solution: q.solutionText,
                     marks: q.marks || 3,
-                });
+                };
+
+                if (q.type === "MCQ" && q.options) {
+                    questionData.options = q.options.map((opt, idx) => ({
+                        id: `opt-${Date.now()}-${idx}`,
+                        text: opt,
+                        isCorrect: idx === (q.correctOption ?? -1)
+                    }));
+                }
+
+                await addQuestionToDraft(draftId, questionData);
             }
 
             const updated = await getDraft(draftId);

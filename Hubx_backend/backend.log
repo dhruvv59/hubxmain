@@ -546,3 +546,141 @@ Emitted 'error' event on Server instance at:
 }
 
 Node.js v22.19.0
+2:43:45 pm [tsx] change in ./src\modules\teacher\teacher.controller.ts Rerunning...
+cServer running on port 8000
+Socket.IO initialized
+Redis connected
+2:43:49 pm [tsx] change in ./src\modules\teacher\question.service.ts Restarting...
+cnode:events:497
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::8000
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at Server.listen (node:net:2102:7)
+    at <anonymous> (E:\Hubx_Project\Hubx_backend\src\server.ts:24:27)
+    at ModuleJob.run (node:internal/modules/esm/module_job:345:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:651:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1976:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '::',
+  port: 8000
+}
+
+Node.js v22.19.0
+2:43:53 pm [tsx] change in ./src\modules\teacher\question.service.ts Rerunning...
+cnode:events:497
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::8000
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at Server.listen (node:net:2102:7)
+    at <anonymous> (E:\Hubx_Project\Hubx_backend\src\server.ts:24:27)
+    at ModuleJob.run (node:internal/modules/esm/module_job:345:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:651:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1976:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '::',
+  port: 8000
+}
+
+Node.js v22.19.0
+2:43:58 pm [tsx] change in ./src\modules\teacher\question.service.ts Rerunning...
+cServer running on port 8000
+Socket.IO initialized
+Redis connected
+2:44:04 pm [tsx] change in ./src\modules\teacher\teacher.controller.ts Restarting...
+cnode:events:497
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::8000
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at Server.listen (node:net:2102:7)
+    at <anonymous> (E:\Hubx_Project\Hubx_backend\src\server.ts:24:27)
+    at ModuleJob.run (node:internal/modules/esm/module_job:345:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:651:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1976:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '::',
+  port: 8000
+}
+
+Node.js v22.19.0
+4:35:49 pm [tsx] change in ./src\modules\teacher\question.service.ts Rerunning...
+cnode:events:497
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::8000
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at Server.listen (node:net:2102:7)
+    at <anonymous> (E:\Hubx_Project\Hubx_backend\src\server.ts:24:27)
+    at ModuleJob.run (node:internal/modules/esm/module_job:345:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:651:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1976:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '::',
+  port: 8000
+}
+
+Node.js v22.19.0
+4:44:27 pm [tsx] change in ./src\modules\teacher\question.service.ts Rerunning...
+cServer running on port 8000
+Socket.IO initialized
+Redis connected
+[0mGET /api/teacher/papers/cmlqi6vs3000175kjke5ro4wr [36m304[0m 21.211 ms - -[0m
+[0mGET /api/teacher/papers/cmlqi6vs3000175kjke5ro4wr [36m304[0m 11.830 ms - -[0m
+[0mGET /api/teacher/standards [36m304[0m 4.207 ms - -[0m
+[0mGET /api/teacher/standards [36m304[0m 2.797 ms - -[0m
+[0mGET /api/notifications [36m304[0m 9.609 ms - -[0m
+[0mGET /api/teacher/standards/cmlq97yyt00116wm5gn35vmji/subjects [36m304[0m 7.763 ms - -[0m
+[0mGET /api/teacher/standards/cmlqftl9v000dy2qzo64eda1o/subjects [36m304[0m 6.418 ms - -[0m
+[0mGET /api/teacher/standards/cmlqftl9v000dy2qzo64eda1o/subjects/cmlqfty8m000fy2qze05h2863/chapters [36m304[0m 7.544 ms - -[0m
+[0mPOST /api/teacher/papers [32m201[0m 49.828 ms - 1184[0m
+[0mGET /api/teacher/papers/cmlqiaorf0001xel2l6lmra8u [32m200[0m 5.546 ms - 1022[0m
+[0mGET /api/teacher/papers/cmlqiaorf0001xel2l6lmra8u [36m304[0m 6.136 ms - -[0m
+[0mGET /api/teacher/papers/cmlqiaorf0001xel2l6lmra8u [36m304[0m 5.714 ms - -[0m
+[0mGET /api/teacher/papers/cmlqiaorf0001xel2l6lmra8u [36m304[0m 4.118 ms - -[0m
+[0mPOST /api/teacher/papers/cmlqiaorf0001xel2l6lmra8u/questions/bulk-upload [32m201[0m 171.459 ms - 121[0m
+[0mGET /api/teacher/papers/cmlqiaorf0001xel2l6lmra8u [32m200[0m 8.911 ms - 3392[0m
+[0mDELETE /api/teacher/papers/cmlqiaorf0001xel2l6lmra8u/questions/cmlqiatk1000axel21yxz5rl0 [32m200[0m 21.869 ms - 70[0m
+[0mGET /api/teacher/papers/cmlqiaorf0001xel2l6lmra8u [32m200[0m 7.417 ms - 2951[0m
+[0mPATCH /api/teacher/papers/cmlqiaorf0001xel2l6lmra8u/publish [32m200[0m 23.946 ms - 472[0m
+[0mGET /api/teacher/public-papers?page=1&limit=9 [32m200[0m 31.136 ms - 16664[0m
+[0mGET /api/teacher/public-papers?page=1&limit=9 [36m304[0m 21.013 ms - -[0m
+Email sent successfully to rahul.singh@student.hubx.in
+[0mGET /api/auth/profile [36m304[0m 4.276 ms - -[0m
+[0mGET /api/notifications [36m304[0m 4.802 ms - -[0m
+[0mGET /api/teacher/papers/cmlqiaorf0001xel2l6lmra8u [32m200[0m 5.646 ms - 2955[0m
+[0mGET /api/notifications [36m304[0m 3.728 ms - -[0m
+[0mGET /api/notifications [36m304[0m 3.365 ms - -[0m
+[0mGET /api/teacher/papers/cmlqiaorf0001xel2l6lmra8u [36m304[0m 5.998 ms - -[0m
+[0mGET /api/teacher/standards [36m304[0m 5.426 ms - -[0m
+[0mGET /api/teacher/standards [36m304[0m 3.934 ms - -[0m
+[0mGET /api/notifications [36m304[0m 7.697 ms - -[0m

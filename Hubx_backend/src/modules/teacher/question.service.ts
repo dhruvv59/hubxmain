@@ -42,23 +42,33 @@ export class QuestionService {
     }
 
     // Validate question type
+    let trimmedType = data.type?.trim?.() || data.type;
+
+    // Normalize type (handle case sensitivity and frontend aliases)
+    if (trimmedType) {
+      trimmedType = trimmedType.toUpperCase();
+      if (trimmedType === "FILL IN THE BLANKS") {
+        trimmedType = QUESTION_TYPE.FILL_IN_THE_BLANKS;
+      }
+    }
+
     const validTypes = [QUESTION_TYPE.TEXT, QUESTION_TYPE.MCQ, QUESTION_TYPE.FILL_IN_THE_BLANKS]
-    if (!validTypes.includes(data.type)) {
-      throw new AppError(400, "Invalid question type")
+    if (!validTypes.includes(trimmedType)) {
+      throw new AppError(400, `Invalid question type: '${data.type}' (normalized: '${trimmedType}')`)
     }
 
     // Validate MCQ specific fields
-    if (data.type === QUESTION_TYPE.MCQ) {
-      if (!data.options || data.options.length !== 4) {
-        throw new AppError(400, "MCQ must have exactly 4 options")
+    if (trimmedType === QUESTION_TYPE.MCQ) {
+      if (!data.options || data.options.length < 2 || data.options.length > 6) {
+        throw new AppError(400, "MCQ must have between 2 and 6 options")
       }
-      if (data.correctOption === undefined || data.correctOption < 0 || data.correctOption > 3) {
-        throw new AppError(400, "Correct option must be between 0 and 3")
+      if (data.correctOption === undefined || data.correctOption < 0 || data.correctOption >= data.options.length) {
+        throw new AppError(400, "Correct option index out of bounds")
       }
     }
 
     // Validate FILL_IN_THE_BLANKS specific fields
-    if (data.type === QUESTION_TYPE.FILL_IN_THE_BLANKS) {
+    if (trimmedType === QUESTION_TYPE.FILL_IN_THE_BLANKS) {
       if (!data.correctAnswers || !Array.isArray(data.correctAnswers) || data.correctAnswers.length === 0) {
         throw new AppError(400, "FILL_IN_THE_BLANKS must have at least one blank with correct answers")
       }
@@ -93,18 +103,18 @@ export class QuestionService {
     const question = await prisma.question.create({
       data: {
         paperId,
-        type: data.type as any,
+        type: trimmedType as any,
         difficulty: data.difficulty as any,
         questionText: data.questionText,
         questionImage: questionImageUrl,
         options:
-          data.type === QUESTION_TYPE.MCQ
+          trimmedType === QUESTION_TYPE.MCQ
             ? (data.options as Prisma.InputJsonValue)
-            : data.type === QUESTION_TYPE.FILL_IN_THE_BLANKS
+            : trimmedType === QUESTION_TYPE.FILL_IN_THE_BLANKS
               ? (data.correctAnswers as Prisma.InputJsonValue)
               : Prisma.JsonNull,
-        correctOption: data.type === QUESTION_TYPE.MCQ ? data.correctOption : null,
-        caseSensitive: data.type === QUESTION_TYPE.FILL_IN_THE_BLANKS ? (data.caseSensitive || false) : false,
+        correctOption: trimmedType === QUESTION_TYPE.MCQ ? data.correctOption : null,
+        caseSensitive: trimmedType === QUESTION_TYPE.FILL_IN_THE_BLANKS ? (data.caseSensitive || false) : false,
         solutionText: data.solutionText,
         solutionImage: solutionImageUrl,
         marks: data.marks || 1,

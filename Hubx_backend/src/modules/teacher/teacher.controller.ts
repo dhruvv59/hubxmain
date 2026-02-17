@@ -202,6 +202,8 @@ export class TeacherController {
 
     const body = {
       ...req.body,
+      type: req.body.type?.trim?.(),
+      difficulty: req.body.difficulty?.trim?.(),
       options: req.body.options ? JSON.parse(req.body.options) : undefined,
       correctAnswers: req.body.correctAnswers ? JSON.parse(req.body.correctAnswers) : undefined,
       marks: req.body.marks ? Number(req.body.marks) : undefined,
@@ -238,6 +240,8 @@ export class TeacherController {
 
     const body = {
       ...req.body,
+      type: req.body.type?.trim?.(),
+      difficulty: req.body.difficulty?.trim?.(),
       options: req.body.options ? JSON.parse(req.body.options) : undefined,
       correctAnswers: req.body.correctAnswers ? JSON.parse(req.body.correctAnswers) : undefined,
       caseSensitive: req.body.caseSensitive ? JSON.parse(req.body.caseSensitive) : undefined,

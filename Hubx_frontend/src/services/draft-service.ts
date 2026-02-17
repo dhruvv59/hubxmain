@@ -67,15 +67,40 @@ export const getDraft = async (draftId: string): Promise<PaperConfig | null> => 
             schoolOnly: false, // Not currently supported by backend
             duration: paper.duration || 60,
             price: paper.price || 0,
-            questions: paper.questions?.map((q: any) => ({
-                id: q.id,
-                type: q.type,
-                difficulty: mapDifficulty(q.difficulty),
-                content: q.questionText,
-                solution: q.solutionText || "",
-                marks: q.marks,
-                options: q.options ? (typeof q.options === 'string' ? JSON.parse(q.options) : q.options) : undefined
-            })) || []
+            questions: paper.questions?.map((q: any) => {
+                // Parse options if it's a string
+                const parsedOptions = q.options ? (typeof q.options === 'string' ? JSON.parse(q.options) : q.options) : null;
+
+                // Map backend question to frontend format
+                const questionData: any = {
+                    id: q.id,
+                    type: q.type,
+                    difficulty: mapDifficulty(q.difficulty),
+                    content: q.questionText,
+                    solution: q.solutionText || "",
+                    marks: q.marks,
+                };
+
+                // Handle MCQ: convert string array to MCQOption objects
+                if (q.type === "MCQ" && Array.isArray(parsedOptions)) {
+                    questionData.options = parsedOptions.map((optText: string, idx: number) => ({
+                        id: `opt-${idx}`,
+                        text: optText,
+                        isCorrect: idx === q.correctOption
+                    }));
+                }
+                // Handle FILL_IN_THE_BLANKS: convert options to blanks
+                else if (q.type === "FILL_IN_THE_BLANKS" && Array.isArray(parsedOptions)) {
+                    questionData.blanks = parsedOptions.map((answers: any, idx: number) => ({
+                        id: `blank-${idx}`,
+                        position: idx,
+                        correctAnswer: Array.isArray(answers) ? answers[0] : answers,
+                        placeholder: `Answer ${idx + 1}`
+                    }));
+                }
+
+                return questionData;
+            }) || []
         };
     } catch (error) {
         console.error("Failed to fetch draft:", error);
@@ -88,21 +113,56 @@ export const getDraft = async (draftId: string): Promise<PaperConfig | null> => 
  */
 export const addQuestionToDraft = async (draftId: string, question: Question): Promise<void> => {
     try {
+        // Map frontend question types to backend format
+        const typeMap: Record<string, string> = {
+            'MCQ': 'MCQ',
+            'Text': 'TEXT',
+            'Fill in the Blanks': 'FILL_IN_THE_BLANKS'
+        };
+
+        // DEBUG: Log what we're sending
+        const mappedType = typeMap[question.type] || question.type;
+        const debugLog: any = {
+            originalType: question.type,
+            mappedType: mappedType,
+            difficulty: question.difficulty.toUpperCase(),
+            content: question.content?.substring(0, 50)
+        };
+
+        // Add type-specific debug info
+        if (question.options) {
+            debugLog.optionsCount = question.options.length;
+            debugLog.correctOptionIndex = question.options.findIndex(o => o.isCorrect);
+        } else if (question.blanks) {
+            debugLog.blanksCount = question.blanks.length;
+            debugLog.blanks = question.blanks.map(b => ({ position: b.position, answer: b.correctAnswer }));
+        }
+
+        console.log('🔍 DEBUG addQuestionToDraft:', debugLog);
+
         // Prepare multipart form data for question creation (supports images if needed, but here simple text)
         const formData = new FormData();
-        formData.append("type", question.type);
+        formData.append("type", mappedType);
         formData.append("difficulty", question.difficulty.toUpperCase());
         formData.append("questionText", question.content);
         formData.append("solutionText", question.solution);
         formData.append("marks", (question.marks || 1).toString());
 
         if (question.options) {
-            formData.append("options", JSON.stringify(question.options));
+            // Send only option text as array of strings
+            const optionTexts = question.options.map(o => o.text);
+            formData.append("options", JSON.stringify(optionTexts));
+
             // Calculate correct option index (backend expects correctOption: number for MCQ)
             const CORRECT_IDX = question.options.findIndex(o => o.isCorrect);
             if (CORRECT_IDX !== -1) {
                 formData.append("correctOption", CORRECT_IDX.toString());
             }
+        } else if (question.blanks && question.type === 'Fill in the Blanks') {
+            // Map blanks to correctAnswers for storage
+            // Each blank answer should be wrapped in an array to support multiple acceptable answers
+            const correctAnswers = question.blanks.map(b => [b.correctAnswer]);
+            formData.append("correctAnswers", JSON.stringify(correctAnswers));
         }
 
         // Use the dedicated endpoint for adding questions to a paper

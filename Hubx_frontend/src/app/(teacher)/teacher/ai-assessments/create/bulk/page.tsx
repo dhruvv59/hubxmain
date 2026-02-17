@@ -51,27 +51,13 @@ function BulkPageContent() {
             // Call real backend API for bulk upload
             const result = await teacherQuestionService.bulkUpload(draftId, file);
 
-            // Add each successfully uploaded question to the draft
-            if (result?.questions && Array.isArray(result.questions)) {
-                for (const q of result.questions) {
-                    await addQuestionToDraft(draftId, {
-                        id: q.id || `q-${Date.now()}-${Math.random()}`,
-                        type: q.type || "Text",
-                        difficulty: q.difficulty || "Intermediate",
-                        content: q.questionText || q.content || "",
-                        solution: q.solutionText || q.solution || "",
-                        marks: q.marks || 1
-                    });
-                }
-            }
-
             // Refresh draft data
             const updated = await getDraft(draftId);
             if (updated) setConfig(updated);
 
             // Show success message with count
-            const successCount = result?.questions?.length || 0;
-            const failCount = result?.failed?.length || 0;
+            const successCount = result?.successful || 0;
+            const failCount = result?.failed || 0;
 
             if (successCount > 0) {
                 alert(`✓ File Processed: ${successCount} Questions Added!${failCount > 0 ? ` (${failCount} failed)` : ""}`);
