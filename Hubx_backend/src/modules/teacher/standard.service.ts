@@ -36,7 +36,13 @@ export class StandardService {
       where: { teacherId },
       include: { subjects: true },
     })
-    return standards
+    // Transform to match frontend expected format: { id, standard: number }
+    return standards.map(std => ({
+      id: std.id,
+      standard: parseInt(std.name, 10), // Convert name "10" to number 10
+      name: std.name,
+      subjects: std.subjects,
+    }))
   }
 
   async getStandard(standardId: string, teacherId: string) {
@@ -47,7 +53,13 @@ export class StandardService {
     if (!standard || standard.teacherId !== teacherId) {
       throw new AppError(404, "Standard not found")
     }
-    return standard
+    // Transform to match frontend expected format: { id, standard: number }
+    return {
+      id: standard.id,
+      standard: parseInt(standard.name, 10),
+      name: standard.name,
+      subjects: standard.subjects,
+    }
   }
 
   async updateStandard(standardId: string, teacherId: string, name: string) {

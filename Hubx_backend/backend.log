@@ -164,3 +164,385 @@ Redis connected
 cServer running on port 8000
 Socket.IO initialized
 Redis connected
+[0mGET /api/auth/profile [32m200[0m 12.839 ms - 199[0m
+[0mGET /api/notifications [36m304[0m 19.099 ms - -[0m
+[0mGET /api/notifications [36m304[0m 15.887 ms - -[0m
+[0mGET /api/teacher/public-papers?page=1&limit=9 [32m200[0m 41.826 ms - 16026[0m
+[0mGET /api/notifications [36m304[0m 7.696 ms - -[0m
+[0mGET /api/teacher/public-papers?page=1&limit=9 [36m304[0m 23.427 ms - -[0m
+[0mGET /api/teacher/public-papers?page=1&limit=9&subject=Science [32m200[0m 11.765 ms - 158[0m
+[0mGET /api/teacher/public-papers?page=1&limit=9&subject=Mathematics [32m200[0m 32.734 ms - 10968[0m
+[0mGET /api/teacher/public-papers?page=1&limit=9&subject=Mathematics&std=8 [32m200[0m 23.652 ms - 158[0m
+[0mGET /api/teacher/public-papers?page=1&limit=9&subject=Mathematics&std=9 [32m200[0m 9.462 ms - 892[0m
+[0mGET /api/teacher/public-papers?page=1&limit=9&subject=Mathematics&std=10 [32m200[0m 31.281 ms - 8043[0m
+Error: PrismaClientValidationError: 
+Invalid `prisma.paper.findMany()` invocation in
+E:\Hubx_Project\Hubx_backend\src\modules\teacher\paper.service.ts:401:42
+
+  398 }
+  399 
+  400 // Get teacher's own public papers (no pagination needed)
+→ 401 const ownPapers = await prisma.paper.findMany({
+        where: {
+          isPublic: true,
+          status: "PUBLISHED",
+          subject: {
+            name: "Mathematics"
+          },
+          standard: 10,
+          difficulty: "BEGINNER",
+                      ~~~~~~~~~~
+          teacherId: "cmlq97yxa00036wm5mpqsqovk"
+        },
+        include: {
+          subject: true,
+          teacher: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true
+            }
+          },
+          questions: {
+            select: {
+              id: true
+            }
+          }
+        },
+        orderBy: {
+          createdAt: "desc"
+        }
+      })
+
+Invalid value for argument `difficulty`. Expected Difficulty.
+    at wn (E:\Hubx_Project\Hubx_backend\node_modules\@prisma\client\runtime\library.js:29:1363)
+    at $n.handleRequestError (E:\Hubx_Project\Hubx_backend\node_modules\@prisma\client\runtime\library.js:121:6958)
+    at $n.handleAndLogRequestError (E:\Hubx_Project\Hubx_backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (E:\Hubx_Project\Hubx_backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (E:\Hubx_Project\Hubx_backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async PaperService.getPublicPapers (E:\Hubx_Project\Hubx_backend\src\modules\teacher\paper.service.ts:401:23)
+    at async <anonymous> (E:\Hubx_Project\Hubx_backend\src\modules\teacher\teacher.controller.ts:287:20) {
+  clientVersion: '5.22.0'
+}
+[0mGET /api/teacher/public-papers?page=1&limit=9&subject=Mathematics&std=10&difficulty=BEGINNER [31m500[0m 25.832 ms - 63[0m
+Error: PrismaClientValidationError: 
+Invalid `prisma.paper.findMany()` invocation in
+E:\Hubx_Project\Hubx_backend\src\modules\teacher\paper.service.ts:401:42
+
+  398 }
+  399 
+  400 // Get teacher's own public papers (no pagination needed)
+→ 401 const ownPapers = await prisma.paper.findMany({
+        where: {
+          isPublic: true,
+          status: "PUBLISHED",
+          subject: {
+            name: "Mathematics"
+          },
+          standard: 10,
+          difficulty: "BEGINNER",
+                      ~~~~~~~~~~
+          teacherId: "cmlq97yxa00036wm5mpqsqovk"
+        },
+        include: {
+          subject: true,
+          teacher: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true
+            }
+          },
+          questions: {
+            select: {
+              id: true
+            }
+          }
+        },
+        orderBy: {
+          createdAt: "desc"
+        }
+      })
+
+Invalid value for argument `difficulty`. Expected Difficulty.
+    at wn (E:\Hubx_Project\Hubx_backend\node_modules\@prisma\client\runtime\library.js:29:1363)
+    at $n.handleRequestError (E:\Hubx_Project\Hubx_backend\node_modules\@prisma\client\runtime\library.js:121:6958)
+    at $n.handleAndLogRequestError (E:\Hubx_Project\Hubx_backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (E:\Hubx_Project\Hubx_backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (E:\Hubx_Project\Hubx_backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async PaperService.getPublicPapers (E:\Hubx_Project\Hubx_backend\src\modules\teacher\paper.service.ts:401:23)
+    at async <anonymous> (E:\Hubx_Project\Hubx_backend\src\modules\teacher\teacher.controller.ts:287:20) {
+  clientVersion: '5.22.0'
+}
+[0mGET /api/teacher/public-papers?page=1&limit=9&subject=Mathematics&std=10&difficulty=BEGINNER [31m500[0m 9.333 ms - 63[0m
+[0mGET /api/notifications [36m304[0m 11.226 ms - -[0m
+Error: PrismaClientValidationError: 
+Invalid `prisma.paper.findMany()` invocation in
+E:\Hubx_Project\Hubx_backend\src\modules\teacher\paper.service.ts:401:42
+
+  398 }
+  399 
+  400 // Get teacher's own public papers (no pagination needed)
+→ 401 const ownPapers = await prisma.paper.findMany({
+        where: {
+          isPublic: true,
+          status: "PUBLISHED",
+          subject: {
+            name: "Mathematics"
+          },
+          standard: 10,
+          difficulty: "BEGINNER",
+                      ~~~~~~~~~~
+          teacherId: "cmlq97yxa00036wm5mpqsqovk"
+        },
+        include: {
+          subject: true,
+          teacher: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true
+            }
+          },
+          questions: {
+            select: {
+              id: true
+            }
+          }
+        },
+        orderBy: {
+          createdAt: "desc"
+        }
+      })
+
+Invalid value for argument `difficulty`. Expected Difficulty.
+    at wn (E:\Hubx_Project\Hubx_backend\node_modules\@prisma\client\runtime\library.js:29:1363)
+    at $n.handleRequestError (E:\Hubx_Project\Hubx_backend\node_modules\@prisma\client\runtime\library.js:121:6958)
+    at $n.handleAndLogRequestError (E:\Hubx_Project\Hubx_backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (E:\Hubx_Project\Hubx_backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (E:\Hubx_Project\Hubx_backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async PaperService.getPublicPapers (E:\Hubx_Project\Hubx_backend\src\modules\teacher\paper.service.ts:401:23)
+    at async <anonymous> (E:\Hubx_Project\Hubx_backend\src\modules\teacher\teacher.controller.ts:287:20) {
+  clientVersion: '5.22.0'
+}
+[0mGET /api/teacher/public-papers?page=1&limit=9&subject=Mathematics&std=10&difficulty=BEGINNER [31m500[0m 3.575 ms - 63[0m
+[0mGET /api/teacher/public-papers?page=1&limit=9&subject=Mathematics&std=10 [36m304[0m 13.621 ms - -[0m
+Error: PrismaClientValidationError: 
+Invalid `prisma.paper.findMany()` invocation in
+E:\Hubx_Project\Hubx_backend\src\modules\teacher\paper.service.ts:401:42
+
+  398 }
+  399 
+  400 // Get teacher's own public papers (no pagination needed)
+→ 401 const ownPapers = await prisma.paper.findMany({
+        where: {
+          isPublic: true,
+          status: "PUBLISHED",
+          subject: {
+            name: "Mathematics"
+          },
+          standard: 10,
+          difficulty: "BEGINNER",
+                      ~~~~~~~~~~
+          teacherId: "cmlq97yxa00036wm5mpqsqovk"
+        },
+        include: {
+          subject: true,
+          teacher: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true
+            }
+          },
+          questions: {
+            select: {
+              id: true
+            }
+          }
+        },
+        orderBy: {
+          createdAt: "desc"
+        }
+      })
+
+Invalid value for argument `difficulty`. Expected Difficulty.
+    at wn (E:\Hubx_Project\Hubx_backend\node_modules\@prisma\client\runtime\library.js:29:1363)
+    at $n.handleRequestError (E:\Hubx_Project\Hubx_backend\node_modules\@prisma\client\runtime\library.js:121:6958)
+    at $n.handleAndLogRequestError (E:\Hubx_Project\Hubx_backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (E:\Hubx_Project\Hubx_backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (E:\Hubx_Project\Hubx_backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async PaperService.getPublicPapers (E:\Hubx_Project\Hubx_backend\src\modules\teacher\paper.service.ts:401:23)
+    at async <anonymous> (E:\Hubx_Project\Hubx_backend\src\modules\teacher\teacher.controller.ts:287:20) {
+  clientVersion: '5.22.0'
+}
+[0mGET /api/teacher/public-papers?page=1&limit=9&subject=Mathematics&std=10&difficulty=BEGINNER [31m500[0m 3.850 ms - 63[0m
+[0mGET /api/teacher/public-papers?page=1&limit=9&subject=Mathematics&std=10&rating=Most+Popular [32m200[0m 25.311 ms - 8043[0m
+[0mGET /api/auth/profile [36m304[0m 4.301 ms - -[0m
+[0mGET /api/notifications [36m304[0m 5.104 ms - -[0m
+[0mGET /api/notifications [36m304[0m 4.962 ms - -[0m
+[0mGET /api/notifications [36m304[0m 6.818 ms - -[0m
+[0mGET /api/teacher/public-papers?page=1&limit=9 [36m304[0m 20.710 ms - -[0m
+[0mGET /api/teacher/public-papers?page=1&limit=9 [36m304[0m 19.794 ms - -[0m
+[0mGET /api/teacher/public-papers?page=1&limit=9&rating=4+%E2%98%85+%26+above [32m200[0m 17.606 ms - 9504[0m
+[0mGET /api/teacher/public-papers?page=1&limit=9&rating=Most+Popular [32m200[0m 21.622 ms - 16026[0m
+[0mGET /api/notifications [36m304[0m 8.401 ms - -[0m
+[0mGET /api/notifications [36m304[0m 16.250 ms - -[0m
+[0mGET /api/notifications [36m304[0m 2.892 ms - -[0m
+[0mGET /api/notifications [36m304[0m 4.659 ms - -[0m
+[0mGET /api/notifications [36m304[0m 6.330 ms - -[0m
+12:48:37 pm [tsx] change in ./src\modules\teacher\paper.service.ts Restarting...
+cServer running on port 8000
+Socket.IO initialized
+Redis connected
+[0mGET /api/notifications [36m304[0m 9.406 ms - -[0m
+12:49:01 pm [tsx] change in ./src\modules\teacher\paper.service.ts Restarting...
+cServer running on port 8000
+Socket.IO initialized
+Redis connected
+12:49:11 pm [tsx] change in ./src\modules\teacher\paper.service.ts Restarting...
+cnode:events:497
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::8000
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at Server.listen (node:net:2102:7)
+    at <anonymous> (E:\Hubx_Project\Hubx_backend\src\server.ts:24:27)
+    at ModuleJob.run (node:internal/modules/esm/module_job:345:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:651:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1976:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '::',
+  port: 8000
+}
+
+Node.js v22.19.0
+12:49:22 pm [tsx] change in ./src\modules\teacher\paper.service.ts Rerunning...
+cServer running on port 8000
+Socket.IO initialized
+Redis connected
+[0mGET /api/notifications [36m304[0m 19.096 ms - -[0m
+[0mGET /api/notifications [36m304[0m 9.921 ms - -[0m
+[0mGET /api/notifications [36m304[0m 5.554 ms - -[0m
+[0mGET /api/auth/profile [36m304[0m 5.989 ms - -[0m
+[0mGET /api/notifications [36m304[0m 28.555 ms - -[0m
+[0mGET /api/notifications [36m304[0m 5.452 ms - -[0m
+[0mGET /api/notifications [36m304[0m 20.118 ms - -[0m
+[0mGET /api/teacher/public-papers?page=1&limit=9 [36m304[0m 60.142 ms - -[0m
+[0mGET /api/teacher/public-papers?page=1&limit=9 [36m304[0m 34.530 ms - -[0m
+[0mGET /api/auth/profile [36m304[0m 7.715 ms - -[0m
+[0mGET /api/notifications [36m304[0m 6.974 ms - -[0m
+[0mGET /api/teacher/papers/cmlq9j6ja0073f3a1539g71yy [32m200[0m 8.139 ms - 7258[0m
+[0mGET /api/notifications [36m304[0m 6.058 ms - -[0m
+[0mGET /api/notifications [36m304[0m 3.362 ms - -[0m
+[0mGET /api/teacher/papers/cmlq9j6ja0073f3a1539g71yy [36m304[0m 6.444 ms - -[0m
+[0mGET /api/notifications [36m304[0m 9.054 ms - -[0m
+[0mGET /api/notifications [36m304[0m 7.804 ms - -[0m
+[0mGET /api/notifications [36m304[0m 10.056 ms - -[0m
+[0mGET /api/teacher/public-papers?page=1&limit=9 [36m304[0m 25.453 ms - -[0m
+[0mGET /api/teacher/public-papers?page=1&limit=9 [36m304[0m 23.375 ms - -[0m
+[0mGET /api/notifications [36m304[0m 12.987 ms - -[0m
+[0mGET /api/notifications [36m304[0m 5.759 ms - -[0m
+[0mGET /api/notifications [36m304[0m 4.280 ms - -[0m
+[0mGET /api/notifications [36m304[0m 5.502 ms - -[0m
+[0mGET /api/teacher/standards [32m200[0m 11.346 ms - 421[0m
+[0mGET /api/teacher/standards [36m304[0m 4.896 ms - -[0m
+[0mGET /api/teacher/standards/cmlq97yyt00116wm5gn35vmji/subjects [32m200[0m 12.252 ms - 779[0m
+[0mGET /api/notifications [36m304[0m 7.550 ms - -[0m
+[0mGET /api/notifications [36m304[0m 3.466 ms - -[0m
+[0mGET /api/notifications [36m304[0m 6.423 ms - -[0m
+[0mGET /api/notifications [36m304[0m 3.551 ms - -[0m
+[0mGET /api/notifications [36m304[0m 6.139 ms - -[0m
+[0mGET /api/notifications [36m304[0m 9.583 ms - -[0m
+[0mGET /api/notifications [36m304[0m 3.069 ms - -[0m
+[0mGET /api/notifications [36m304[0m 6.475 ms - -[0m
+[0mGET /api/notifications [36m304[0m 7.752 ms - -[0m
+[0mGET /api/notifications [36m304[0m 6.970 ms - -[0m
+[0mGET /api/notifications [36m304[0m 10.613 ms - -[0m
+[0mGET /api/notifications [36m304[0m 8.278 ms - -[0m
+[0mGET /api/notifications [36m304[0m 7.105 ms - -[0m
+[0mGET /api/notifications [36m304[0m 6.732 ms - -[0m
+[0mGET /api/notifications [36m304[0m 5.523 ms - -[0m
+[0mGET /api/notifications [36m304[0m 6.849 ms - -[0m
+[0mGET /api/notifications [36m304[0m 8.950 ms - -[0m
+[0mGET /api/notifications [36m304[0m 7.825 ms - -[0m
+[0mGET /api/notifications [36m304[0m 6.048 ms - -[0m
+[0mGET /api/notifications [36m304[0m 2.989 ms - -[0m
+[0mGET /api/notifications [36m304[0m 2.893 ms - -[0m
+[0mGET /api/notifications [36m304[0m 3.191 ms - -[0m
+[0mGET /api/notifications [36m304[0m 3.861 ms - -[0m
+[0mGET /api/notifications [36m304[0m 3.933 ms - -[0m
+[0mGET /api/notifications [36m304[0m 2.187 ms - -[0m
+[0mGET /api/notifications [36m304[0m 4.949 ms - -[0m
+[0mGET /api/notifications [36m304[0m 3.018 ms - -[0m
+[0mGET /api/notifications [36m304[0m 7.252 ms - -[0m
+[0mGET /api/auth/profile [36m304[0m 2.613 ms - -[0m
+[0mGET /api/notifications [36m304[0m 3.710 ms - -[0m
+[0mGET /api/notifications [36m304[0m 7.419 ms - -[0m
+[0mGET /api/teacher/standards [36m304[0m 5.345 ms - -[0m
+[0mGET /api/notifications [36m304[0m 8.830 ms - -[0m
+[0mGET /api/teacher/standards [36m304[0m 5.128 ms - -[0m
+[0mGET /api/notifications [36m304[0m 4.393 ms - -[0m
+[0mGET /api/notifications [36m304[0m 7.237 ms - -[0m
+[0mGET /api/notifications [36m304[0m 4.726 ms - -[0m
+[0mGET /api/notifications [36m304[0m 8.725 ms - -[0m
+[0mGET /api/notifications [36m304[0m 6.226 ms - -[0m
+1:09:55 pm [tsx] change in ./src\modules\teacher\standard.service.ts Restarting...
+cnode:events:497
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::8000
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at Server.listen (node:net:2102:7)
+    at <anonymous> (E:\Hubx_Project\Hubx_backend\src\server.ts:24:27)
+    at ModuleJob.run (node:internal/modules/esm/module_job:345:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:651:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1976:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '::',
+  port: 8000
+}
+
+Node.js v22.19.0
+1:10:03 pm [tsx] change in ./src\modules\teacher\standard.service.ts Rerunning...
+cnode:events:497
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::8000
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at Server.listen (node:net:2102:7)
+    at <anonymous> (E:\Hubx_Project\Hubx_backend\src\server.ts:24:27)
+    at ModuleJob.run (node:internal/modules/esm/module_job:345:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:651:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1976:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '::',
+  port: 8000
+}
+
+Node.js v22.19.0
