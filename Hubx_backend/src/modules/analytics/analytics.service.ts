@@ -6,7 +6,12 @@ export class AnalyticsService {
     const papers = await prisma.paper.findMany({
       where: { teacherId },
       include: {
-        examAttempts: true,
+        examAttempts: {
+          include: {
+            student: true
+          }
+        },
+        subject: true,
         _count: { select: { examAttempts: true } },
       },
     })
@@ -20,8 +25,60 @@ export class AnalyticsService {
 
     // Calculate statistics
     const totalAttempts = papers.reduce((sum, p) => sum + (p._count.examAttempts || 0), 0)
-    const averageScore =
-      papers.length > 0 ? papers.reduce((sum, p) => sum + (p.averageScore || 0), 0) / papers.length : 0
+
+    // Average score across all attempts (percentage)
+    let totalScoreSum = 0;
+    let totalScoreCount = 0;
+    papers.forEach(p => {
+      p.examAttempts.forEach(a => {
+        totalScoreSum += a.percentage;
+        totalScoreCount++;
+      });
+    });
+    const averageScore = totalScoreCount > 0 ? totalScoreSum / totalScoreCount : 0;
+
+    // Total Unique Students
+    const uniqueStudents = new Set<string>();
+    papers.forEach(p => {
+      p.examAttempts.forEach(a => {
+        uniqueStudents.add(a.studentId);
+      });
+    });
+
+    // Student Performance by Subject
+    const subjectStats = new Map<string, { totalScore: number; count: number }>();
+    papers.forEach(p => {
+      if (!p.subject) return;
+      const subjectName = p.subject.name;
+
+      p.examAttempts.forEach(a => {
+        const current = subjectStats.get(subjectName) || { totalScore: 0, count: 0 };
+        current.totalScore += a.percentage;
+        current.count += 1;
+        subjectStats.set(subjectName, current);
+      });
+    });
+
+    const studentPerformance = Array.from(subjectStats.entries()).map(([subject, stats]) => ({
+      subject,
+      averageScore: stats.count > 0 ? Math.round(stats.totalScore / stats.count) : 0,
+      totalAttempts: stats.count
+    }));
+
+    // Recent Activities (Recent exam submissions)
+    const recentAttempts = await prisma.examAttempt.findMany({
+      where: { paper: { teacherId }, status: "SUBMITTED" },
+      orderBy: { submittedAt: 'desc' },
+      take: 5,
+      include: { paper: true, student: true }
+    });
+
+    const recentActivities = recentAttempts.map(a => ({
+      id: a.id,
+      type: 'EXAM_ATTEMPT',
+      description: `${a.student.firstName} ${a.student.lastName} attempted ${a.paper.title} - Scored ${Math.round(a.percentage)}%`,
+      timestamp: a.submittedAt ? a.submittedAt.toISOString() : new Date().toISOString()
+    }));
 
     // --- REVENEU DATA (Monthly) ---
     const monthlyRevenue = new Map<string, number>()
@@ -74,9 +131,15 @@ export class AnalyticsService {
     })
 
     return {
+      totalStudents: uniqueStudents.size,
       totalPapers: papers.length,
+      averageRating: Math.round((averageScore / 20) * 10) / 10, // Convert percentage to 5-star rating (e.g. 80% -> 4.0)
+      revenue: totalEarnings,
+      studentPerformance, // Added
+      recentActivities,   // Added
+
+      // Keep old fields just in case
       totalAttempts,
-      totalEarnings,
       averageScore: Math.round(averageScore * 100) / 100,
       revenueData,
       likeabilityData,

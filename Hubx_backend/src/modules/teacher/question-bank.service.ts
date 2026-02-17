@@ -659,6 +659,215 @@ export class QuestionBankService {
     return results
   }
 
+  /**
+   * Create multiple bank questions in a single batch operation (atomic transaction)
+   */
+  async createBankQuestionsInBatch(
+    teacherId: string,
+    questionsData: CreateQuestionBankData[],
+    files?: { [fieldname: string]: Express.Multer.File[] }
+  ) {
+    // Validate at least one question
+    if (!questionsData || questionsData.length === 0) {
+      throw new AppError(400, "At least one question is required")
+    }
+
+    // Validate subject ownership if any question has a subject
+    const uniqueSubjectIds = [...new Set(questionsData.map(q => q.subjectId).filter((id): id is string => Boolean(id)))]
+    if (uniqueSubjectIds.length > 0) {
+      const subjects = await prisma.subject.findMany({
+        where: {
+          id: { in: uniqueSubjectIds },
+          standard: { teacherId }
+        }
+      })
+      if (subjects.length !== uniqueSubjectIds.length) {
+        throw new AppError(404, "One or more subjects not found or you don't have access")
+      }
+    }
+
+    // Validate chapters ownership if any question has chapters
+    const uniqueChapterIds = [...new Set(questionsData.flatMap(q => q.chapterIds || []))]
+    if (uniqueChapterIds.length > 0) {
+      const chapters = await prisma.chapter.findMany({
+        where: {
+          id: { in: uniqueChapterIds },
+          subject: {
+            standard: { teacherId }
+          }
+        }
+      })
+      if (chapters.length !== uniqueChapterIds.length) {
+        throw new AppError(404, "One or more chapters not found or you don't have access")
+      }
+    }
+
+    // Validate each question type-specific fields
+    const validationErrors: Array<{ index: number; error: string }> = []
+
+    for (let i = 0; i < questionsData.length; i++) {
+      const q = questionsData[i]
+
+      // Frontend compatibility: Map 'text' to 'questionText'
+      if (!q.questionText && q.text) {
+        q.questionText = q.text
+      }
+
+      // Validate required fields
+      if (!q.questionText) {
+        validationErrors.push({ index: i, error: "Question text is required" })
+        continue
+      }
+
+      if (!q.type) {
+        validationErrors.push({ index: i, error: "Question type is required" })
+        continue
+      }
+
+      if (!q.difficulty) {
+        validationErrors.push({ index: i, error: "Difficulty is required" })
+        continue
+      }
+
+      // Type-specific validation
+      if (q.type === QUESTION_TYPE.MCQ) {
+        if (!q.options || q.options.length < 2) {
+          validationErrors.push({ index: i, error: "MCQ must have at least 2 options" })
+          continue
+        }
+        if (q.correctOption === undefined || q.correctOption < 0 || q.correctOption >= q.options.length) {
+          validationErrors.push({ index: i, error: `MCQ correct option must be between 0 and ${q.options.length - 1}` })
+          continue
+        }
+      }
+
+      if (q.type === QUESTION_TYPE.FILL_IN_THE_BLANKS) {
+        if (!q.correctAnswers || q.correctAnswers.length === 0) {
+          validationErrors.push({ index: i, error: "Fill in the blanks must have correct answers" })
+          continue
+        }
+      }
+
+      // Validate marks
+      if (q.marks && q.marks <= 0) {
+        validationErrors.push({ index: i, error: "Marks must be greater than 0" })
+        continue
+      }
+    }
+
+    // If all questions have validation errors, return error
+    if (validationErrors.length === questionsData.length) {
+      throw new AppError(400, `All questions have validation errors: ${validationErrors.map(e => `Q${e.index + 1}: ${e.error}`).join("; ")}`)
+    }
+
+    // Upload images for all questions
+    const uploadedImages: Array<{ questionIndex: number; questionImageUrl?: string; solutionImageUrl?: string }> = []
+
+    for (let i = 0; i < questionsData.length; i++) {
+      const imageEntry = { questionIndex: i }
+
+      // Upload question image if exists
+      const questionImageFile = files?.[`questionImage_${i}`]?.[0]
+      if (questionImageFile) {
+        try {
+          const url = await uploadToS3(questionImageFile)
+          ;(imageEntry as any).questionImageUrl = url
+        } catch (error) {
+          console.error(`Failed to upload question image for question ${i}:`, error)
+          // Continue without image, don't fail entire batch
+        }
+      }
+
+      // Upload solution image if exists
+      const solutionImageFile = files?.[`solutionImage_${i}`]?.[0]
+      if (solutionImageFile) {
+        try {
+          const url = await uploadToS3(solutionImageFile)
+          ;(imageEntry as any).solutionImageUrl = url
+        } catch (error) {
+          console.error(`Failed to upload solution image for question ${i}:`, error)
+          // Continue without image, don't fail entire batch
+        }
+      }
+
+      uploadedImages.push(imageEntry)
+    }
+
+    // Prepare questions for creation (filter out invalid ones)
+    const validQuestions = questionsData
+      .map((q, i) => ({ ...q, _index: i }))
+      .filter(q => !validationErrors.some(e => e.index === q._index))
+
+    if (validQuestions.length === 0) {
+      throw new AppError(400, `No valid questions to create: ${validationErrors.map(e => `Q${e.index + 1}: ${e.error}`).join("; ")}`)
+    }
+
+    // Create questions in a transaction
+    const createdQuestions = await prisma.$transaction(async (tx) => {
+      const created = []
+
+      for (const qData of validQuestions) {
+        const originalIndex = qData._index as number
+        const imageEntry = uploadedImages.find(img => img.questionIndex === originalIndex)
+
+        const questionData: any = {
+          teacherId,
+          type: qData.type,
+          difficulty: qData.difficulty,
+          questionText: qData.questionText,
+          questionImage: imageEntry?.questionImageUrl,
+          marks: qData.marks || 1,
+          solutionText: qData.solutionText,
+          solutionImage: imageEntry?.solutionImageUrl,
+          subjectId: qData.subjectId,
+          tags: qData.tags ? (qData.tags as any) : null,
+        }
+
+        // Type-specific fields
+        if (qData.type === QUESTION_TYPE.MCQ) {
+          questionData.options = qData.options as any
+          questionData.correctOption = qData.correctOption
+        } else if (qData.type === QUESTION_TYPE.FILL_IN_THE_BLANKS) {
+          questionData.correctAnswers = qData.correctAnswers as any
+          questionData.caseSensitive = qData.caseSensitive || false
+        }
+
+        const question = await tx.questionBank.create({
+          data: questionData,
+          include: {
+            subject: true,
+            chapters: {
+              include: {
+                chapter: true
+              }
+            }
+          }
+        })
+
+        // Create chapter links if provided
+        if (qData.chapterIds && qData.chapterIds.length > 0) {
+          await tx.questionBankChapter.createMany({
+            data: qData.chapterIds.map(chapterId => ({
+              questionBankId: question.id,
+              chapterId
+            }))
+          })
+        }
+
+        created.push(this.transformQuestionBank(question))
+      }
+
+      return created
+    })
+
+    return {
+      successful: createdQuestions.length,
+      failed: validationErrors.length,
+      questions: createdQuestions,
+      errors: validationErrors.length > 0 ? validationErrors : undefined
+    }
+  }
+
   private transformQuestionBank(question: any) {
     return {
       id: question.id,

@@ -289,14 +289,17 @@ export default function PaperQuestionsPage() {
 
                     {q.type === "MCQ" && q.options && (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
-                        {q.options.map((opt, i) => (
-                          <div key={i} className="flex items-center gap-2 text-sm text-gray-600 bg-gray-50 px-3 py-2 rounded-lg border border-gray-100">
-                            <span className="w-5 h-5 rounded-full bg-white border border-gray-300 flex items-center justify-center text-[10px] font-bold text-gray-500 shrink-0">
-                              {String.fromCharCode(65 + i)}
-                            </span>
-                            {opt}
-                          </div>
-                        ))}
+                        {(() => {
+                          const options = typeof q.options === 'string' ? JSON.parse(q.options) : q.options;
+                          return Array.isArray(options) ? options.map((opt, i) => (
+                            <div key={i} className="flex items-center gap-2 text-sm text-gray-600 bg-gray-50 px-3 py-2 rounded-lg border border-gray-100">
+                              <span className="w-5 h-5 rounded-full bg-white border border-gray-300 flex items-center justify-center text-[10px] font-bold text-gray-500 shrink-0">
+                                {String.fromCharCode(65 + i)}
+                              </span>
+                              {opt}
+                            </div>
+                          )) : null;
+                        })()}
                       </div>
                     )}
 

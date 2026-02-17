@@ -176,6 +176,7 @@ export const TEACHER_DOUBT_ENDPOINTS = {
  */
 export const TEACHER_QUESTION_BANK_ENDPOINTS = {
     create: () => `${API_BASE_URL}/teacher/question-bank`,
+    batchCreate: () => `${API_BASE_URL}/teacher/question-bank/batch-create`,
     getAll: (filters?: string) => filters ? `${API_BASE_URL}/teacher/question-bank?${filters}` : `${API_BASE_URL}/teacher/question-bank`,
     get: (id: string) => `${API_BASE_URL}/teacher/question-bank/${id}`,
     update: (id: string) => `${API_BASE_URL}/teacher/question-bank/${id}`,

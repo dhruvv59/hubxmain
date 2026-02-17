@@ -71,6 +71,14 @@ router.post(
   upload.fields([{ name: "questionImage" }, { name: "solutionImage" }]),
   questionBankController.createBankQuestion,
 )
+
+// Batch create questions endpoint (must come before :questionId routes)
+router.post(
+  "/question-bank/batch-create",
+  upload.any(), // Accept any field names for dynamic batch upload
+  questionBankController.createBankQuestionsInBatch,
+)
+
 router.get("/question-bank", questionBankController.getBankQuestions)
 router.get("/question-bank/:questionId", questionBankController.getBankQuestion)
 router.put(

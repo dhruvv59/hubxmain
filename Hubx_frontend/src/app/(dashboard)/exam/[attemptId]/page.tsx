@@ -189,22 +189,25 @@ export default function ExamPage() {
           <div className="mt-8">
             {currentQuestion.type === "MCQ" && (
               <div className="space-y-3">
-                {currentQuestion.options?.map((option, idx) => (
-                  <label
-                    key={idx}
-                    className="flex items-center p-4 rounded-lg border-2 border-gray-200 hover:border-blue-500 cursor-pointer transition-all"
-                  >
-                    <input
-                      type="radio"
-                      name="option"
-                      value={idx}
-                      checked={selectedAnswer === idx}
-                      onChange={() => setSelectedAnswer(idx)}
-                      className="w-4 h-4"
-                    />
-                    <span className="ml-3 text-gray-900">{option}</span>
-                  </label>
-                ))}
+                {(() => {
+                  const options = typeof currentQuestion.options === 'string' ? JSON.parse(currentQuestion.options) : currentQuestion.options;
+                  return Array.isArray(options) ? options.map((option, idx) => (
+                    <label
+                      key={idx}
+                      className="flex items-center p-4 rounded-lg border-2 border-gray-200 hover:border-blue-500 cursor-pointer transition-all"
+                    >
+                      <input
+                        type="radio"
+                        name="option"
+                        value={idx}
+                        checked={selectedAnswer === idx}
+                        onChange={() => setSelectedAnswer(idx)}
+                        className="w-4 h-4"
+                      />
+                      <span className="ml-3 text-gray-900">{option}</span>
+                    </label>
+                  )) : null;
+                })()}
               </div>
             )}
 

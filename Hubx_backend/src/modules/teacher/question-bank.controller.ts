@@ -206,6 +206,56 @@ export class QuestionBankController {
       sendResponse(res, 201, "All questions uploaded successfully to bank", result)
     }
   })
+
+  createBankQuestionsInBatch = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const teacherId = req.user!.userId
+
+    // Extract questions data from body
+    const { questions } = req.body
+
+    if (!questions || !Array.isArray(questions) || questions.length === 0) {
+      return sendError(res, 400, "At least one question is required in 'questions' array")
+    }
+
+    // Parse JSON fields if they come as strings (from FormData)
+    const parsedQuestions = questions.map((q: any, index: number) => {
+      try {
+        return {
+          type: q.type,
+          difficulty: q.difficulty,
+          questionText: q.questionText || q.text,
+          marks: q.marks ? Number.parseFloat(q.marks) : undefined,
+          correctAnswer: q.correctAnswer,
+          explanation: q.explanation,
+          solutionText: q.solutionText,
+          options: q.options ? (typeof q.options === 'string' ? JSON.parse(q.options) : q.options) : undefined,
+          correctOption: q.correctOption ? Number.parseInt(q.correctOption) : undefined,
+          correctAnswers: q.correctAnswers ? (typeof q.correctAnswers === 'string' ? JSON.parse(q.correctAnswers) : q.correctAnswers) : undefined,
+          caseSensitive: q.caseSensitive === 'true' || q.caseSensitive === true,
+          subjectId: q.subjectId,
+          chapterIds: q.chapterIds ? (typeof q.chapterIds === 'string' ? JSON.parse(q.chapterIds) : q.chapterIds) : undefined,
+          tags: q.tags ? (typeof q.tags === 'string' ? JSON.parse(q.tags) : q.tags) : undefined,
+        }
+      } catch (error: any) {
+        throw new Error(`Question ${index}: Failed to parse question data - ${error.message}`)
+      }
+    })
+
+    // Get uploaded files
+    const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined
+
+    const result = await questionBankService.createBankQuestionsInBatch(
+      teacherId,
+      parsedQuestions,
+      files
+    )
+
+    if (result.failed > 0) {
+      sendResponse(res, 207, `Created ${result.successful} questions with ${result.failed} validation errors`, result)
+    } else {
+      sendResponse(res, 201, "All questions created successfully", result)
+    }
+  })
 }
 
 export const questionBankController = new QuestionBankController()

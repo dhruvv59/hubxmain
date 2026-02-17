@@ -72,7 +72,7 @@ function AnalyticsContent() {
                         </div>
                         <span className="text-sm font-medium text-gray-500">Revenue</span>
                     </div>
-                    <p className="text-2xl font-bold text-gray-900">${data.revenue || 0}</p>
+                    <p className="text-2xl font-bold text-gray-900">₹{data.revenue || 0}</p>
                 </div>
             </div>
 
