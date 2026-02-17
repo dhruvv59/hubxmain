@@ -2,14 +2,15 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Edit, Trash2, Plus, Save, Loader2, MessageCircle, FileText, BarChart2 } from "lucide-react";
+import { ArrowLeft, Trash2, Plus, Save, Loader2, MessageCircle, FileText, BarChart2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { http } from "@/lib/http-client";
 import { TEACHER_ENDPOINTS } from "@/lib/api-config";
 import { teacherQuestionService, Question } from "@/services/teacher-questions";
 import { teacherDoubtService, Doubt } from "@/services/teacher-doubts";
-import { ocrService } from "@/services/ocr";
 import { PrivatePaper } from "@/types/private-paper";
+import { QuestionForm } from "@/components/teacher/questions/QuestionForm";
+import { QuestionBankModal } from "@/components/teacher/questions/QuestionBankModal";
 
 export default function PaperDetailsPage() {
     const params = useParams();
@@ -23,10 +24,6 @@ export default function PaperDetailsPage() {
     // Questions State
     const [questions, setQuestions] = useState<Question[]>([]);
     const [isLoadingQuestions, setIsLoadingQuestions] = useState(false);
-    const [isEditingQuestion, setIsEditingQuestion] = useState<string | null>(null);
-    const [questionForm, setQuestionForm] = useState<Partial<Question>>({});
-    const [isCreatingQuestion, setIsCreatingQuestion] = useState(false);
-    const [isOcrLoading, setIsOcrLoading] = useState(false);
     const [isBulkUploading, setIsBulkUploading] = useState(false);
 
     // Doubts State
@@ -35,29 +32,10 @@ export default function PaperDetailsPage() {
     const [replyText, setReplyText] = useState<string>("");
     const [replyingToDoubt, setReplyingToDoubt] = useState<string | null>(null);
 
-    // OCR Handler
-    const handleOcrUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        setIsOcrLoading(true);
-        try {
-            const result = await ocrService.extractText(file);
-            if (result && result.text) {
-                setQuestionForm(prev => ({
-                    ...prev,
-                    text: (prev.text ? prev.text + "\n" : "") + result.text
-                }));
-            }
-        } catch (error) {
-            console.error("OCR Failed:", error);
-            alert("Failed to extract text from image. Please try again.");
-        } finally {
-            setIsOcrLoading(false);
-            // Reset input
-            e.target.value = "";
-        }
-    };
+    // Modal States
+    const [showQuestionForm, setShowQuestionForm] = useState(false);
+    const [showQuestionBank, setShowQuestionBank] = useState(false);
+    const [isPublishing, setIsPublishing] = useState(false);
 
     useEffect(() => {
         if (paperId) {
@@ -81,10 +59,13 @@ export default function PaperDetailsPage() {
     const loadQuestions = async () => {
         setIsLoadingQuestions(true);
         try {
+            console.log('🔍 Loading questions for paperId:', paperId);
             const data = await teacherQuestionService.getAll(paperId);
+            console.log('✅ Questions loaded:', data);
+            console.log('📊 Number of questions:', data?.length || 0);
             setQuestions(data); // getAll returns Question[] directly
         } catch (error) {
-            console.error("Failed to load questions:", error);
+            console.error('❌ Failed to load questions:', error);
         } finally {
             setIsLoadingQuestions(false);
         }
@@ -116,21 +97,7 @@ export default function PaperDetailsPage() {
         }
     }, [activeTab]);
 
-    const handleSaveQuestion = async () => {
-        try {
-            if (isCreatingQuestion) {
-                await teacherQuestionService.create(paperId, questionForm);
-            } else if (isEditingQuestion) {
-                await teacherQuestionService.update(paperId, isEditingQuestion, questionForm);
-            }
-            setIsCreatingQuestion(false);
-            setIsEditingQuestion(null);
-            setQuestionForm({});
-            loadQuestions();
-        } catch (error) {
-            console.error("Failed to save question:", error);
-        }
-    };
+
 
     const handleDeleteQuestion = async (questionId: string) => {
         if (!confirm("Are you sure you want to delete this question?")) return;
@@ -140,6 +107,34 @@ export default function PaperDetailsPage() {
         } catch (error) {
             console.error("Failed to delete question:", error);
         }
+    };
+
+    const handlePublish = async () => {
+        if (paper.status === 'PUBLISHED') {
+            alert("This paper is already published!");
+            return;
+        }
+
+        if (!confirm("Are you sure you want to publish this paper? It cannot be edited after publishing.")) {
+            return;
+        }
+
+        setIsPublishing(true);
+        try {
+            await http.patch<any>(TEACHER_ENDPOINTS.publishPaper(paperId));
+            alert("Paper published successfully!");
+            loadPaperDetails();
+        } catch (error: any) {
+            console.error("Failed to publish paper:", error);
+            alert(error.response?.data?.message || "Failed to publish paper. Please try again.");
+        } finally {
+            setIsPublishing(false);
+        }
+    };
+
+    const handlePreview = () => {
+        // Navigate to paper preview as student would see it
+        router.push(`/teacher/papers/${paperId}/preview`);
     };
 
     // --- Doubts Logic ---
@@ -198,11 +193,25 @@ export default function PaperDetailsPage() {
                     <p className="text-sm text-gray-500">{paper.subject?.name} • {paper.standard}th Grade</p>
                 </div>
                 <div className="ml-auto flex gap-3">
-                    <button className="px-4 py-2 bg-white border border-gray-200 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors">
+                    <button
+                        onClick={handlePreview}
+                        disabled={isPublishing}
+                        className="px-4 py-2 bg-white border border-gray-200 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
                         Preview
                     </button>
-                    <button className="px-4 py-2 bg-[#6366f1] text-white font-medium rounded-lg hover:bg-[#4f4fbe] transition-colors">
-                        Publish
+                    <button
+                        onClick={handlePublish}
+                        disabled={isPublishing || paper.status === 'PUBLISHED'}
+                        className={cn(
+                            "flex items-center gap-2 px-4 py-2 font-medium rounded-lg transition-colors",
+                            paper.status === 'PUBLISHED'
+                                ? "bg-green-100 text-green-700 cursor-not-allowed"
+                                : "bg-[#6366f1] text-white hover:bg-[#4f4fbe] disabled:opacity-50 disabled:cursor-not-allowed"
+                        )}
+                    >
+                        {isPublishing && <Loader2 className="h-4 w-4 animate-spin" />}
+                        {paper.status === 'PUBLISHED' ? 'Published' : 'Publish'}
                     </button>
                 </div>
             </div>
@@ -308,10 +317,7 @@ export default function PaperDetailsPage() {
                                     </label>
                                 </div>
                                 <button
-                                    onClick={() => {
-                                        setQuestionForm({ type: "MCQ", marks: 1, difficulty: "MEDIUM" });
-                                        setIsCreatingQuestion(true);
-                                    }}
+                                    onClick={() => setShowQuestionForm(true)}
                                     className="flex items-center gap-2 px-4 py-2 bg-[#6366f1] text-white rounded-lg hover:bg-[#4f4fbe] transition-colors font-medium text-sm"
                                 >
                                     <Plus className="h-4 w-4" />
@@ -320,119 +326,19 @@ export default function PaperDetailsPage() {
                             </div>
                         </div>
 
+
+
                         {isLoadingQuestions ? (
                             <div className="flex justify-center py-12">
                                 <Loader2 className="h-8 w-8 text-[#6366f1] animate-spin" />
                             </div>
-                        ) : questions.length === 0 && !isCreatingQuestion ? (
+                        ) : questions.length === 0 ? (
                             <div className="text-center py-12 bg-gray-50 rounded-xl border border-dashed border-gray-300">
                                 <FileText className="h-12 w-12 text-gray-300 mx-auto mb-4" />
                                 <p className="text-gray-500">No questions added yet.</p>
                             </div>
                         ) : (
                             <div className="space-y-4">
-                                {(isCreatingQuestion || isEditingQuestion) && (
-                                    <div className="bg-white p-6 rounded-xl border-2 border-[#6366f1] shadow-sm animate-in fade-in slide-in-from-top-4">
-                                        <h4 className="font-bold text-gray-900 mb-4">
-                                            {isCreatingQuestion ? "New Question" : "Edit Question"}
-                                        </h4>
-                                        <div className="space-y-4">
-                                            <div>
-                                                <div className="flex justify-between items-center mb-1">
-                                                    <label className="block text-sm font-medium text-gray-700">Question Text</label>
-                                                    <div className="relative">
-                                                        <input
-                                                            type="file"
-                                                            accept="image/*"
-                                                            onChange={handleOcrUpload}
-                                                            className="hidden"
-                                                            id="ocr-upload"
-                                                            disabled={isOcrLoading}
-                                                        />
-                                                        <label
-                                                            htmlFor="ocr-upload"
-                                                            className={cn(
-                                                                "text-xs font-bold text-[#6366f1] hover:underline cursor-pointer flex items-center gap-1",
-                                                                isOcrLoading && "opacity-50 cursor-not-allowed"
-                                                            )}
-                                                        >
-                                                            {isOcrLoading ? (
-                                                                <>
-                                                                    <Loader2 className="h-3 w-3 animate-spin" />
-                                                                    Extracting Text...
-                                                                </>
-                                                            ) : (
-                                                                <>
-                                                                    <FileText className="h-3 w-3" />
-                                                                    Import from Image (OCR)
-                                                                </>
-                                                            )}
-                                                        </label>
-                                                    </div>
-                                                </div>
-                                                <textarea
-                                                    value={questionForm.text || ""}
-                                                    onChange={e => setQuestionForm({ ...questionForm, text: e.target.value })}
-                                                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6366f1] outline-none"
-                                                    rows={3}
-                                                    placeholder="Type request or import from image..."
-                                                />
-                                            </div>
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Marks</label>
-                                                    <input
-                                                        type="number"
-                                                        value={questionForm.marks || 1}
-                                                        onChange={e => setQuestionForm({ ...questionForm, marks: parseInt(e.target.value) })}
-                                                        className="w-full p-2 border border-gray-300 rounded-lg"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Difficulty</label>
-                                                    <select
-                                                        value={questionForm.difficulty || "MEDIUM"}
-                                                        onChange={e => setQuestionForm({ ...questionForm, difficulty: e.target.value as any })}
-                                                        className="w-full p-2 border border-gray-300 rounded-lg"
-                                                    >
-                                                        <option value="EASY">Easy</option>
-                                                        <option value="MEDIUM">Medium</option>
-                                                        <option value="HARD">Hard</option>
-                                                    </select>
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">Answer / Options</label>
-                                                <input
-                                                    placeholder="Correct Answer"
-                                                    value={questionForm.correctAnswer || ""}
-                                                    onChange={e => setQuestionForm({ ...questionForm, correctAnswer: e.target.value })}
-                                                    className="w-full p-2 border border-gray-300 rounded-lg mb-2"
-                                                />
-                                                {/* Simple option handling for demo */}
-                                                <p className="text-xs text-gray-500">For MCQs, add options in JSON format (e.g. ["A", "B"])</p>
-                                            </div>
-                                            <div className="flex justify-end gap-3 pt-4">
-                                                <button
-                                                    onClick={() => {
-                                                        setIsCreatingQuestion(false);
-                                                        setIsEditingQuestion(null);
-                                                    }}
-                                                    className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-medium"
-                                                >
-                                                    Cancel
-                                                </button>
-                                                <button
-                                                    onClick={handleSaveQuestion}
-                                                    className="px-4 py-2 bg-[#6366f1] text-white rounded-lg hover:bg-[#4f4fbe] font-medium"
-                                                >
-                                                    Save Question
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-
                                 {questions.map(q => (
                                     <div key={q.id} className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm group">
                                         <div className="flex justify-between items-start">
@@ -441,28 +347,34 @@ export default function PaperDetailsPage() {
                                                     <span className={cn(
                                                         "text-[10px] font-bold px-2 py-0.5 rounded uppercase",
                                                         q.difficulty === 'EASY' ? "bg-green-100 text-green-700" :
-                                                            q.difficulty === 'MEDIUM' ? "bg-orange-100 text-orange-700" :
+                                                            q.difficulty === 'INTERMEDIATE' ? "bg-orange-100 text-orange-700" :
                                                                 "bg-red-100 text-red-700"
                                                     )}>{q.difficulty}</span>
                                                     <span className="text-xs font-medium text-gray-500">{q.type} • {q.marks} Marks</span>
                                                 </div>
                                                 <p className="font-medium text-gray-900 mb-2">{q.text}</p>
+                                                {q.questionImageUrl && (
+                                                    <div className="mb-3">
+                                                        <img src={q.questionImageUrl} alt="Question Attachment" className="max-h-60 rounded-lg border border-gray-200" />
+                                                    </div>
+                                                )}
                                                 <div className="bg-gray-50 p-3 rounded-lg text-sm text-gray-700">
                                                     <span className="font-bold text-gray-500 mr-2">Answer:</span>
-                                                    {q.correctAnswer}
+                                                    {q.correctAnswer || "See explanation"}
                                                 </div>
+                                                {q.explanation && (
+                                                    <div className="mt-3 text-sm text-gray-600 bg-blue-50/50 p-3 rounded-lg border border-blue-100">
+                                                        <span className="font-bold text-blue-700 block mb-1 text-xs uppercase tracking-wider">Solution / Explanation</span>
+                                                        <p className="leading-relaxed">{q.explanation}</p>
+                                                        {q.solutionImageUrl && (
+                                                            <div className="mt-3">
+                                                                <img src={q.solutionImageUrl} alt="Solution Attachment" className="max-h-60 rounded-lg border border-gray-200" />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
                                             </div>
                                             <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <button
-                                                    onClick={() => {
-                                                        setQuestionForm({ ...q });
-                                                        setIsEditingQuestion(q.id);
-                                                        setIsCreatingQuestion(false);
-                                                    }}
-                                                    className="p-2 text-gray-400 hover:text-[#6366f1] hover:bg-indigo-50 rounded-lg"
-                                                >
-                                                    <Edit className="h-4 w-4" />
-                                                </button>
                                                 <button
                                                     onClick={() => handleDeleteQuestion(q.id)}
                                                     className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg"
@@ -572,6 +484,35 @@ export default function PaperDetailsPage() {
                     </div>
                 )}
             </div>
+
+            {/* Question Form Modal */}
+            {showQuestionForm && (
+                <QuestionForm
+                    paperId={paperId}
+                    onQuestionAdded={() => {
+                        loadQuestions();
+                        setShowQuestionForm(false);
+                    }}
+                    onClose={() => setShowQuestionForm(false)}
+                    questionNumber={questions.length + 1}
+                    onOpenQuestionBank={() => {
+                        setShowQuestionForm(false);
+                        setShowQuestionBank(true);
+                    }}
+                />
+            )}
+
+            {/* Question Bank Modal */}
+            {showQuestionBank && (
+                <QuestionBankModal
+                    paperId={paperId}
+                    onQuestionAdded={() => {
+                        loadQuestions();
+                        setShowQuestionBank(false);
+                    }}
+                    onClose={() => setShowQuestionBank(false)}
+                />
+            )}
         </div>
     );
 }

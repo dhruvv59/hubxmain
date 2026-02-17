@@ -14,6 +14,7 @@ import {
     Compass,        // Excursion
     Book,           // Curriculum
     BarChart2,      // Analytics
+    Bell,           // Notifications
     Rocket,
     X
 } from "lucide-react";
@@ -27,6 +28,7 @@ const navigation = [
     { name: "Curriculum", href: "/teacher/content", icon: Book }, // Added Curriculum link
     { name: "Analytics", href: "/teacher/analytics", icon: BarChart2 },
     { name: "Excursion", href: "/teacher/excursion", icon: Compass },
+    { name: "Notifications", href: "/teacher/notifications", icon: Bell },
 ];
 
 interface TeacherSidebarProps {

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { ArrowLeft, Loader2, HelpCircle, Filter, Search } from "lucide-react";
+import { ArrowLeft, Loader2, HelpCircle, Filter, Search, Plus } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { QuestionBankFilters } from "@/components/teacher/question-bank/QuestionBankFilters";
 import { QuestionBankList } from "@/components/teacher/question-bank/QuestionBankList";
@@ -137,6 +137,14 @@ export function QuestionBankClient({ initialConfig, initialQuestions }: Question
                     </div>
                     <p className="text-gray-500 text-sm ml-9 font-medium">Discover and add questions from the question bank</p>
                 </div>
+                <button
+                    onClick={() => router.push("/teacher/question-bank/create")}
+                    className="flex items-center gap-2 px-4 py-2 bg-[#6366f1] text-white font-medium rounded-lg hover:bg-[#4f4fbe] transition-colors shadow-sm"
+                >
+                    <Plus className="h-5 w-5" />
+                    <span className="hidden sm:inline">Create Question</span>
+                    <span className="sm:hidden">Create</span>
+                </button>
             </div>
 
             <div className="flex flex-col lg:flex-row gap-8 items-start">

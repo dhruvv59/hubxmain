@@ -4,12 +4,14 @@ import { TEACHER_QUESTION_ENDPOINTS } from "@/lib/api-config";
 export interface Question {
     id: string;
     text: string;
-    type: "MCQ" | "SUBJECTIVE" | "TRUE_FALSE";
-    options?: string[]; // stored as JSON string or array in frontend
+    type: "MCQ" | "TEXT" | "FILL_IN_THE_BLANKS";
+    options?: string[] | string; // Can be array or JSON string from backend
     correctAnswer: string;
     marks: number;
-    difficulty: "EASY" | "MEDIUM" | "HARD";
+    difficulty: "EASY" | "INTERMEDIATE" | "ADVANCED";
     explanation?: string;
+    questionImageUrl?: string;
+    solutionImageUrl?: string;
     paperId: string;
 }
 

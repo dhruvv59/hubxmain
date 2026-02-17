@@ -93,7 +93,7 @@ export async function apiClient<T>(
 
             const headers: Record<string, string> = {
                 ...authHeaders,
-                ...fetchOptions.headers,
+                ...(fetchOptions.headers as Record<string, string> || {}),
             };
 
             // Only set Content-Type if body is not FormData

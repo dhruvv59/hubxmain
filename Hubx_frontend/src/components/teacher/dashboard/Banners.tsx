@@ -17,7 +17,7 @@ export function Banners() {
                                 <div className="h-2 w-2 sm:h-2.5 sm:w-2.5 rounded-sm bg-black rotate-45"></div>
                             </div>
                             <span className="text-sm sm:text-lg font-black text-gray-900 italic tracking-wider leading-tight">
-                                APPROVED EXCURSION - GLENMARK PVT. LTD.
+                                EXCURSION
                             </span>
                         </div>
 

@@ -51,6 +51,10 @@ export function PrivatePapersClient({ initialPapers, initialTotal }: PrivatePape
     const [isLoading, setIsLoading] = useState(false); // Initial load is done by server
     const [totalPapers, setTotalPapers] = useState(initialTotal);
 
+    // Dynamic Filter Options
+    const [availableSubjects, setAvailableSubjects] = useState<string[]>([]);
+    const [availableStandards, setAvailableStandards] = useState<string[]>([]);
+
     const debouncedSearch = useDebounceValue(filters.search, 500);
 
     // Fetch on mount and when filters change
@@ -64,6 +68,12 @@ export function PrivatePapersClient({ initialPapers, initialTotal }: PrivatePape
                 });
                 setPapers(data.papers);
                 setTotalPapers(data.total);
+
+                // Update available filters if returned from backend
+                if (data.filters) {
+                    setAvailableSubjects(data.filters.subjects);
+                    setAvailableStandards(data.filters.standards);
+                }
             } catch (error) {
                 console.error("Failed to fetch papers", error);
             } finally {
@@ -88,22 +98,24 @@ export function PrivatePapersClient({ initialPapers, initialTotal }: PrivatePape
     const totalPages = Math.ceil(totalPapers / (filters.limit || 9));
 
     return (
-        <div className="max-w-[1300px] mx-auto pb-20 pt-10 px-6">
+        <div className="max-w-[1300px] mx-auto pb-20 pt-6 sm:pt-10 px-4 sm:px-6">
             {/* Page Header */}
-            <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <div className="flex items-center gap-3 mb-2">
-                        <button onClick={() => router.back()} className="text-gray-500 hover:text-gray-800 transition-colors" suppressHydrationWarning>
-                            <ArrowLeft className="w-6 h-6" />
-                        </button>
-                        <h1 className="text-2xl font-bold text-gray-900">Private Papers ({totalPapers})</h1>
+            <div className="mb-6 sm:mb-8 flex flex-col gap-4">
+                <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 sm:gap-3 mb-2">
+                            <button onClick={() => router.back()} className="text-gray-500 hover:text-gray-800 transition-colors shrink-0" suppressHydrationWarning>
+                                <ArrowLeft className="w-5 h-5 sm:w-6 sm:h-6" />
+                            </button>
+                            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">Private Papers ({totalPapers})</h1>
+                        </div>
+                        <p className="text-gray-500 text-xs sm:text-sm ml-7 sm:ml-9 font-medium">Discover and access quality papers created by expert teachers</p>
                     </div>
-                    <p className="text-gray-500 text-sm ml-9 font-medium">Discover and access quality papers created by expert teachers</p>
                 </div>
 
                 <button
                     onClick={() => router.push("/teacher/ai-assessments")}
-                    className="px-6 py-2.5 bg-[#5b5bd6] hover:bg-[#4f46e5] text-white font-bold rounded-xl shadow-sm hover:shadow-md transition-all flex items-center gap-2 ml-9 md:ml-0"
+                    className="w-full sm:w-auto px-6 py-2.5 bg-[#5b5bd6] hover:bg-[#4f46e5] text-white font-bold rounded-xl shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-2"
                 >
                     <span className="text-xl leading-none">+</span>
                     Create New Paper
@@ -114,6 +126,8 @@ export function PrivatePapersClient({ initialPapers, initialTotal }: PrivatePape
                 <PrivatePapersFilters
                     filters={filters}
                     onFilterChange={handleFilterChange}
+                    availableSubjects={availableSubjects}
+                    availableStandards={availableStandards}
                     className="hidden lg:flex"
                 />
 
@@ -170,7 +184,26 @@ export function PrivatePapersClient({ initialPapers, initialTotal }: PrivatePape
                         <>
                             <div className="space-y-4">
                                 {papers.map(paper => (
-                                    <PrivatePaperCard key={paper.id} paper={paper} />
+                                    <PrivatePaperCard
+                                        key={paper.id}
+                                        paper={paper}
+                                        onUpdate={() => {
+                                            // Re-fetch papers without resetting filters completely
+                                            const fetchPapers = async () => {
+                                                // We can just call the effect logic again by... actually better to just trigger a re-fetch?
+                                                // Or simpler, just let the card tell us to refresh.
+                                                // Let's force a refresh by toggling a key or similar?
+                                                // Or just expose fetchPapers? 
+                                                // Simplest is to just reload the page or trigger a state change.
+                                                // Let's add a `refreshKey` state to dependency array.
+                                                setFilters(prev => ({ ...prev })); // This might not work if filters didn't change deep eq.
+                                                // Better: Add a refresh trigger
+                                                window.location.reload(); // Brute force but works for now. 
+                                                // Or better: pass a refresh function.
+                                            };
+                                            fetchPapers();
+                                        }}
+                                    />
                                 ))}
                             </div>
 
@@ -279,6 +312,8 @@ export function PrivatePapersClient({ initialPapers, initialTotal }: PrivatePape
                                 handleFilterChange(key, value);
                                 // setIsMobileFiltersOpen(false); // Optional: close on selection
                             }}
+                            availableSubjects={availableSubjects}
+                            availableStandards={availableStandards}
                             className="w-full shadow-none border-none p-0"
                         />
                     </Dialog.Content>

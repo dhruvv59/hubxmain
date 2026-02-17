@@ -130,6 +130,7 @@ export class DoubtService {
                 attempt: {
                     select: {
                         id: true,
+                        paperId: true,
                         startedAt: true,
                     },
                 },

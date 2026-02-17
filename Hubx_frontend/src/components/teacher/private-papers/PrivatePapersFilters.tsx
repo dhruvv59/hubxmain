@@ -10,10 +10,17 @@ interface PrivatePapersFiltersProps {
     className?: string;
     filters: PrivatePaperFilters;
     onFilterChange: (key: keyof Omit<PrivatePaperFilters, "page" | "limit">, value: string) => void;
+    availableSubjects?: string[];
+    availableStandards?: string[];
 }
 
-export function PrivatePapersFilters({ className, filters, onFilterChange }: PrivatePapersFiltersProps) {
+export function PrivatePapersFilters({ className, filters, onFilterChange, availableSubjects = [], availableStandards = [] }: PrivatePapersFiltersProps) {
     const router = useRouter();
+
+    // Use dynamic lists if available. If empty, it means either loading or no papers exist with metadata.
+    // In strict dynamic mode ("only show what exists"), we defaults to just ["All"] if nothing is returned.
+    const displaySubjects = availableSubjects.length > 0 ? ["All", ...availableSubjects] : ["All"];
+    const displayStandards = availableStandards.length > 0 ? ["All", ...availableStandards] : ["All"];
 
     return (
         <div className={cn("w-[280px] shrink-0 flex flex-col gap-6", className)}>
@@ -22,7 +29,7 @@ export function PrivatePapersFilters({ className, filters, onFilterChange }: Pri
                 <div className="mb-8">
                     <h3 className="text-sm font-bold text-gray-900 mb-4">Subjects</h3>
                     <div className="space-y-3">
-                        {["All", "Science", "Mathematics", "English", "History"].map((subject) => (
+                        {displaySubjects.map((subject) => (
                             <label key={subject} className="flex items-center gap-3 cursor-pointer group">
                                 <div className={cn(
                                     "w-5 h-5 rounded-full border flex items-center justify-center transition-colors",
@@ -48,7 +55,7 @@ export function PrivatePapersFilters({ className, filters, onFilterChange }: Pri
                 <div className="mb-8">
                     <h3 className="text-sm font-bold text-gray-900 mb-4">Standard</h3>
                     <div className="space-y-3">
-                        {["All", "8th", "9th", "10th", "11th", "12th"].map((std) => (
+                        {displayStandards.map((std) => (
                             <label key={std} className="flex items-center gap-3 cursor-pointer group">
                                 <div className={cn(
                                     "w-5 h-5 rounded-full border flex items-center justify-center transition-colors",

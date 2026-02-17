@@ -188,6 +188,33 @@ export class PaperService {
       })
     )
 
+    // Get available filters (subjects and standards) from all teacher's papers
+    const distinctSubjects = await prisma.paper.findMany({
+      where: { teacherId },
+      select: {
+        subject: {
+          select: { name: true }
+        }
+      },
+      distinct: ['subjectId']
+    })
+
+    const distinctStandards = await prisma.paper.findMany({
+      where: { teacherId },
+      select: { standard: true },
+      distinct: ['standard']
+    })
+
+    const availableSubjects = distinctSubjects
+      .map(p => p.subject.name)
+      .filter((value, index, self) => self.indexOf(value) === index) // Unique just in case
+      .sort()
+
+    const availableStandards = distinctStandards
+      .map(p => p.standard)
+      .sort((a, b) => a - b)
+      .map(s => `${s}th`) // Format as "8th", "9th", etc.
+
     return {
       papers: papersWithRatings,
       pagination: {
@@ -196,6 +223,10 @@ export class PaperService {
         total,
         pages: Math.ceil(total / limit),
       },
+      filters: {
+        subjects: availableSubjects,
+        standards: availableStandards
+      }
     }
   }
 

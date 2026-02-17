@@ -13,9 +13,33 @@ export class DoubtController {
 
             const result = await doubtService.getAllDoubtsForPaper(paperId, teacherId, resolved)
 
+            // Transform doubts to match frontend interface
+            const transformedDoubts = result.doubts.map((doubt: any) => ({
+                id: doubt.id,
+                studentId: doubt.studentId,
+                questionId: doubt.questionId,
+                paperId: paperId,
+                content: doubt.doubtText,
+                status: doubt.isResolved ? "RESOLVED" : "OPEN",
+                createdAt: doubt.createdAt.toISOString(),
+                student: {
+                    name: `${doubt.student.firstName} ${doubt.student.lastName}`,
+                },
+                replies: doubt.teacherReply ? [{
+                    id: `${doubt.id}-reply`,
+                    doubtId: doubt.id,
+                    teacherId: doubt.repliedBy || "",
+                    content: doubt.teacherReply,
+                    createdAt: doubt.repliedAt?.toISOString() || "",
+                    teacher: doubt.teacher ? {
+                        name: `${doubt.teacher.firstName} ${doubt.teacher.lastName}`,
+                    } : { name: "" },
+                }] : [],
+            }))
+
             res.json({
                 success: true,
-                data: result,
+                data: transformedDoubts,
             })
         } catch (error: any) {
             res.status(error.statusCode || 500).json({
@@ -35,9 +59,36 @@ export class DoubtController {
 
             const result = await doubtService.getQuestionDoubts(questionId, teacherId)
 
+            // Transform doubts to match frontend interface
+            const transformedDoubts = result.doubts.map((doubt: any) => ({
+                id: doubt.id,
+                studentId: doubt.studentId,
+                questionId: doubt.questionId,
+                paperId: doubt.attempt.paperId,
+                content: doubt.doubtText,
+                status: doubt.isResolved ? "RESOLVED" : "OPEN",
+                createdAt: doubt.createdAt.toISOString(),
+                student: {
+                    name: `${doubt.student.firstName} ${doubt.student.lastName}`,
+                },
+                replies: doubt.teacherReply ? [{
+                    id: `${doubt.id}-reply`,
+                    doubtId: doubt.id,
+                    teacherId: doubt.repliedBy || "",
+                    content: doubt.teacherReply,
+                    createdAt: doubt.repliedAt?.toISOString() || "",
+                    teacher: doubt.teacher ? {
+                        name: `${doubt.teacher.firstName} ${doubt.teacher.lastName}`,
+                    } : { name: "" },
+                }] : [],
+            }))
+
             res.json({
                 success: true,
-                data: result,
+                data: {
+                    ...result,
+                    doubts: transformedDoubts,
+                },
             })
         } catch (error: any) {
             res.status(error.statusCode || 500).json({
@@ -53,22 +104,35 @@ export class DoubtController {
     async replyToDoubt(req: Request, res: Response) {
         try {
             const { doubtId } = req.params
-            const { reply } = req.body
+            const { content, reply } = req.body
+            const replyText = content || reply
             const teacherId = (req as any).user.userId
 
-            if (!reply || reply.trim() === "") {
+            if (!replyText || replyText.trim() === "") {
                 return res.status(400).json({
                     success: false,
                     message: "Reply text is required",
                 })
             }
 
-            const result = await doubtService.replyToDoubt(doubtId, teacherId, reply)
+            const result = await doubtService.replyToDoubt(doubtId, teacherId, replyText)
+
+            // Transform to frontend interface
+            const transformedReply = {
+                id: `${result.id}-reply`,
+                doubtId: result.id,
+                teacherId: result.repliedBy || "",
+                content: result.teacherReply,
+                createdAt: result.repliedAt?.toISOString() || "",
+                teacher: result.teacher ? {
+                    name: `${result.teacher.firstName} ${result.teacher.lastName}`,
+                } : { name: "" },
+            }
 
             res.json({
                 success: true,
                 message: "Reply sent successfully",
-                data: result,
+                data: transformedReply,
             })
         } catch (error: any) {
             res.status(error.statusCode || 500).json({
