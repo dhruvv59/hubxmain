@@ -108,21 +108,88 @@ export class PaperService {
     })
   }
 
-  async getPapers(teacherId: string, page = 1, limit = 10) {
+  async getPapers(
+    teacherId: string,
+    page = 1,
+    limit = 10,
+    filters?: {
+      search?: string
+      subject?: string
+      difficulty?: string
+      sort?: string
+      std?: string
+    }
+  ) {
     const skip = (page - 1) * limit
 
+    // Build where clause
+    const where: any = { teacherId }
+
+    if (filters?.search) {
+      where.OR = [
+        { title: { contains: filters.search } },
+        { description: { contains: filters.search } },
+      ]
+    }
+
+    if (filters?.subject && filters.subject !== "All") {
+      where.subject = {
+        name: filters.subject,
+      }
+    }
+
+    if (filters?.difficulty && filters.difficulty !== "All") {
+      // Map frontend difficulty to database format
+      const difficultyMap: Record<string, string> = {
+        "Beginner": "EASY",
+        "Intermediate": "INTERMEDIATE",
+        "Advanced": "ADVANCED",
+        "EASY": "EASY",
+        "INTERMEDIATE": "INTERMEDIATE",
+        "ADVANCED": "ADVANCED",
+      }
+      where.difficulty = difficultyMap[filters.difficulty] || filters.difficulty
+    }
+
+    if (filters?.std && filters.std !== "All") {
+      // Extract number from "8th", "9th", "10th", etc.
+      const stdNum = parseInt(filters.std.replace(/\D/g, ''), 10)
+      if (!isNaN(stdNum)) {
+        where.standard = stdNum
+      }
+    }
+
+    // Determine sort order
+    let orderBy: any = { createdAt: "desc" }
+    if (filters?.sort === "Most Popular") {
+      orderBy = { totalAttempts: "desc" }
+    } else if (filters?.sort === "Highest Rated") {
+      orderBy = { averageScore: "desc" }
+    }
+
     const papers = await prisma.paper.findMany({
-      where: { teacherId },
+      where,
       include: { questions: true, subject: true, chapters: { include: { chapter: true } } },
       skip,
       take: limit,
-      orderBy: { createdAt: "desc" },
+      orderBy,
     })
 
-    const total = await prisma.paper.count({ where: { teacherId } })
+    const total = await prisma.paper.count({ where })
+
+    // Calculate ratings for each paper
+    const papersWithRatings = await Promise.all(
+      papers.map(async (paper) => {
+        const { rating } = await this.getPaperRating(paper.id)
+        return {
+          ...paper,
+          rating,
+        }
+      })
+    )
 
     return {
-      papers,
+      papers: papersWithRatings,
       pagination: {
         page,
         limit,

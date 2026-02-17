@@ -10,7 +10,8 @@ export const getPrivatePapers = async (filters: PrivatePaperFilters): Promise<{ 
         if (filters.limit) queryParams.append("limit", filters.limit.toString());
         if (filters.search) queryParams.append("search", filters.search);
         if (filters.subject && filters.subject !== "All") queryParams.append("subject", filters.subject);
-        if (filters.difficulty && filters.difficulty !== "All") queryParams.append("difficulty", filters.difficulty.toUpperCase()); // Backend expects uppercase
+        if (filters.difficulty && filters.difficulty !== "All") queryParams.append("difficulty", filters.difficulty);
+        if (filters.std && filters.std !== "All") queryParams.append("std", filters.std);
         if (filters.sortBy) queryParams.append("sort", filters.sortBy);
 
         // Call the API

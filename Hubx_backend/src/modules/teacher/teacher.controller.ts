@@ -138,7 +138,15 @@ export class TeacherController {
     const page = Number.parseInt(req.query.page as string) || 1
     const limit = Number.parseInt(req.query.limit as string) || 10
 
-    const result = await paperService.getPapers(req.user!.userId, page, limit)
+    const filters = {
+      search: req.query.search as string | undefined,
+      subject: req.query.subject as string | undefined,
+      difficulty: req.query.difficulty as string | undefined,
+      sort: req.query.sort as string | undefined,
+      std: req.query.std as string | undefined,
+    }
+
+    const result = await paperService.getPapers(req.user!.userId, page, limit, filters)
     sendResponse(res, 200, "Papers fetched successfully", result)
   })
 
