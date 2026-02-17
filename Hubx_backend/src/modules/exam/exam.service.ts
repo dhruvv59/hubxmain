@@ -29,8 +29,9 @@ export class ExamService {
       throw new AppError(404, ERROR_MESSAGES.PAPER_NOT_FOUND)
     }
 
-    // Check if student has purchased (if paper is public)
-    if (paper.isPublic) {
+    // Check if student has purchased (if paper is paid)
+    // FREE papers (price = 0) are always accessible
+    if (paper.price && paper.price > 0) {
       const purchase = await prisma.paperPurchase.findUnique({
         where: { paperId_studentId: { paperId, studentId } },
       })
@@ -46,6 +47,13 @@ export class ExamService {
 
     if (existingAttempt && existingAttempt.status === "ONGOING") {
       return existingAttempt
+    }
+
+    // If attempt exists but is submitted, delete it for a fresh attempt
+    if (existingAttempt && existingAttempt.status === "SUBMITTED") {
+      await prisma.examAttempt.delete({
+        where: { id: existingAttempt.id },
+      })
     }
 
     // Create exam attempt

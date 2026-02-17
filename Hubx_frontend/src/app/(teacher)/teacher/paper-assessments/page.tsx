@@ -1,30 +1,13 @@
+"use client";
 
 import React, { Suspense } from "react";
 import { Loader2 } from "lucide-react";
-import { getPrivatePapers } from "@/services/private-paper-service";
 import { PrivatePapersClient } from "@/components/teacher/private-papers/PrivatePapersClient";
 import { ErrorBoundary, ErrorFallback } from "@/components/common/ErrorBoundary";
 
 /**
- * ASYNC CONTENT WRAPPER
- */
-async function PrivatePapersContainer() {
-    // Initial fetch with default filters
-    const data = await getPrivatePapers({
-        subject: "All",
-        std: "All",
-        difficulty: "All",
-        search: "",
-        sortBy: "Most Recent",
-        page: 1,
-        limit: 9
-    });
-
-    return <PrivatePapersClient initialPapers={data.papers} initialTotal={data.total} />;
-}
-
-/**
- * PRIVATE PAPERS SERVER PAGE
+ * PRIVATE PAPERS CLIENT PAGE
+ * Made client component so API calls have access to token in localStorage
  */
 export default function PrivatePapersPage() {
     return (
@@ -36,7 +19,7 @@ export default function PrivatePapersPage() {
                     </div>
                 }
             >
-                <PrivatePapersContainer />
+                <PrivatePapersClient initialPapers={[]} initialTotal={0} />
             </Suspense>
         </ErrorBoundary>
     );

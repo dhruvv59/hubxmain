@@ -84,12 +84,20 @@ export function PrivatePaperCard({ paper }: PrivatePaperCardProps) {
                     </div>
                     <span className="text-xs font-bold text-gray-900">{paper.teacher.name}</span>
                 </div>
-                <button
-                    onClick={() => window.location.href = `/teacher/paper-assessments/${paper.id}`}
-                    className="px-6 py-2 rounded-lg border border-gray-200 text-xs font-bold text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all"
-                >
-                    Manage
-                </button>
+                <div className="flex gap-2">
+                    <button
+                        onClick={() => window.location.href = `/teacher/papers/${paper.id}/questions`}
+                        className="px-4 py-2 rounded-lg bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition-all"
+                    >
+                        Questions
+                    </button>
+                    <button
+                        onClick={() => window.location.href = `/teacher/paper-assessments/${paper.id}`}
+                        className="px-6 py-2 rounded-lg border border-gray-200 text-xs font-bold text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all"
+                    >
+                        Manage
+                    </button>
+                </div>
             </div>
         </div>
     );

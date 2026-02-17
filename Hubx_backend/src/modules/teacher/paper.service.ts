@@ -351,6 +351,8 @@ export class PaperService {
       subject?: string
       difficulty?: string
       search?: string
+      std?: string
+      rating?: string
     }
   ) {
     const skip = (page - 1) * limit
@@ -368,8 +370,24 @@ export class PaperService {
       }
     }
 
+    if (filters?.std) {
+      const stdNum = parseInt(filters.std, 10)
+      if (!isNaN(stdNum)) {
+        publicPapersWhere.standard = stdNum
+      }
+    }
+
     if (filters?.difficulty) {
-      publicPapersWhere.difficulty = filters.difficulty
+      // Map frontend difficulty to database format
+      const difficultyMap: Record<string, string> = {
+        "Beginner": "EASY",
+        "Intermediate": "INTERMEDIATE",
+        "Advanced": "ADVANCED",
+        "EASY": "EASY",
+        "INTERMEDIATE": "INTERMEDIATE",
+        "ADVANCED": "ADVANCED",
+      }
+      publicPapersWhere.difficulty = difficultyMap[filters.difficulty] || filters.difficulty
     }
 
     if (filters?.search) {
@@ -403,37 +421,29 @@ export class PaperService {
     })
 
     // Get other teachers' public papers (with pagination)
-    const [otherPapers, totalOtherPapers] = await Promise.all([
-      prisma.paper.findMany({
-        where: {
-          ...publicPapersWhere,
-          teacherId: { not: teacherId },
-        },
-        include: {
-          subject: true,
-          teacher: {
-            select: {
-              id: true,
-              firstName: true,
-              lastName: true,
-              email: true,
-            },
-          },
-          questions: {
-            select: { id: true },
+    const otherPapers = await prisma.paper.findMany({
+      where: {
+        ...publicPapersWhere,
+        teacherId: { not: teacherId },
+      },
+      include: {
+        subject: true,
+        teacher: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
           },
         },
-        skip,
-        take: limit,
-        orderBy: { createdAt: "desc" },
-      }),
-      prisma.paper.count({
-        where: {
-          ...publicPapersWhere,
-          teacherId: { not: teacherId },
+        questions: {
+          select: { id: true },
         },
-      }),
-    ])
+      },
+      skip,
+      take: limit,
+      orderBy: { createdAt: "desc" },
+    })
 
     // Calculate ratings for all papers
     const ownPapersWithRatings = await Promise.all(
@@ -488,14 +498,23 @@ export class PaperService {
       })
     )
 
+    // Apply rating filter and sort
+    let filteredOtherPapers = otherPapersWithRatings
+
+    if (filters?.rating === "4 ★ & above") {
+      filteredOtherPapers = filteredOtherPapers.filter(p => p.rating >= 4)
+    } else if (filters?.rating === "Most Popular") {
+      filteredOtherPapers = filteredOtherPapers.sort((a, b) => b.totalAttempts - a.totalAttempts)
+    }
+
     return {
       ownPapers: ownPapersWithRatings,
-      otherPapers: otherPapersWithRatings,
+      otherPapers: filteredOtherPapers,
       pagination: {
         page,
         limit,
-        total: totalOtherPapers,
-        pages: Math.ceil(totalOtherPapers / limit),
+        total: filteredOtherPapers.length,
+        pages: Math.ceil(filteredOtherPapers.length / limit),
       },
     }
   }

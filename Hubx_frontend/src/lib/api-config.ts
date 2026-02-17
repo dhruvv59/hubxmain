@@ -4,7 +4,7 @@
  */
 
 // Base API URL - should be set via environment variable
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api';
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://server.zapmark.in/api';
 
 /**
  * Authentication Endpoints

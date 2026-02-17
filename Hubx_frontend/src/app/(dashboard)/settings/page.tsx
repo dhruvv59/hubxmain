@@ -5,9 +5,27 @@ import { Bell, Lock, Shield, Globe, Moon, Smartphone, Mail, Save } from "lucide-
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 
+interface SettingsState {
+    notifications: {
+        email: boolean;
+        push: boolean;
+        assignments: boolean;
+        assessments: boolean;
+        announcements: boolean;
+    };
+    privacy: {
+        profileVisibility: "public" | "private" | "friends";
+        showPerformance: boolean;
+    };
+    preferences: {
+        language: "en" | "gu" | "hi";
+        theme: "light" | "dark";
+    };
+}
+
 export default function SettingsPage() {
     const { user } = useAuth();
-    const [settings, setSettings] = useState({
+    const [settings, setSettings] = useState<SettingsState>({
         notifications: {
             email: true,
             push: false,
@@ -172,13 +190,13 @@ export default function SettingsPage() {
                             onChange={(e) =>
                                 setSettings({
                                     ...settings,
-                                    privacy: { ...settings.privacy, profileVisibility: e.target.value },
+                                    privacy: { ...settings.privacy, profileVisibility: e.target.value as "public" | "private" | "friends" },
                                 })
                             }
                             className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
                         >
                             <option value="public">Public - Everyone can see</option>
-                            <option value="students">Students Only</option>
+                            <option value="friends">Friends Only</option>
                             <option value="private">Private - Only me</option>
                         </select>
                     </div>
@@ -219,7 +237,7 @@ export default function SettingsPage() {
                             onChange={(e) =>
                                 setSettings({
                                     ...settings,
-                                    preferences: { ...settings.preferences, language: e.target.value },
+                                    preferences: { ...settings.preferences, language: e.target.value as "en" | "gu" | "hi" },
                                 })
                             }
                             className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
@@ -238,7 +256,7 @@ export default function SettingsPage() {
                             onChange={(e) =>
                                 setSettings({
                                     ...settings,
-                                    preferences: { ...settings.preferences, theme: e.target.value },
+                                    preferences: { ...settings.preferences, theme: e.target.value as "light" | "dark" },
                                 })
                             }
                             className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"

@@ -1,5 +1,5 @@
 
-const API_URL = 'http://localhost:8000/api';
+const API_URL = 'https://server.zapmark.in/api';
 
 async function runTests() {
     console.log('--- STARTING QA TEST SCRIPT (FETCH) ---');

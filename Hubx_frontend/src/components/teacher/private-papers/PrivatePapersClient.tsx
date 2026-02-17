@@ -53,15 +53,8 @@ export function PrivatePapersClient({ initialPapers, initialTotal }: PrivatePape
 
     const debouncedSearch = useDebounceValue(filters.search, 500);
 
-    // Fetch when filters change (skip initial mount as we have data)
-    const [isFirstMount, setIsFirstMount] = useState(true);
-
+    // Fetch on mount and when filters change
     useEffect(() => {
-        if (isFirstMount) {
-            setIsFirstMount(false);
-            return;
-        }
-
         const fetchPapers = async () => {
             setIsLoading(true);
             try {
@@ -79,7 +72,7 @@ export function PrivatePapersClient({ initialPapers, initialTotal }: PrivatePape
         };
 
         fetchPapers();
-    }, [filters.subject, filters.std, filters.difficulty, filters.sortBy, filters.page, debouncedSearch, isFirstMount]);
+    }, [filters.subject, filters.std, filters.difficulty, filters.sortBy, filters.page, debouncedSearch]);
 
     const handleFilterChange = (key: keyof Omit<FiltersType, "page" | "limit">, value: string) => {
         setFilters(prev => ({ ...prev, [key]: value, page: 1 })); // Reset to page 1 on filter change

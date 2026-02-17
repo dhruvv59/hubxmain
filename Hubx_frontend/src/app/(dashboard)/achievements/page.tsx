@@ -17,7 +17,7 @@ interface Achievement {
 }
 
 // Icon mapping
-const iconMap: Record<string, React.ReactNode> = {
+const iconMap: Record<string, React.ComponentType<any>> = {
   star: Star,
   zap: Zap,
   target: Target,

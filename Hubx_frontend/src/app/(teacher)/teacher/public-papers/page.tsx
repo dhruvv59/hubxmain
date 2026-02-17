@@ -108,8 +108,19 @@ export default function PublicPapersPage() {
             if (filters.subject && filters.subject !== "All") {
                 params.append('subject', filters.subject);
             }
+            if (filters.standard && filters.standard !== "All") {
+                // Extract number from "9th", "10th" etc and send as query param
+                const stdNum = filters.standard.replace(/\D/g, '');
+                if (stdNum) {
+                    params.append('std', stdNum);
+                }
+            }
             if (filters.difficulty && filters.difficulty !== "All") {
                 params.append('difficulty', filters.difficulty.toUpperCase());
+            }
+            if (filters.rating && filters.rating !== "All") {
+                // Handle rating filter - convert to backend format
+                params.append('rating', filters.rating);
             }
             if (filters.search) {
                 params.append('search', filters.search);
@@ -228,10 +239,20 @@ export default function PublicPapersPage() {
                             <div className="flex items-center gap-2 flex-1 sm:flex-none justify-end">
                                 <span className="text-sm font-semibold text-gray-500 hidden sm:inline">Sort By</span>
                                 <div className="relative w-full sm:w-auto">
-                                    <button className="flex items-center justify-between sm:justify-center w-full sm:w-auto gap-2 px-3 py-2 bg-indigo-50 border border-indigo-100 rounded-md text-sm font-bold text-indigo-700 whitespace-nowrap">
-                                        Most Recent
-                                        <ChevronDown className="w-4 h-4" />
-                                    </button>
+                                    <select
+                                        value="Most Recent"
+                                        onChange={(e) => {
+                                            // Sort options for future enhancement
+                                            console.log("Sort by:", e.target.value);
+                                        }}
+                                        className="flex items-center justify-between w-full sm:w-auto gap-2 px-3 py-2 bg-indigo-50 border border-indigo-100 rounded-md text-sm font-bold text-indigo-700 whitespace-nowrap cursor-pointer appearance-none"
+                                    >
+                                        <option>Most Recent</option>
+                                        <option>Most Popular</option>
+                                        <option>Highest Rated</option>
+                                        <option>Lowest Price</option>
+                                        <option>Highest Price</option>
+                                    </select>
                                 </div>
                             </div>
                         </div>

@@ -4,7 +4,7 @@
  * Requires backend running on http://localhost:8000
  */
 
-const API = 'http://localhost:8000/api';
+const API = 'https://server.zapmark.in/api';
 
 const student = {
   email: 'e2e.student@hubx-test.com',

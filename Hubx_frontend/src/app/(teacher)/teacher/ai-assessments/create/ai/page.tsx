@@ -51,7 +51,7 @@ function AiGeneratorPageContent() {
             // Call real AI API
             const generatedQuestions = await aiService.generateQuestions(draftId, {
                 subject: config.subject || "",
-                chapters: config.chapters || [],
+                chapters: (config.chapters || []).map(c => c.id),
                 difficulty: config.difficulty as "Easy" | "Medium" | "Hard",
                 count,
                 instructions,
@@ -68,7 +68,7 @@ function AiGeneratorPageContent() {
                 await addQuestionToDraft(draftId, {
                     id: q.id || `q-ai-${Date.now()}-${Math.random()}`,
                     type: q.type === "MCQ" ? "MCQ" : "Text",
-                    difficulty: q.difficulty === "EASY" ? "Easy" : q.difficulty === "HARD" ? "Hard" : "Intermediate",
+                    difficulty: q.difficulty === "EASY" ? "Easy" : q.difficulty === "HARD" ? "Advanced" : "Intermediate",
                     content: q.questionText,
                     solution: q.solutionText,
                     marks: q.marks || 3,

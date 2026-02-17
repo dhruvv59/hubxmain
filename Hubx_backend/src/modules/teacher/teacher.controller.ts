@@ -280,6 +280,8 @@ export class TeacherController {
       subject: req.query.subject as string | undefined,
       difficulty: req.query.difficulty as string | undefined,
       search: req.query.search as string | undefined,
+      std: req.query.std as string | undefined,
+      rating: req.query.rating as string | undefined,
     }
 
     const result = await paperService.getPublicPapers(teacherId, page, limit, filters)

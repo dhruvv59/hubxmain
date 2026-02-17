@@ -101,20 +101,31 @@ export function TeacherPaperCard({ paper }: { paper: Paper }) {
             {/* Footer: Teacher & Action */}
             <div className="flex items-center justify-between pt-4 border-t border-gray-50">
                 <div className="flex items-center gap-3">
-                    <div className="h-9 w-9 rounded-full overflow-hidden border border-gray-200">
-                        <Image
-                            src={paper.teacher.avatar}
-                            alt={paper.teacher.name}
-                            width={36}
-                            height={36}
-                            className="h-full w-full object-cover"
-                        />
+                    <div className="h-9 w-9 rounded-full overflow-hidden border border-gray-200 bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
+                        {paper.teacher.avatar && typeof paper.teacher.avatar === 'string' && paper.teacher.avatar.trim() ? (
+                            <Image
+                                src={paper.teacher.avatar}
+                                alt={paper.teacher.name}
+                                width={36}
+                                height={36}
+                                className="h-full w-full object-cover"
+                            />
+                        ) : (
+                            <User className="h-5 w-5 text-white" />
+                        )}
                     </div>
                     <span className="text-sm font-bold text-gray-900">{paper.teacher.name}</span>
                 </div>
 
                 <div className="flex gap-3">
-                    <button className="px-6 py-2 rounded-lg border border-gray-300 text-sm font-bold text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-all">
+                    <button
+                        onClick={() => {
+                            if (paper.id) {
+                                window.location.href = `/teacher/papers/${paper.id}/questions`;
+                            }
+                        }}
+                        className="px-6 py-2 rounded-lg border border-gray-300 text-sm font-bold text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-all"
+                    >
                         Preview
                     </button>
                     {/* Add to Cart / Buy button could go here */}

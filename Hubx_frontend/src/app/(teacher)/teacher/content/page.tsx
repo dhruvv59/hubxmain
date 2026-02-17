@@ -83,11 +83,20 @@ function StandardsManager() {
     useEffect(() => { loadData(); }, []);
 
     const handleSave = async () => {
+        if (!form.name?.trim()) {
+            alert("Standard name is required");
+            return;
+        }
+
         try {
             if (form.id) {
-                await teacherContentService.updateStandard(form.id, form);
+                // Only send name for update
+                await teacherContentService.updateStandard(form.id, { name: form.name });
+                alert("Standard updated successfully!");
             } else {
-                await teacherContentService.createStandard(form);
+                // Only send name for create
+                await teacherContentService.createStandard({ name: form.name });
+                alert("Standard created successfully!");
             }
             setIsCreating(false);
             setForm({});
@@ -99,12 +108,17 @@ function StandardsManager() {
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm("Are you sure? This action cannot be undone.")) return;
+        if (!confirm("Are you sure you want to delete this standard? This action cannot be undone.")) return;
         try {
+            console.log("Deleting standard:", id);
             await teacherContentService.deleteStandard(id);
+            console.log("Standard deleted successfully");
             loadData();
-        } catch (error) {
-            console.error("Failed to delete", error);
+            alert("Standard deleted successfully!");
+        } catch (error: any) {
+            console.error("Failed to delete standard:", error);
+            const errorMessage = error?.response?.data?.message || error?.message || "Failed to delete standard";
+            alert(`Error: ${errorMessage}`);
         }
     };
 
@@ -181,27 +195,24 @@ function SubjectsManager() {
     const [form, setForm] = useState<Partial<Subject>>({});
     const [filterStandard, setFilterStandard] = useState<string>("");
 
-    const loadData = async () => {
-        setLoading(true);
-        try {
-            const stdRes = await teacherContentService.getStandards();
-            setStandards(stdRes || []);
+    // Load standards on component mount
+    useEffect(() => {
+        teacherContentService.getStandards().then(res => setStandards(res || []));
+    }, []);
 
-            // Only fetch subjects if a standard is selected
-            if (filterStandard) {
-                const subjRes = await teacherContentService.getSubjects(filterStandard);
-                setSubjects(subjRes || []);
-            } else {
-                setSubjects([]);
-            }
-        } catch (error) {
-            console.error("Failed to load data", error);
-        } finally {
+    // Load subjects when standard is selected
+    useEffect(() => {
+        setLoading(true);
+        if (filterStandard) {
+            teacherContentService.getSubjects(filterStandard)
+                .then(res => setSubjects(res || []))
+                .catch(err => console.error("Failed to load subjects:", err))
+                .finally(() => setLoading(false));
+        } else {
+            setSubjects([]);
             setLoading(false);
         }
-    };
-
-    useEffect(() => { loadData(); }, [filterStandard]);
+    }, [filterStandard]);
 
     const handleSave = async () => {
         if (!form.standardId) {
@@ -209,15 +220,28 @@ function SubjectsManager() {
             return;
         }
 
+        if (!form.name?.trim()) {
+            alert("Subject name is required");
+            return;
+        }
+
         try {
             if (form.id) {
-                await teacherContentService.updateSubject(form.standardId, form.id, form);
+                // Only send name for update
+                await teacherContentService.updateSubject(form.standardId, form.id, { name: form.name });
+                alert("Subject updated successfully!");
             } else {
-                await teacherContentService.createSubject(form.standardId, form);
+                // For create, send name and optional code
+                await teacherContentService.createSubject(form.standardId, { name: form.name, code: form.code });
+                alert("Subject created successfully!");
             }
             setIsCreating(false);
             setForm({});
-            loadData();
+            // Reload subjects for the selected standard
+            if (filterStandard) {
+                const res = await teacherContentService.getSubjects(filterStandard);
+                setSubjects(res || []);
+            }
         } catch (error) {
             console.error("Failed to save subject", error);
             alert("Failed to save. Please ensure all fields are filled.");
@@ -225,12 +249,21 @@ function SubjectsManager() {
     };
 
     const handleDelete = async (subject: Subject) => {
-        if (!confirm("Are you sure?")) return;
+        if (!confirm("Are you sure you want to delete this subject?")) return;
         try {
+            console.log("Deleting subject:", subject.id, "from standard:", subject.standardId);
             await teacherContentService.deleteSubject(subject.standardId, subject.id);
-            loadData();
-        } catch (error) {
-            console.error("Failed to delete", error);
+            console.log("Subject deleted successfully");
+            // Reload subjects
+            if (filterStandard) {
+                const res = await teacherContentService.getSubjects(filterStandard);
+                setSubjects(res || []);
+            }
+            alert("Subject deleted successfully!");
+        } catch (error: any) {
+            console.error("Failed to delete subject:", error);
+            const errorMessage = error?.response?.data?.message || error?.message || "Failed to delete subject";
+            alert(`Error: ${errorMessage}`);
         }
     };
 
@@ -366,7 +399,7 @@ function ChaptersManager() {
         }
     };
 
-    useEffect(() => { loadData(); }, [filterSubject]);
+    useEffect(() => { loadData(); }, [selectedStandardForSubjects, filterSubject]);
 
     const handleSave = async () => {
         if (!form.subjectId || !form.standardId) {
@@ -374,15 +407,28 @@ function ChaptersManager() {
             return;
         }
 
+        if (!form.name?.trim()) {
+            alert("Chapter name is required");
+            return;
+        }
+
         try {
             if (form.id) {
-                await teacherContentService.updateChapter(form.standardId, form.subjectId, form.id, form);
+                // Only send name for update
+                await teacherContentService.updateChapter(form.standardId, form.subjectId, form.id, { name: form.name });
+                alert("Chapter updated successfully!");
             } else {
-                await teacherContentService.createChapter(form.standardId, form.subjectId, form);
+                // For create, only send name (backend doesn't support description/sequence yet)
+                await teacherContentService.createChapter(form.standardId, form.subjectId, { name: form.name });
+                alert("Chapter created successfully!");
             }
             setIsCreating(false);
             setForm({});
-            loadData();
+            // Reload chapters for the selected standard and subject
+            if (selectedStandardForSubjects && filterSubject) {
+                const res = await teacherContentService.getChapters(selectedStandardForSubjects, filterSubject);
+                setChapters(res || []);
+            }
         } catch (error) {
             console.error("Failed to save chapter", error);
             alert("Failed to save. Please check inputs.");
@@ -390,12 +436,22 @@ function ChaptersManager() {
     };
 
     const handleDelete = async (chapter: Chapter) => {
-        if (!confirm("Are you sure?")) return;
+        if (!confirm("Are you sure you want to delete this chapter?")) return;
         try {
-            await teacherContentService.deleteChapter(chapter.standardId, chapter.subjectId, chapter.id);
-            loadData();
-        } catch (error) {
-            console.error("Failed to delete", error);
+            console.log("Deleting chapter:", chapter.id, "from subject:", chapter.subjectId, "standard:", selectedStandardForSubjects);
+            // Use selectedStandardForSubjects from state since chapter object doesn't have it
+            await teacherContentService.deleteChapter(selectedStandardForSubjects, chapter.subjectId, chapter.id);
+            console.log("Chapter deleted successfully");
+            // Reload chapters
+            if (selectedStandardForSubjects && filterSubject) {
+                const res = await teacherContentService.getChapters(selectedStandardForSubjects, filterSubject);
+                setChapters(res || []);
+            }
+            alert("Chapter deleted successfully!");
+        } catch (error: any) {
+            console.error("Failed to delete chapter:", error);
+            const errorMessage = error?.response?.data?.message || error?.message || "Failed to delete chapter";
+            alert(`Error: ${errorMessage}`);
         }
     };
 
@@ -427,7 +483,13 @@ function ChaptersManager() {
                     )}
                 </div>
                 <button
-                    onClick={() => { setForm({}); setIsCreating(true); }}
+                    onClick={() => {
+                        setForm({
+                            standardId: selectedStandardForSubjects,
+                            subjectId: filterSubject
+                        });
+                        setIsCreating(true);
+                    }}
                     className="flex items-center gap-2 px-4 py-2 bg-[#6366f1] text-white rounded-lg hover:bg-[#4f4fbe] text-sm font-medium"
                 >
                     <Plus className="w-4 h-4" />
