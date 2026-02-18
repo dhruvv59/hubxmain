@@ -15,6 +15,7 @@ interface Question {
   options?: string[];
   questionNumber: number;
   totalQuestions: number;
+  questionImage?: string;
 }
 
 interface ExamData {
@@ -211,6 +212,15 @@ export default function ExamPage() {
       <div className="max-w-4xl mx-auto p-6 pb-32">
         {/* Question */}
         <div className="bg-white rounded-2xl p-8 mb-8 shadow-sm">
+          {currentQuestion.questionImage && (
+            <div className="mb-6">
+              <img
+                src={currentQuestion.questionImage}
+                alt="Question Image"
+                className="max-w-full h-auto rounded-lg border border-gray-200"
+              />
+            </div>
+          )}
           <div className="flex justify-between items-start mb-6">
             <h2 className="text-lg font-bold text-gray-900 flex-1">{currentQuestion.questionText}</h2>
             <div className="flex items-center gap-2 ml-4">

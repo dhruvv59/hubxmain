@@ -771,7 +771,7 @@ export class QuestionBankService {
       if (questionImageFile) {
         try {
           const url = await uploadToS3(questionImageFile)
-          ;(imageEntry as any).questionImageUrl = url
+            ; (imageEntry as any).questionImageUrl = url
         } catch (error) {
           console.error(`Failed to upload question image for question ${i}:`, error)
           // Continue without image, don't fail entire batch
@@ -783,7 +783,7 @@ export class QuestionBankService {
       if (solutionImageFile) {
         try {
           const url = await uploadToS3(solutionImageFile)
-          ;(imageEntry as any).solutionImageUrl = url
+            ; (imageEntry as any).solutionImageUrl = url
         } catch (error) {
           console.error(`Failed to upload solution image for question ${i}:`, error)
           // Continue without image, don't fail entire batch
