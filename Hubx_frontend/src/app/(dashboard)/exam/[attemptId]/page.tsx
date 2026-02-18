@@ -72,9 +72,11 @@ export default function ExamPage() {
         setCurrentQuestion(data.data);
         setQuestionIndex(index);
         setSelectedAnswer(null);
+        setIsLoading(false);
       }
     } catch (error) {
       console.error("Error loading question:", error);
+      setIsLoading(false);
     }
   };
 
@@ -216,8 +218,24 @@ export default function ExamPage() {
 
           {/* Answer Section */}
           <div className="mt-8">
-            {/* Debug: Log question type */}
-            {typeof window !== 'undefined' && console.log("Question Type:", currentQuestion.type, "Type Check - MCQ:", currentQuestion.type === "MCQ", "FITB:", currentQuestion.type === "FILL_IN_THE_BLANKS", "TEXT:", currentQuestion.type === "TEXT")}
+            {/* Debug: Log question type with detailed info */}
+            {typeof window !== 'undefined' && (() => {
+              const typeStr = String(currentQuestion.type).trim();
+              const isMCQ = typeStr === "MCQ";
+              const isFITB = typeStr === "FILL_IN_THE_BLANKS";
+              const isTEXT = typeStr === "TEXT";
+              console.log("📋 Question Type Debug:", {
+                raw: currentQuestion.type,
+                trimmed: typeStr,
+                length: typeStr.length,
+                isMCQ,
+                isFITB,
+                isTEXT,
+                hasOptions: !!currentQuestion.options,
+                questionId: currentQuestion.id
+              });
+              return null;
+            })()}
 
             {currentQuestion.type === "MCQ" && (
               <div className="space-y-3">
@@ -285,7 +303,7 @@ export default function ExamPage() {
               </>
             )}
 
-            {currentQuestion.type === "TEXT" && (
+            {String(currentQuestion.type).trim() === "TEXT" && (
               <textarea
                 value={selectedAnswer as string || ""}
                 onChange={(e) => setSelectedAnswer(e.target.value)}
@@ -296,7 +314,7 @@ export default function ExamPage() {
             )}
 
             {/* Fallback for unknown question types - shows textarea */}
-            {currentQuestion.type !== "MCQ" && currentQuestion.type !== "FILL_IN_THE_BLANKS" && currentQuestion.type !== "TEXT" && (
+            {String(currentQuestion.type).trim() !== "MCQ" && String(currentQuestion.type).trim() !== "FILL_IN_THE_BLANKS" && String(currentQuestion.type).trim() !== "TEXT" && (
               <div className="bg-yellow-50 border-2 border-yellow-200 p-4 rounded-lg mb-4">
                 <p className="text-sm text-yellow-800 mb-2">
                   Question Type: <strong>{currentQuestion.type}</strong> (Free text entry)
