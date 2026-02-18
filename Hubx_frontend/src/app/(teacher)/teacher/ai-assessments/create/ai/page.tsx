@@ -80,6 +80,14 @@ function AiGeneratorPageContent() {
                         text: opt,
                         isCorrect: idx === (q.correctOption ?? -1)
                     }));
+                } else if (q.type === "FILL_IN_THE_BLANKS" && q.correctAnswers) {
+                    // Convert correctAnswers array to blanks format
+                    // correctAnswers is like: [["CPU", "cpu"], ["processing", "Processing"]]
+                    questionData.blanks = q.correctAnswers.map((answers, idx) => ({
+                        id: `blank-${Date.now()}-${idx}`,
+                        position: idx,
+                        correctAnswer: answers[0] // Use first answer as primary
+                    }));
                 }
 
                 await addQuestionToDraft(draftId, questionData);

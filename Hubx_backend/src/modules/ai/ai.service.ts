@@ -25,6 +25,7 @@ export interface GeneratedQuestion {
     marks: number;
     options?: string[];
     correctOption?: number;
+    correctAnswers?: string[][];
     caseSensitive?: boolean;
 }
 
@@ -128,7 +129,7 @@ For each question, provide:
 3. Correct answer or solution (comprehensive explanation)
 4. Marks (3-5 based on difficulty)
 5. If MCQ: 4 options with the correct one marked
-6. If Fill in the Blanks: the correct answer(s)
+6. If Fill in the Blanks: the correct answer(s) as nested arrays
 
 Format your response as a JSON array with this structure:
 [
@@ -140,6 +141,7 @@ Format your response as a JSON array with this structure:
     "marks": 3-5,
     "options": ["option1", "option2", "option3", "option4"],  // only for MCQ
     "correctOption": 1,  // 0-indexed, only for MCQ
+    "correctAnswers": [["answer1", "alt_answer1"], ["answer2", "alt_answer2"]],  // only for FILL_IN_THE_BLANKS (nested array of acceptable answers per blank)
     "caseSensitive": false  // only for FILL_IN_THE_BLANKS
   }
 ]
@@ -179,6 +181,7 @@ Generate ${request.count} questions now:`;
                     marks: Math.min(Math.max(q.marks || 3, 1), 10), // Clamp between 1-10
                     options: q.options || undefined,
                     correctOption: q.correctOption ?? undefined,
+                    correctAnswers: q.correctAnswers || undefined,
                     caseSensitive: q.caseSensitive ?? false,
                 }));
 
