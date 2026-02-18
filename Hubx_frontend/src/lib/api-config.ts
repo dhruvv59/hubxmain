@@ -27,6 +27,7 @@ export const DASHBOARD_ENDPOINTS = {
     getPracticeExams: (page = 1, limit = 10) => `${API_BASE_URL}/student/practice-exams?page=${page}&limit=${limit}`,
     getExamResult: (attemptId: string) => `${API_BASE_URL}/student/exam-result/${attemptId}`,
     getPerformanceMetrics: () => `${API_BASE_URL}/student/performance-metrics`,
+    getPercentileRange: () => `${API_BASE_URL}/student/percentile-range`,
     getSubjectPerformance: () => `${API_BASE_URL}/student/subject-performance`,
     getSyllabusCoverage: () => `${API_BASE_URL}/student/syllabus-coverage`,
     getNotifications: () => `${API_BASE_URL}/student/notifications`,

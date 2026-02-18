@@ -39,8 +39,23 @@ export class StudentController {
   })
 
   getPerformanceMetrics = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const metrics = await studentService.getPerformanceMetrics(req.user!.userId)
+    const { from, to } = req.query
+    const metrics = await studentService.getPerformanceMetrics(
+      req.user!.userId,
+      from as string | undefined,
+      to as string | undefined
+    )
     sendResponse(res, 200, "Performance metrics fetched successfully", metrics)
+  })
+
+  getPercentileForDateRange = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { from, to } = req.query
+    const percentile = await studentService.getPercentileForDateRange(
+      req.user!.userId,
+      from as string | undefined,
+      to as string | undefined
+    )
+    sendResponse(res, 200, "Percentile calculated successfully", { percentile })
   })
 
   getSubjectPerformance = asyncHandler(async (req: AuthRequest, res: Response) => {

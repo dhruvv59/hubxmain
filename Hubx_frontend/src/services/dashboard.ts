@@ -322,6 +322,24 @@ export async function getPerformanceMetrics(from?: string, to?: string) {
 }
 
 /**
+ * Calculates percentile rank for a student within a specific date range.
+ * Returns what percentage of students the given student is better than (0-100).
+ */
+export async function getPercentileForDateRange(from?: string, to?: string) {
+    try {
+        let url = DASHBOARD_ENDPOINTS.getPercentileRange();
+        if (from && to) {
+            url += `?from=${from}&to=${to}`;
+        }
+        const response = await http.get<any>(url);
+        return response.data?.percentile || 0;
+    } catch (error) {
+        console.error('[Dashboard] Failed to fetch percentile for date range:', error);
+        return 0;
+    }
+}
+
+/**
  * Fetches subject performance data.
  *
  * IMPROVED: Returns null on error
@@ -342,19 +360,29 @@ export async function getSubjectPerformance(from?: string, to?: string) {
 
 /**
  * Fetches peer rank data.
- * NOTE: Backend doesn't have a dedicated peer rank endpoint yet.
- * Uses dashboard rank as a basic proxy.
+ * Returns the student's rank, percentile (% of students they're better than), and performance history.
  */
 export async function getPeerRank() {
     try {
         const response = await http.get<BackendDashboardResponse>(
             DASHBOARD_ENDPOINTS.getDashboard()
         );
+        const perfData = response.data.performance as any;
+        const totalStudents = perfData.totalStudents || 1;
+
+        // Calculate what the percentile would be for rank #1 (best student)
+        // Percentile = ((totalStudents - rank) / totalStudents) * 100
+        // For rank 1: ((totalStudents - 1) / totalStudents) * 100
+        const highestRankPercentile = totalStudents > 0
+            ? Math.round(((totalStudents - 1) / totalStudents) * 100)
+            : 100;
+
         return {
-            currentRank: response.data.performance.rank,
-            currentPercentile: response.data.performance.averagePercentage,
-            highestRankPercentile: response.data.performance.averagePercentage,
-            history: (response.data.performance as any).history || [], // Use real history
+            currentRank: perfData.rank,
+            currentPercentile: perfData.percentile || 0, // Student's percentile rank (0-100)
+            highestRankPercentile, // Rank #1's percentile
+            history: perfData.history || [], // Performance scores over time
+            totalStudents,
         };
     } catch (error) {
         console.error('[Dashboard] Failed to fetch peer rank:', error);

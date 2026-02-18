@@ -5,7 +5,7 @@ import { AreaChart, Area, CartesianGrid, XAxis, YAxis, ResponsiveContainer } fro
 import { ChevronDown } from "lucide-react";
 import { TabButton, DateSelector } from "./Controls";
 import { PeerRankData } from "@/types/dashboard";
-import { getPerformanceMetrics } from "@/services/dashboard";
+import { getPerformanceMetrics, getPercentileForDateRange } from "@/services/dashboard";
 
 interface PeerRankWidgetProps {
     data: PeerRankData;
@@ -25,8 +25,10 @@ export function PeerRankWidget({ data }: PeerRankWidgetProps) {
     const [activeTab, setActiveTab] = React.useState("Last Month");
     const [dateRange, setDateRange] = React.useState(getInitialRange());
     const [historyData, setHistoryData] = React.useState(data.history);
+    const [dynamicPercentileValue, setDynamicPercentileValue] = React.useState(data.currentPercentile);
 
-    // In a production app, these values would update based on the fetched data for the selected period
+    // User's rank and percentile among all students
+    // Percentile = what percentage of students this student is better than (0-100)
     const userRank = { rank: data.currentRank, percentile: data.currentPercentile };
 
     // Helper to format API date
@@ -41,18 +43,24 @@ export function PeerRankWidget({ data }: PeerRankWidgetProps) {
             const apiFrom = toApiDate(dateRange.from);
             const apiTo = toApiDate(dateRange.to);
             try {
-                const res = await getPerformanceMetrics(apiFrom, apiTo);
+                const [metricsRes, percentileValue] = await Promise.all([
+                    getPerformanceMetrics(apiFrom, apiTo),
+                    getPercentileForDateRange(apiFrom, apiTo)
+                ]);
+
                 // res is array of { name, score, fill, date }
-                if (Array.isArray(res)) {
+                if (Array.isArray(metricsRes)) {
                     // Map to { x, y } format expected by AreaChart
-                    // We need to preserve the chronological order (backend returns reversed/newest first usually? 
-                    // No, backend getPerformanceMetrics returns: attempts.reverse() -> Oldest to Newest.
-                    // So we can just map simple index
-                    const newData = res.map((item: any, index: number) => ({
+                    const newData = metricsRes.map((item: any, index: number) => ({
                         x: index + 1,
                         y: item.score
                     }));
                     setHistoryData(newData);
+                }
+
+                // Update the percentile based on the selected date range
+                if (percentileValue !== undefined && percentileValue !== null) {
+                    setDynamicPercentileValue(percentileValue);
                 }
             } catch (err) {
                 console.error("Error fetching peer rank history", err);
@@ -96,12 +104,8 @@ export function PeerRankWidget({ data }: PeerRankWidgetProps) {
         setActiveTab("");
     };
 
-    // Calculate average percentile from the currently displayed history data
-    const dynamicPercentile = React.useMemo(() => {
-        if (!historyData || historyData.length === 0) return userRank.percentile;
-        const total = historyData.reduce((sum, item) => sum + (item.y || 0), 0);
-        return Math.round(total / historyData.length);
-    }, [historyData, userRank.percentile]);
+    // Use the dynamicPercentileValue which is fetched from the backend for the selected date range
+    const dynamicPercentile = dynamicPercentileValue;
 
     return (
         <div className="bg-white rounded-[24px] p-4 md:p-6 shadow-sm flex flex-col h-auto md:h-[520px] relative w-full">
