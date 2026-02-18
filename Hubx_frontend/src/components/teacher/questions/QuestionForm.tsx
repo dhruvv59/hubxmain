@@ -148,6 +148,11 @@ export function QuestionForm({ paperId, onQuestionAdded, onClose, questionNumber
       if (type === "MCQ") {
         formData.append("options", JSON.stringify(options));
         formData.append("correctOption", correctOption.toString());
+      } else if (type === "FILL_IN_THE_BLANKS" && options.some((o) => o.trim())) {
+        // For FILL_IN_THE_BLANKS, options are optional
+        // Only send them if teacher provided at least one option
+        formData.append("options", JSON.stringify(options.filter((o) => o.trim())));
+        formData.append("correctOption", correctOption.toString());
       }
 
       const token = localStorage.getItem("hubx_access_token");
@@ -342,10 +347,17 @@ export function QuestionForm({ paperId, onQuestionAdded, onClose, questionNumber
             </div>
           </div>
 
-          {/* MCQ Options Section */}
-          {type === "MCQ" && (
+          {/* MCQ & Fill in the Blanks Options Section */}
+          {(type === "MCQ" || type === "FILL_IN_THE_BLANKS") && (
             <div className="mb-6 sm:mb-8 p-4 sm:p-6 bg-gray-50 rounded-xl border border-gray-100">
-              <label className="text-xs font-bold text-gray-500 mb-4 block">MCQ Options</label>
+              <label className="text-xs font-bold text-gray-500 mb-4 block">
+                {type === "MCQ" ? "MCQ Options" : "Answer Options (Optional)"}
+                {type === "FILL_IN_THE_BLANKS" && (
+                  <span className="block text-xs font-normal text-gray-400 mt-1">
+                    Leave blank for free text entry, or add options for multiple choice
+                  </span>
+                )}
+              </label>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {options.map((opt, idx) => (
                   <div key={idx} className="flex items-center gap-3">

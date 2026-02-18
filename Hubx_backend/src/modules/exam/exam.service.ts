@@ -120,10 +120,10 @@ export class ExamService {
       where: { attemptId_questionId: { attemptId, questionId: question.id } },
     })
 
-    // Return question without solution and correct option for MCQ
+    // Return question without solution and correct option for MCQ/FILL_IN_THE_BLANKS
     return {
       ...question,
-      options: question.type === "MCQ" ? question.options : undefined,
+      options: (question.type === "MCQ" || question.type === "FILL_IN_THE_BLANKS") ? question.options : undefined,
       correctOption: undefined, // Hide correct option during exam
       solutionText: undefined, // Hide solution during exam
       solutionImage: undefined, // Hide solution during exam
@@ -173,8 +173,16 @@ export class ExamService {
     let marksObtained = 0
     const questionMarks = question.marks || 1
 
+    // Handle MCQ questions
     if (question.type === "MCQ" && answer.selectedOption !== undefined) {
       isCorrect = answer.selectedOption === question.correctOption
+      marksObtained = isCorrect ? questionMarks : 0
+    }
+
+    // Handle FILL_IN_THE_BLANKS with multiple choice options
+    if (question.type === "FILL_IN_THE_BLANKS" && answer.selectedOption !== undefined && question.options) {
+      const options = Array.isArray(question.options) ? question.options : []
+      isCorrect = answer.selectedOption === question.correctOption && options.length > 0
       marksObtained = isCorrect ? questionMarks : 0
     }
 
@@ -306,37 +314,47 @@ export class ExamService {
       }
     }
 
-    // Handle FILL_IN_THE_BLANKS: answer.answerText expected as pipe-separated values
+    // Handle FILL_IN_THE_BLANKS (Free Text or Legacy Pipe-Separated Format)
     if (question.type === "FILL_IN_THE_BLANKS" && answer.answerText !== undefined && answer.answerText !== null) {
-      const studentParts = String(answer.answerText).split("|").map((s) => s.trim())
-      const correctArrays: any = question.options || [] // created as Json (array of arrays)
+      const hasOptions = Array.isArray(question.options) && question.options.length > 0
 
-      let allMatched = true
-
-      if (!Array.isArray(correctArrays) || correctArrays.length === 0) {
-        allMatched = false
+      if (!hasOptions) {
+        // Free text entry mode - no options provided by teacher
+        // Mark as pending review since manual verification is needed
+        isCorrect = null // Unknown until teacher reviews
+        marksObtained = 0 // No marks until verified
       } else {
-        for (let i = 0; i < correctArrays.length; i++) {
-          const possibleAnswers = Array.isArray(correctArrays[i]) ? correctArrays[i] : []
-          const studentAns = studentParts[i] ?? ""
+        // Legacy pipe-separated format (if teacher set it up that way)
+        const studentParts = String(answer.answerText).split("|").map((s) => s.trim())
+        const correctArrays: any = question.options || []
 
-          const matched = possibleAnswers.some((ans: any) => {
-            if (typeof ans !== "string") return false
-            if (question.caseSensitive) {
-              return ans.trim() === studentAns
+        let allMatched = true
+
+        if (!Array.isArray(correctArrays) || correctArrays.length === 0) {
+          allMatched = false
+        } else {
+          for (let i = 0; i < correctArrays.length; i++) {
+            const possibleAnswers = Array.isArray(correctArrays[i]) ? correctArrays[i] : []
+            const studentAns = studentParts[i] ?? ""
+
+            const matched = possibleAnswers.some((ans: any) => {
+              if (typeof ans !== "string") return false
+              if (question.caseSensitive) {
+                return ans.trim() === studentAns
+              }
+              return ans.trim().toLowerCase() === studentAns.trim().toLowerCase()
+            })
+
+            if (!matched) {
+              allMatched = false
+              break
             }
-            return ans.trim().toLowerCase() === studentAns.trim().toLowerCase()
-          })
-
-          if (!matched) {
-            allMatched = false
-            break
           }
         }
-      }
 
-      isCorrect = allMatched
-      marksObtained = isCorrect ? questionMarks : 0
+        isCorrect = allMatched
+        marksObtained = isCorrect ? questionMarks : 0
+      }
     }
 
     if (studentAnswer) {
@@ -682,7 +700,7 @@ export class ExamService {
       questionImage: question.questionImage,
       difficulty: question.difficulty,
       marks: question.marks,
-      options: question.type === "MCQ" ? question.options : null,
+      options: (question.type === "MCQ" || question.type === "FILL_IN_THE_BLANKS") ? question.options : null,
       isAnswered: !!studentAnswer?.selectedOption || !!studentAnswer?.answerText,
       isMarked: studentAnswer?.markedForReview || false,
     }
@@ -737,7 +755,7 @@ export class ExamService {
       questionImage: question.questionImage,
       difficulty: question.difficulty,
       marks: question.marks,
-      options: question.type === "MCQ" ? question.options : null,
+      options: (question.type === "MCQ" || question.type === "FILL_IN_THE_BLANKS") ? question.options : null,
       isAnswered: !!studentAnswer?.selectedOption || !!studentAnswer?.answerText,
       isMarked: studentAnswer?.markedForReview || false,
     }
@@ -770,21 +788,36 @@ export class ExamService {
     })
 
     // Build detailed answer breakdown using stored DB values (marksObtained etc.)
-    const detailedAnswers = attempt.answers.map((answer) => ({
-      questionId: answer.questionId,
-      questionNumber: questionIndexMap[answer.questionId] || null,
-      questionText: answer.question.questionText,
-      questionImage: answer.question.questionImage,
-      type: answer.question.type,
-      difficulty: answer.question.difficulty,
-      marks: answer.question.marks,
-      studentAnswer:
-        answer.selectedOption !== null && answer.selectedOption !== undefined ? answer.selectedOption : answer.answerText,
-      correctAnswer: answer.question.type === "MCQ" ? answer.question.correctOption : answer.question.solutionText,
-      isCorrect: answer.isCorrect,
-      marksObtained: typeof answer.marksObtained === "number" ? answer.marksObtained : answer.isCorrect ? answer.question.marks : 0,
-      markedForReview: answer.markedForReview,
-    }))
+    const detailedAnswers = attempt.answers.map((answer) => {
+      // Determine correct answer display based on question type
+      let correctAnswer: any
+      if (answer.question.type === "MCQ") {
+        correctAnswer = answer.question.correctOption
+      } else if (answer.question.type === "FILL_IN_THE_BLANKS" && answer.question.options && Array.isArray(answer.question.options) && answer.question.options.length > 0) {
+        // For FILL_IN_THE_BLANKS with options, show the correct option index
+        correctAnswer = answer.question.correctOption
+      } else {
+        // For free text or TEXT questions, show solution
+        correctAnswer = answer.question.solutionText
+      }
+
+      return {
+        questionId: answer.questionId,
+        questionNumber: questionIndexMap[answer.questionId] || null,
+        questionText: answer.question.questionText,
+        questionImage: answer.question.questionImage,
+        type: answer.question.type,
+        difficulty: answer.question.difficulty,
+        marks: answer.question.marks,
+        studentAnswer:
+          answer.selectedOption !== null && answer.selectedOption !== undefined ? answer.selectedOption : answer.answerText,
+        correctAnswer: correctAnswer,
+        isCorrect: answer.isCorrect,
+        marksObtained: typeof answer.marksObtained === "number" ? answer.marksObtained : answer.isCorrect ? answer.question.marks : 0,
+        markedForReview: answer.markedForReview,
+        status: answer.isCorrect === null ? "PENDING_REVIEW" : answer.isCorrect ? "CORRECT" : "INCORRECT",
+      }
+    })
 
     // Compute stats by difficulty from the paper's questions (total) and answers (correct)
     const statsByDifficulty = (paperQuestions || []).reduce((acc, q) => {

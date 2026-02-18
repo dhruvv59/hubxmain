@@ -79,13 +79,21 @@ export default function ExamPage() {
   };
 
   const saveAnswer = async () => {
-    if (selectedAnswer === null) {
+    if (selectedAnswer === null || selectedAnswer === "") {
       alert("Please select or enter an answer");
       return;
     }
 
     try {
       const token = localStorage.getItem("hubx_access_token");
+
+      // For FILL_IN_THE_BLANKS, check if it has options
+      let isFillInWithOptions = false;
+      if (currentQuestion?.type === "FILL_IN_THE_BLANKS") {
+        const options = typeof currentQuestion.options === 'string' ? JSON.parse(currentQuestion.options) : currentQuestion.options;
+        isFillInWithOptions = Array.isArray(options) && options.length > 0;
+      }
+
       await fetch(
         `${API_BASE_URL}/exam/${attemptId}/answer/${currentQuestion?.id}`,
         {
@@ -95,8 +103,8 @@ export default function ExamPage() {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            selectedOptionIndex: currentQuestion?.type === "MCQ" ? selectedAnswer : undefined,
-            answerText: currentQuestion?.type !== "MCQ" ? selectedAnswer : undefined,
+            selectedOptionIndex: (currentQuestion?.type === "MCQ" || isFillInWithOptions) ? selectedAnswer : undefined,
+            answerText: (currentQuestion?.type === "TEXT" || (currentQuestion?.type === "FILL_IN_THE_BLANKS" && !isFillInWithOptions)) ? selectedAnswer : undefined,
           }),
         }
       );
@@ -209,6 +217,48 @@ export default function ExamPage() {
                   )) : null;
                 })()}
               </div>
+            )}
+
+            {currentQuestion.type === "FILL_IN_THE_BLANKS" && (
+              <>
+                {(() => {
+                  const options = typeof currentQuestion.options === 'string' ? JSON.parse(currentQuestion.options) : currentQuestion.options;
+                  const hasOptions = Array.isArray(options) && options.length > 0;
+
+                  if (hasOptions) {
+                    return (
+                      <div className="space-y-3">
+                        {options.map((option, idx) => (
+                          <label
+                            key={idx}
+                            className="flex items-center p-4 rounded-lg border-2 border-gray-200 hover:border-blue-500 cursor-pointer transition-all"
+                          >
+                            <input
+                              type="radio"
+                              name="option"
+                              value={idx}
+                              checked={selectedAnswer === idx}
+                              onChange={() => setSelectedAnswer(idx)}
+                              className="w-4 h-4"
+                            />
+                            <span className="ml-3 text-gray-900">{option}</span>
+                          </label>
+                        ))}
+                      </div>
+                    );
+                  } else {
+                    return (
+                      <input
+                        type="text"
+                        value={selectedAnswer as string || ""}
+                        onChange={(e) => setSelectedAnswer(e.target.value)}
+                        placeholder="Type your answer here..."
+                        className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                      />
+                    );
+                  }
+                })()}
+              </>
             )}
 
             {currentQuestion.type === "TEXT" && (

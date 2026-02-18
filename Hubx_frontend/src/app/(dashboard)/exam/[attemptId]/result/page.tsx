@@ -17,9 +17,13 @@ interface ResultData {
   answers: Array<{
     questionNumber: number;
     questionText: string;
-    isCorrect: boolean;
+    isCorrect: boolean | null;
     marksObtained: number;
     marks: number;
+    status?: "CORRECT" | "INCORRECT" | "PENDING_REVIEW";
+    studentAnswer?: any;
+    correctAnswer?: any;
+    type?: string;
   }>;
   statistics: {
     byDifficulty: Record<string, { total: number; correct: number }>;
@@ -131,36 +135,54 @@ export default function ResultPage() {
           <h2 className="text-2xl font-bold text-gray-900 mb-6">Answer Review</h2>
 
           <div className="space-y-4">
-            {result.answers.map((answer, idx) => (
-              <div
-                key={idx}
-                className={`p-6 rounded-xl border-2 transition-all ${answer.isCorrect
-                    ? "bg-green-50 border-green-200"
-                    : "bg-red-50 border-red-200"
+            {result.answers.map((answer, idx) => {
+              const isPending = answer.status === "PENDING_REVIEW" || answer.isCorrect === null;
+              const isCorrect = answer.isCorrect === true;
+              const isIncorrect = answer.isCorrect === false;
+
+              return (
+                <div
+                  key={idx}
+                  className={`p-6 rounded-xl border-2 transition-all ${
+                    isPending
+                      ? "bg-yellow-50 border-yellow-200"
+                      : isCorrect
+                      ? "bg-green-50 border-green-200"
+                      : "bg-red-50 border-red-200"
                   }`}
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      {answer.isCorrect ? (
-                        <CheckCircle className="h-5 w-5 text-green-600" />
-                      ) : (
-                        <XCircle className="h-5 w-5 text-red-600" />
-                      )}
-                      <h3 className="font-bold text-gray-900">
-                        Q{answer.questionNumber}: {answer.questionText.substring(0, 60)}...
-                      </h3>
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        {isPending ? (
+                          <div className="h-5 w-5 rounded-full border-2 border-yellow-600 flex items-center justify-center">
+                            <div className="h-2 w-2 rounded-full bg-yellow-600" />
+                          </div>
+                        ) : isCorrect ? (
+                          <CheckCircle className="h-5 w-5 text-green-600" />
+                        ) : (
+                          <XCircle className="h-5 w-5 text-red-600" />
+                        )}
+                        <h3 className="font-bold text-gray-900">
+                          Q{answer.questionNumber}: {answer.questionText.substring(0, 60)}...
+                        </h3>
+                        {isPending && (
+                          <span className="ml-2 px-2 py-1 text-xs font-bold bg-yellow-200 text-yellow-800 rounded">
+                            Pending Review
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-gray-900">
+                        {answer.marksObtained}/{answer.marks}
+                      </p>
+                      <p className="text-xs text-gray-500">marks</p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-bold text-gray-900">
-                      {answer.marksObtained}/{answer.marks}
-                    </p>
-                    <p className="text-xs text-gray-500">marks</p>
-                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
