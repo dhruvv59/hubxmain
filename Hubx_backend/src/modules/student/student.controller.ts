@@ -20,7 +20,19 @@ export class StudentController {
   })
 
   getPracticeExams = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const exams = await studentService.getPracticeExams(req.user!.userId)
+    const page = Number.parseInt(req.query.page as string) || 1
+    const limit = Number.parseInt(req.query.limit as string) || 10
+
+    // Parse all filter query params
+    const filters = {
+      subject: (req.query.subject as string) || undefined,
+      search: (req.query.search as string) || undefined,
+      difficulty: (req.query.difficulty as string) || undefined,
+      type: (req.query.type as string) || undefined,
+      status: (req.query.status as string) || undefined,
+    }
+
+    const exams = await studentService.getPracticeExams(req.user!.userId, page, limit, filters)
     sendResponse(res, 200, "Practice exams fetched successfully", exams)
   })
 
@@ -85,9 +97,7 @@ export class StudentController {
   })
 
   /**
-   * NEW: Fetch all available subjects with performance data
-   * Solves: Cold start issue for new students
-   * Returns: All subjects from student's attempted papers + common subjects
+   * Fetch all available subjects with performance data
    */
   getAllSubjects = asyncHandler(async (req: AuthRequest, res: Response) => {
     const subjects = await studentService.getAllAvailableSubjects(req.user!.userId)
@@ -95,14 +105,11 @@ export class StudentController {
   })
 
   /**
-   * NEW: Generate adaptive assessment based on student's selections
-   * Solves: Custom assessment creation
-   * Creates: Dynamic paper with AI-selected questions
+   * Generate adaptive assessment
    */
   generateAssessment = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { subjectIds, chapterIds, difficulty, duration } = req.body
 
-    // Validation
     if (!subjectIds || !Array.isArray(subjectIds) || subjectIds.length === 0) {
       return sendError(res, 400, "At least one subject must be selected")
     }
@@ -120,6 +127,47 @@ export class StudentController {
 
     sendResponse(res, 201, "Assessment generated successfully", result)
   })
+
+  // ==========================================
+  // BOOKMARK ENDPOINTS
+  // ==========================================
+
+  toggleBookmark = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { paperId } = req.params
+
+    if (!paperId) {
+      return sendError(res, 400, "Paper ID is required")
+    }
+
+    const result = await studentService.toggleBookmark(req.user!.userId, paperId)
+    sendResponse(res, 200, result.bookmarked ? "Paper bookmarked" : "Bookmark removed", result)
+  })
+
+  getBookmarks = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const bookmarks = await studentService.getBookmarks(req.user!.userId)
+    sendResponse(res, 200, "Bookmarks fetched successfully", bookmarks)
+  })
+
+  // ==========================================
+  // PAPER ASSIGNMENT ENDPOINTS (TEACHER → STUDENT)
+  // ==========================================
+
+  assignPaper = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { paperId } = req.params
+    const { studentIds, dueDate, note } = req.body
+
+    if (!paperId) {
+      return sendError(res, 400, "Paper ID is required")
+    }
+
+    if (!studentIds || !Array.isArray(studentIds) || studentIds.length === 0) {
+      return sendError(res, 400, "At least one student must be selected")
+    }
+
+    const result = await studentService.assignPaper(req.user!.userId, paperId, studentIds, dueDate, note)
+    sendResponse(res, 200, "Paper assigned successfully", result)
+  })
 }
 
 export const studentController = new StudentController()
+

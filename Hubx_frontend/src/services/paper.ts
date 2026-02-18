@@ -16,9 +16,13 @@ interface BackendPublicPapersResponse {
             description: string;
             difficulty: string;
             price: number;
+            duration: number | null;
             createdAt: string;
+            subject: { id: string; name: string } | null;
+            teacher: { id: string; firstName: string; lastName: string; avatar: string | null } | null;
             _count: {
                 examAttempts: number;
+                questions: number;
             };
             purchased: boolean;
             hasCoupon: boolean;
@@ -51,17 +55,17 @@ function transformBackendPaper(paper: BackendPublicPapersResponse['data']['paper
         level: levelMap[paper.difficulty] || "Intermediate",
         tags: [],
         rating: 0,
-        questionCount: 0,
-        durationMinutes: 0,
+        questionCount: paper._count?.questions || 0,
+        durationMinutes: paper.duration || 0,
         attempts: paper._count.examAttempts,
         date: new Date(paper.createdAt).toLocaleDateString("en-GB", {
             day: '2-digit', month: 'short', year: 'numeric'
         }),
-        subject: "",
+        subject: paper.subject?.name || "",
         teacher: {
-            id: "",
-            name: "",
-            avatarUrl: ""
+            id: paper.teacher?.id || "",
+            name: paper.teacher ? `${paper.teacher.firstName} ${paper.teacher.lastName}` : "",
+            avatarUrl: paper.teacher?.avatar || ""
         },
         purchased: paper.purchased,
     };

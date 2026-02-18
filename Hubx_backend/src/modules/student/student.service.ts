@@ -146,7 +146,22 @@ export class StudentService {
         difficulty: true,
         price: true,
         createdAt: true,
-        _count: { select: { examAttempts: true } },
+        duration: true,
+        subject: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        teacher: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            avatar: true,
+          },
+        },
+        _count: { select: { examAttempts: true, questions: true } },
       },
       skip,
       take: limit,
@@ -205,39 +220,309 @@ export class StudentService {
     }
   }
 
-  async getPracticeExams(studentId: string, page = 1, limit = 10) {
+  async getPracticeExams(
+    studentId: string,
+    page = 1,
+    limit = 10,
+    filters: {
+      subject?: string
+      search?: string
+      difficulty?: string
+      type?: string // 'all' | 'assigned' | 'practice' | 'bookmarked'
+      status?: string // 'all' | 'not-started' | 'in-progress' | 'completed'
+    } = {}
+  ) {
     const skip = (page - 1) * limit
 
-    // Get all published papers (practice exams for free)
+    // ==========================================
+    // 1. BUILD WHERE CLAUSE (SERVER-SIDE FILTERING)
+    // ==========================================
+    const whereClause: any = {
+      status: PAPER_STATUS.PUBLISHED as any,
+      isPublic: false,
+    }
+
+    // Subject filter (by subject name)
+    if (filters.subject && filters.subject !== 'All') {
+      whereClause.subject = {
+        name: filters.subject,
+      }
+    }
+
+    // Difficulty filter
+    if (filters.difficulty && filters.difficulty !== 'all') {
+      whereClause.difficulty = filters.difficulty.toUpperCase()
+    }
+
+    // Search filter (title or subject name)
+    if (filters.search && filters.search.trim()) {
+      const searchTerm = filters.search.trim()
+      whereClause.OR = [
+        { title: { contains: searchTerm } },
+        { description: { contains: searchTerm } },
+        { subject: { name: { contains: searchTerm } } },
+      ]
+    }
+
+    // Type filter: 'assigned' means only papers assigned to this student
+    if (filters.type === 'assigned') {
+      whereClause.assignments = {
+        some: { studentId },
+      }
+    }
+
+    // Type filter: 'bookmarked' means only bookmarked papers
+    if (filters.type === 'bookmarked') {
+      whereClause.bookmarks = {
+        some: { studentId },
+      }
+    }
+
+    // ==========================================
+    // 2. FETCH PAPERS WITH STATUS-AWARE PAGINATION
+    // ==========================================
+
+    // If filtering by studentStatus, we need to fetch all matching papers first,
+    // then filter by status and paginate
+    const needsStatusFilter = filters.status && filters.status !== 'all'
+
+    const fetchLimit = needsStatusFilter ? 1000 : limit  // If status filter, fetch more then filter
+    const fetchSkip = needsStatusFilter ? 0 : skip
+
     const papers = await prisma.paper.findMany({
-      where: {
-        status: PAPER_STATUS.PUBLISHED as any,
-        isPublic: false,
-      },
+      where: whereClause,
       select: {
         id: true,
         title: true,
         description: true,
         difficulty: true,
+        type: true,
+        duration: true,
+        price: true,
         createdAt: true,
+        updatedAt: true,
+        subject: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        _count: {
+          select: {
+            questions: true,
+          },
+        },
+        questions: {
+          select: {
+            marks: true,
+          },
+        },
+        // Include assignments for this student
+        assignments: {
+          where: { studentId },
+          select: {
+            id: true,
+            dueDate: true,
+            note: true,
+            isCompleted: true,
+            assignedBy: true,
+            teacher: {
+              select: {
+                firstName: true,
+                lastName: true,
+                avatar: true,
+              },
+            },
+            createdAt: true,
+          },
+        },
+        // Include bookmarks for this student
+        bookmarks: {
+          where: { studentId },
+          select: { id: true },
+        },
       },
-      skip,
-      take: limit,
+      skip: fetchSkip,
+      take: fetchLimit,
       orderBy: { createdAt: "desc" },
     })
 
-    const total = await prisma.paper.count({
+    // ==========================================
+    // 3. FETCH STUDENT ATTEMPTS (MULTI-ATTEMPT SUPPORT)
+    // ==========================================
+    const paperIds = papers.map((p) => p.id)
+    const studentAttempts = await prisma.examAttempt.findMany({
+      where: {
+        studentId,
+        paperId: { in: paperIds },
+      },
+      select: {
+        paperId: true,
+        id: true,
+        status: true,
+        totalScore: true,
+        totalMarks: true,
+        percentage: true,
+        attemptNumber: true,
+        startedAt: true,
+        submittedAt: true,
+      },
+      orderBy: { createdAt: "desc" }, // Latest attempt first
+    })
+
+    // Build attempt lookup map: paperId -> ALL attempts (sorted most recent first)
+    const attemptMap = new Map<string, typeof studentAttempts>()
+    studentAttempts.forEach((attempt) => {
+      const existing = attemptMap.get(attempt.paperId) || []
+      existing.push(attempt)
+      attemptMap.set(attempt.paperId, existing)
+    })
+
+    // ==========================================
+    // 4. MAP PAPERS WITH STATUS & ENRICHED DATA
+    // ==========================================
+    const papersWithStatus = papers.map((paper) => {
+      const attempts = attemptMap.get(paper.id) || []
+      const latestAttempt = attempts[0] // Most recent attempt
+      const assignment = paper.assignments[0] // Assignment for this student (if any)
+      const isBookmarked = paper.bookmarks.length > 0
+
+      let studentStatus: "not-started" | "in-progress" | "completed" = "not-started"
+      let score: number | undefined
+      let percentage: number | undefined
+      let attemptId: string | undefined
+      let lastAttemptedAt: string | undefined
+      let bestScore: number | undefined
+      let bestPercentage: number | undefined
+
+      if (latestAttempt) {
+        attemptId = latestAttempt.id
+        if (latestAttempt.status === EXAM_STATUS.SUBMITTED || latestAttempt.status === EXAM_STATUS.AUTO_SUBMITTED) {
+          studentStatus = "completed"
+          score = latestAttempt.totalScore
+          percentage = latestAttempt.percentage
+          lastAttemptedAt = latestAttempt.submittedAt?.toISOString()
+        } else if (latestAttempt.status === EXAM_STATUS.ONGOING) {
+          studentStatus = "in-progress"
+          lastAttemptedAt = latestAttempt.startedAt?.toISOString()
+        }
+      }
+
+      // Calculate best score across all completed attempts
+      const completedAttempts = attempts.filter(
+        (a) => a.status === EXAM_STATUS.SUBMITTED || a.status === EXAM_STATUS.AUTO_SUBMITTED
+      )
+      if (completedAttempts.length > 0) {
+        bestScore = Math.max(...completedAttempts.map((a) => a.totalScore))
+        bestPercentage = Math.max(...completedAttempts.map((a) => a.percentage))
+      }
+
+      const totalMarks = paper.questions.reduce((sum, q) => sum + q.marks, 0)
+
+      // Determine paper category for frontend
+      let paperCategory: "practice" | "assigned" | "previous" = "practice"
+      if (assignment) {
+        paperCategory = "assigned"
+      }
+
+      return {
+        id: paper.id,
+        title: paper.title,
+        description: paper.description,
+        difficulty: paper.difficulty,
+        type: paper.type,
+        paperCategory, // 'practice' | 'assigned' | 'previous'
+        duration: paper.duration,
+        price: paper.price,
+        createdAt: paper.createdAt,
+        updatedAt: paper.updatedAt,
+        subject: paper.subject,
+        questionsCount: paper._count.questions,
+        totalMarks,
+        // Student-specific status
+        studentStatus,
+        score,
+        percentage,
+        attemptId,
+        lastAttemptedAt,
+        // Multi-attempt data
+        totalAttempts: attempts.length,
+        bestScore,
+        bestPercentage,
+        // Assignment data
+        isAssigned: !!assignment,
+        dueDate: assignment?.dueDate?.toISOString(),
+        assignedBy: assignment ? `${assignment.teacher.firstName} ${assignment.teacher.lastName}` : undefined,
+        assignedByAvatar: assignment?.teacher.avatar,
+        assignmentNote: assignment?.note,
+        assignmentCompleted: assignment?.isCompleted || false,
+        // Bookmark data
+        isBookmarked,
+      }
+    })
+
+    // ==========================================
+    // 5. APPLY STATUS FILTER (post-query, pre-pagination)
+    // ==========================================
+    let filteredPapers = papersWithStatus
+    if (needsStatusFilter) {
+      filteredPapers = papersWithStatus.filter((p) => p.studentStatus === filters.status)
+    }
+
+    // Manual pagination after status filtering
+    const totalFiltered = needsStatusFilter ? filteredPapers.length : undefined
+    if (needsStatusFilter) {
+      filteredPapers = filteredPapers.slice(skip, skip + limit)
+    }
+
+    // ==========================================
+    // 6. COLLECT UNIQUE SUBJECTS (for filter pills)
+    // ==========================================
+    const allSubjects = await prisma.paper.findMany({
+      where: {
+        status: PAPER_STATUS.PUBLISHED as any,
+        isPublic: false,
+      },
+      select: {
+        subject: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+      distinct: ["subjectId"],
+    })
+
+    const uniqueSubjects = allSubjects.map((p) => p.subject)
+
+    // ==========================================
+    // 7. CALCULATE STATS (real data, not hardcoded)
+    // ==========================================
+
+    // Total published private papers (unfiltered count)
+    const totalPapers = await prisma.paper.count({
       where: {
         status: PAPER_STATUS.PUBLISHED as any,
         isPublic: false,
       },
     })
 
+    // Count papers filtered by the where clause (for pagination)
+    const totalForPagination = needsStatusFilter
+      ? totalFiltered!
+      : await prisma.paper.count({ where: whereClause })
 
-    // Get stats
+    // Get attempt stats for THIS student across ALL papers (not just current page)
     const attemptStats = await prisma.examAttempt.groupBy({
       by: ["status"],
-      where: { studentId },
+      where: {
+        studentId,
+        paper: {
+          status: PAPER_STATUS.PUBLISHED as any,
+          isPublic: false,
+        },
+      },
       _count: true,
     })
 
@@ -252,21 +537,152 @@ export class StudentService {
       (s) => s.status === EXAM_STATUS.ONGOING
     )?._count || 0
 
+    // Get assigned count for this student (real data)
+    const assignedCount = await prisma.paperAssignment.count({
+      where: {
+        studentId,
+        isCompleted: false,
+        paper: {
+          status: PAPER_STATUS.PUBLISHED as any,
+        },
+      },
+    })
+
     return {
-      papers,
+      papers: filteredPapers,
+      subjects: uniqueSubjects,
       stats: {
-        total,
+        total: totalPapers,
         completed: completedCount,
         inProgress: inProgressCount,
-        assigned: 0,
-        notStarted: Math.max(0, total - (completedCount + inProgressCount)),
+        assigned: assignedCount,
+        notStarted: Math.max(0, totalPapers - (completedCount + inProgressCount)),
       },
       pagination: {
         page,
         limit,
-        total,
-        pages: Math.ceil(total / limit),
+        total: totalForPagination,
+        pages: Math.ceil(totalForPagination / limit),
       },
+    }
+  }
+
+  // ==========================================
+  // BOOKMARK MANAGEMENT
+  // ==========================================
+
+  async toggleBookmark(studentId: string, paperId: string) {
+    // Check if paper exists
+    const paper = await prisma.paper.findUnique({ where: { id: paperId } })
+    if (!paper) {
+      throw new AppError(404, ERROR_MESSAGES.PAPER_NOT_FOUND)
+    }
+
+    // Check if already bookmarked
+    const existing = await prisma.paperBookmark.findUnique({
+      where: {
+        paperId_studentId: { paperId, studentId },
+      },
+    })
+
+    if (existing) {
+      // Remove bookmark
+      await prisma.paperBookmark.delete({
+        where: { id: existing.id },
+      })
+      return { bookmarked: false }
+    } else {
+      // Add bookmark
+      await prisma.paperBookmark.create({
+        data: { paperId, studentId },
+      })
+      return { bookmarked: true }
+    }
+  }
+
+  async getBookmarks(studentId: string) {
+    const bookmarks = await prisma.paperBookmark.findMany({
+      where: { studentId },
+      select: { paperId: true },
+    })
+    return bookmarks.map((b) => b.paperId)
+  }
+
+  // ==========================================
+  // PAPER ASSIGNMENT (Teacher → Student)
+  // ==========================================
+
+  async assignPaper(
+    teacherId: string,
+    paperId: string,
+    studentIds: string[],
+    dueDate?: string,
+    note?: string
+  ) {
+    // Validate paper exists and belongs to teacher
+    const paper = await prisma.paper.findFirst({
+      where: {
+        id: paperId,
+        teacherId,
+        status: PAPER_STATUS.PUBLISHED as any,
+      },
+    })
+
+    if (!paper) {
+      throw new AppError(404, "Paper not found or not published")
+    }
+
+    // Validate student IDs
+    const students = await prisma.user.findMany({
+      where: {
+        id: { in: studentIds },
+        role: "STUDENT",
+      },
+      select: { id: true },
+    })
+
+    const validStudentIds = students.map((s) => s.id)
+
+    // Create assignments (skip duplicates)
+    const assignments = await Promise.all(
+      validStudentIds.map(async (sid) => {
+        try {
+          return await prisma.paperAssignment.create({
+            data: {
+              paperId,
+              studentId: sid,
+              assignedBy: teacherId,
+              dueDate: dueDate ? new Date(dueDate) : null,
+              note,
+            },
+          })
+        } catch (err: any) {
+          // Skip duplicate assignments (unique constraint violation)
+          if (err?.code === "P2002") return null
+          throw err
+        }
+      })
+    )
+
+    // Create notifications for assigned students
+    await Promise.all(
+      validStudentIds.map((sid) =>
+        prisma.notification.create({
+          data: {
+            userId: sid,
+            title: "New Paper Assigned",
+            message: `You have been assigned "${paper.title}". ${dueDate ? `Due: ${new Date(dueDate).toLocaleDateString()}` : ""}`,
+            type: "INFO",
+            actionUrl: "/practice-papers",
+          },
+        })
+      )
+    )
+
+    return {
+      assigned: assignments.filter(Boolean).length,
+      total: studentIds.length,
+      skipped: studentIds.length - validStudentIds.length,
     }
   }
 

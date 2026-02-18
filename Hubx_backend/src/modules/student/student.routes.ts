@@ -29,5 +29,11 @@ router.get("/upcoming-exams", studentController.getUpcomingExams)
 router.get("/subjects", studentController.getAllSubjects)
 router.post("/generate-assessment", studentController.generateAssessment)
 
-export default router
+// Bookmark routes
+router.post("/papers/:paperId/bookmark", studentController.toggleBookmark)
+router.get("/bookmarks", studentController.getBookmarks)
 
+// Paper assignment routes (Teacher → Student)
+router.post("/papers/:paperId/assign", roleMiddleware(ROLES.TEACHER, ROLES.SUPER_ADMIN), studentController.assignPaper)
+
+export default router
