@@ -90,6 +90,11 @@ model User {
   supportTickets          SupportTicket[]
   supportTicketReplies    SupportTicketReply[]
 
+  // Paper assignment & bookmark relations
+  assignedPapers          PaperAssignment[]    @relation("AssignedToStudent")
+  createdAssignments      PaperAssignment[]    @relation("AssignedByTeacher")
+  paperBookmarks          PaperBookmark[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -192,6 +197,8 @@ model Paper {
   chapters     PaperChapter[]
   chatRoom     ChatRoom?
   coupons      PaperCoupon[]
+  assignments  PaperAssignment[]
+  bookmarks    PaperBookmark[]
 
   totalAttempts Int   @default(0)
   averageScore  Float @default(0)
@@ -242,7 +249,7 @@ model Question {
   @@index([type])
 }
 
-// Exam Attempt
+// Exam Attempt (supports multiple attempts per student per paper)
 model ExamAttempt {
   id        String @id @default(cuid())
   paperId   String
@@ -259,6 +266,8 @@ model ExamAttempt {
   percentage Float @default(0)
   timeSpent  Int? // in seconds
 
+  attemptNumber Int @default(1) // Track which attempt this is (1st, 2nd, etc.)
+
   // Relations
   answers StudentAnswer[]
   doubts  Doubt[]
@@ -266,7 +275,7 @@ model ExamAttempt {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([paperId, studentId])
+  @@index([paperId, studentId])
   @@index([studentId])
   @@index([status])
 }
@@ -588,6 +597,53 @@ model QuestionBankPaperLink {
   @@unique([questionBankId, questionId])
   @@index([questionId])
   @@index([questionBankId])
+}
+
+// ============================================
+// PAPER ASSIGNMENT (Teacher → Student)
+// ============================================
+
+model PaperAssignment {
+  id          String   @id @default(cuid())
+  paperId     String
+  paper       Paper    @relation(fields: [paperId], references: [id], onDelete: Cascade)
+  studentId   String
+  student     User     @relation("AssignedToStudent", fields: [studentId], references: [id], onDelete: Cascade)
+  assignedBy  String
+  teacher     User     @relation("AssignedByTeacher", fields: [assignedBy], references: [id], onDelete: Cascade)
+
+  dueDate     DateTime?
+  note        String?   @db.LongText // Optional instruction from teacher
+
+  isCompleted Boolean   @default(false)
+  completedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([paperId, studentId]) // One assignment per student per paper
+  @@index([studentId])
+  @@index([paperId])
+  @@index([assignedBy])
+  @@index([isCompleted])
+}
+
+// ============================================
+// PAPER BOOKMARK (Student Favorites)
+// ============================================
+
+model PaperBookmark {
+  id        String @id @default(cuid())
+  paperId   String
+  paper     Paper  @relation(fields: [paperId], references: [id], onDelete: Cascade)
+  studentId String
+  student   User   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([paperId, studentId])
+  @@index([studentId])
+  @@index([paperId])
 }
 
 // ============================================

@@ -117,8 +117,8 @@ export class ChatService {
         }
 
         if (senderRole === "STUDENT") {
-            const attempt = await prisma.examAttempt.findUnique({
-                where: { paperId_studentId: { paperId, studentId: senderId } },
+            const attempt = await prisma.examAttempt.findFirst({
+                where: { paperId, studentId: senderId },
             })
             if (!attempt) {
                 throw new AppError(403, "You don't have access to this chat room")
@@ -150,11 +150,17 @@ export class ChatService {
     }
 
     /**
-     * Get messages for a paper with role-based filtering
+     * Get messages for a paper with role-based filtering and pagination
      * - Teachers see all messages
      * - Students see only their own messages and teacher's replies to them
      */
-    async getMessages(paperId: string, userId: string, userRole: string) {
+    async getMessages(
+        paperId: string,
+        userId: string,
+        userRole: string,
+        limit: number = 20,
+        offset: number = 0
+    ) {
         const chatRoom = await prisma.chatRoom.findUnique({
             where: { paperId },
             include: { paper: true },
@@ -170,65 +176,84 @@ export class ChatService {
         }
 
         if (userRole === "STUDENT") {
-            const attempt = await prisma.examAttempt.findUnique({
-                where: { paperId_studentId: { paperId, studentId: userId } },
+            const attempt = await prisma.examAttempt.findFirst({
+                where: { paperId, studentId: userId },
             })
             if (!attempt) {
                 throw new AppError(403, "You don't have access to this chat room")
             }
         }
 
-        let messages
-
-        if (userRole === "TEACHER") {
-            // Teacher sees all messages in the room
-            messages = await prisma.chatMessage.findMany({
-                where: { roomId: chatRoom.id },
-                include: {
-                    sender: {
-                        select: {
-                            id: true,
-                            firstName: true,
-                            lastName: true,
-                            email: true,
-                            role: true,
-                        },
-                    },
-                },
-                orderBy: { createdAt: "asc" },
-            })
-        } else {
-            // Student sees only:
-            // 1. Their own messages
-            // 2. Teacher's replies to them (receiverId = studentId)
-            messages = await prisma.chatMessage.findMany({
-                where: {
+        const where =
+            userRole === "TEACHER"
+                ? { roomId: chatRoom.id }
+                : {
                     roomId: chatRoom.id,
                     OR: [
                         { senderId: userId }, // Student's own messages
+                        {
+                            // All public student questions (not teacher messages)
+                            senderId: { not: chatRoom.paper.teacherId },
+                            receiverId: null, // Public questions to all
+                        },
                         {
                             // Teacher's replies to this student
                             senderId: chatRoom.paper.teacherId,
                             receiverId: userId,
                         },
                     ],
-                },
-                include: {
-                    sender: {
-                        select: {
-                            id: true,
-                            firstName: true,
-                            lastName: true,
-                            email: true,
-                            role: true,
-                        },
+                }
+
+        // Get total count for pagination
+        const totalCount = await prisma.chatMessage.count({ where })
+
+        // Get paginated messages (most recent first, then reverse for display)
+        const messages = await prisma.chatMessage.findMany({
+            where,
+            include: {
+                sender: {
+                    select: {
+                        id: true,
+                        firstName: true,
+                        lastName: true,
+                        email: true,
+                        role: true,
                     },
                 },
-                orderBy: { createdAt: "asc" },
-            })
+            },
+            orderBy: { createdAt: "desc" },
+            take: limit,
+            skip: offset,
+        })
+
+        return {
+            messages: messages.reverse(), // Reverse to show oldest first
+            totalCount,
+            hasMore: offset + limit < totalCount,
+        }
+    }
+
+    /**
+     * Mark all messages in a room as read for a user
+     */
+    async markRoomMessagesAsRead(paperId: string, userId: string) {
+        const chatRoom = await prisma.chatRoom.findUnique({
+            where: { paperId },
+        })
+
+        if (!chatRoom) {
+            throw new AppError(404, "Chat room not found")
         }
 
-        return messages
+        // Mark all messages addressed to this user as read
+        await prisma.chatMessage.updateMany({
+            where: {
+                roomId: chatRoom.id,
+                receiverId: userId,
+                isRead: false,
+            },
+            data: { isRead: true },
+        })
     }
 
     /**

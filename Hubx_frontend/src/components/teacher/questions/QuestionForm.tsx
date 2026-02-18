@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useState } from "react";
-import { X, Loader2, Image as ImageIcon, Link as LinkIcon, Eye, Plus } from "lucide-react";
+import { X, Loader2, Image as ImageIcon, Link as LinkIcon, Eye, Plus, Camera } from "lucide-react";
 import { API_BASE_URL } from "@/lib/api-config";
 import { cn } from "@/lib/utils";
+import { ocrService } from "@/services/ocr";
 
 import { MathPreviewModal } from "./MathPreviewModal";
 
@@ -33,9 +34,13 @@ export function QuestionForm({ paperId, onQuestionAdded, onClose, questionNumber
   const [questionImage, setQuestionImage] = useState<File | null>(null);
   const [solutionImage, setSolutionImage] = useState<File | null>(null);
 
+  // OCR state
+  const [isOcrLoading, setIsOcrLoading] = useState(false);
+
   // File input refs
   const questionImageInputRef = React.useRef<HTMLInputElement>(null);
   const solutionImageInputRef = React.useRef<HTMLInputElement>(null);
+  const ocrImageInputRef = React.useRef<HTMLInputElement>(null);
 
   // Math symbols for the toolbar
   const mathSymbols = ["²", "³", "±", "×", "÷", "≤", "≥", "√", "π"];
@@ -56,7 +61,32 @@ export function QuestionForm({ paperId, onQuestionAdded, onClose, questionNumber
       setPreviewContent(solutionText);
       setPreviewTitle("Solution Preview");
     }
-  }
+  };
+
+  const handleOcrImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || !e.target.files[0]) return;
+
+    const file = e.target.files[0];
+    setIsOcrLoading(true);
+
+    try {
+      const result = await ocrService.extractText(file);
+      // Append extracted text to the question field
+      setQuestionText((prev) => {
+        const separator = prev.trim() ? " " : "";
+        return prev + separator + result.text;
+      });
+    } catch (error) {
+      console.error("OCR extraction failed:", error);
+      alert("Failed to extract text from image. Please try another image or enter the text manually.");
+    } finally {
+      setIsOcrLoading(false);
+      // Reset the input so the same file can be selected again
+      if (ocrImageInputRef.current) {
+        ocrImageInputRef.current.value = "";
+      }
+    }
+  };
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>, field: "question" | "solution") => {
     if (e.target.files && e.target.files[0]) {
@@ -163,6 +193,13 @@ export function QuestionForm({ paperId, onQuestionAdded, onClose, questionNumber
           type="file"
           ref={solutionImageInputRef}
           onChange={(e) => handleImageSelect(e, "solution")}
+          className="hidden"
+          accept="image/*"
+        />
+        <input
+          type="file"
+          ref={ocrImageInputRef}
+          onChange={handleOcrImageSelect}
           className="hidden"
           accept="image/*"
         />
@@ -275,6 +312,18 @@ export function QuestionForm({ paperId, onQuestionAdded, onClose, questionNumber
                 View Question (Math Preview)
               </button>
               <div className="flex flex-wrap gap-3 sm:gap-4">
+                <button
+                  onClick={() => ocrImageInputRef.current?.click()}
+                  disabled={isOcrLoading}
+                  className="text-xs font-bold text-[#5b5bd6] hover:text-[#4f46e5] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 transition-colors"
+                >
+                  {isOcrLoading ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Camera className="w-3.5 h-3.5" />
+                  )}
+                  {isOcrLoading ? "Scanning..." : "Scan from Image"}
+                </button>
                 <button
                   onClick={() => questionImageInputRef.current?.click()}
                   className="text-xs font-bold text-[#5b5bd6] hover:text-[#4f46e5] flex items-center gap-1.5 transition-colors"

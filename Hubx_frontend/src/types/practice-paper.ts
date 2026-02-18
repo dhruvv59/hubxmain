@@ -9,7 +9,7 @@
 // CORE TYPES
 // ============================================
 
-export type PaperType = 'practice' | 'previous' | 'assigned';
+export type PaperType = 'practice' | 'previous' | 'assigned' | 'bookmarked' | 'all';
 export type PaperDifficulty = 'easy' | 'medium' | 'hard';
 export type PaperStatus = 'not-started' | 'in-progress' | 'completed';
 
@@ -28,13 +28,20 @@ export interface Paper {
     assignedBy?: string; // For assigned tests
     assignedByAvatar?: string;
     dueDate?: string; // ISO string for assigned tests
+    assignmentNote?: string; // Teacher's note for assignment
 
     // Progress tracking
     status: PaperStatus;
-    score?: number; // If completed
-    percentage?: number; // If completed
+    score?: number; // If completed (latest score)
+    percentage?: number; // If completed (latest percentage)
+    bestScore?: number; // Best score across all attempts
+    bestPercentage?: number; // Best percentage across all attempts
     attempts: number;
     lastAttemptedAt?: string; // ISO string
+    attemptId?: string; // For navigation to exam page
+
+    // Bookmark
+    isBookmarked?: boolean;
 
     // Metadata
     createdAt: string;
@@ -46,17 +53,17 @@ export interface Paper {
 // ============================================
 
 /**
- * GET /api/v1/practice-papers
+ * GET /api/student/practice-exams
  * Query parameters for fetching papers
  */
 export interface GetPapersParams {
     page?: number;
     limit?: number;
-    subject?: string; // 'All' | specific subject
+    subject?: string; // 'All' | specific subject name
     type?: PaperType | 'all';
     search?: string;
-    difficulty?: PaperDifficulty;
-    status?: PaperStatus;
+    difficulty?: PaperDifficulty | string;
+    status?: PaperStatus | 'all';
     sortBy?: 'createdAt' | 'dueDate' | 'difficulty' | 'title';
     sortOrder?: 'asc' | 'desc';
 }
@@ -86,13 +93,14 @@ export interface PaperStats {
 }
 
 /**
- * GET /api/v1/practice-papers
+ * GET /api/student/practice-exams
  * Response structure
  */
 export interface GetPapersResponse {
     success: boolean;
     data: {
         papers: Paper[];
+        subjects: { id: string; name: string }[];
         stats: PaperStats;
         pagination: PaginationMeta;
     };
@@ -100,7 +108,7 @@ export interface GetPapersResponse {
 }
 
 /**
- * GET /api/v1/practice-papers/:id
+ * GET /api/student/practice-exams/:id
  * Single paper details response
  */
 export interface GetPaperDetailsResponse {
@@ -113,7 +121,7 @@ export interface GetPaperDetailsResponse {
 }
 
 /**
- * POST /api/v1/practice-papers/:id/start
+ * POST /api/exam/start/:paperId
  * Start test request/response
  */
 export interface StartTestRequest {
@@ -132,7 +140,7 @@ export interface StartTestResponse {
 }
 
 /**
- * POST /api/v1/practice-papers/:id/submit
+ * POST /api/exam/:attemptId/submit
  * Submit test request/response
  */
 export interface SubmitTestRequest {
@@ -151,6 +159,7 @@ export interface SubmitTestResponse {
         incorrectAnswers: number;
         unanswered: number;
         timeTaken: number;
+        totalQuestions: number;
         rank?: number; // Optional class rank
         feedback?: string;
     };
@@ -217,8 +226,8 @@ export interface PaperFilters {
     subject: string;
     type: PaperType | 'all';
     search: string;
-    difficulty?: PaperDifficulty;
-    status?: PaperStatus;
+    difficulty?: PaperDifficulty | string;
+    status?: PaperStatus | 'all';
 }
 
 // ============================================

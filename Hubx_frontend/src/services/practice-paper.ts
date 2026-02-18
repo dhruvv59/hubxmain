@@ -4,11 +4,12 @@
  * Maps practice paper operations to existing exam APIs
  * Backend endpoints: /api/student/practice-exams, /api/exam/*
  *
- * IMPORTANT: This service is a facade over existing exam functionality
+ * Server-side filtering: subject, search, difficulty, type, status
+ * are all handled by the backend now.
  */
 
 import { http } from '@/lib/http-client';
-import { DASHBOARD_ENDPOINTS, EXAM_ENDPOINTS } from '@/lib/api-config';
+import { DASHBOARD_ENDPOINTS, EXAM_ENDPOINTS, API_BASE_URL } from '@/lib/api-config';
 import type {
     GetPapersParams,
     GetPapersResponse,
@@ -16,7 +17,6 @@ import type {
     StartTestResponse,
     SubmitTestResponse,
     Paper,
-    PaginationMeta,
 } from '@/types/practice-paper';
 
 // ============================================
@@ -24,21 +24,44 @@ import type {
 // ============================================
 
 /**
- * Get practice papers (purchased papers)
+ * Get practice papers (published private papers)
  * Maps to: GET /api/student/practice-exams
  *
+ * All filtering is now done server-side.
  * @param params - Filter and pagination params
- * @returns Paginated list of practice papers
+ * @returns Paginated list of practice papers with status
  */
 export async function getPapers(params: GetPapersParams = {}): Promise<GetPapersResponse> {
     try {
         const page = params.page || 1;
         const limit = params.limit || 10;
 
+        // Build query string with all filter params for server-side filtering
+        const queryParts: string[] = [`page=${page}`, `limit=${limit}`];
+        if (params.subject && params.subject !== 'All') {
+            queryParts.push(`subject=${encodeURIComponent(params.subject)}`);
+        }
+        if (params.search) {
+            queryParts.push(`search=${encodeURIComponent(params.search)}`);
+        }
+        if (params.difficulty) {
+            // Map frontend difficulty to backend enum
+            queryParts.push(`difficulty=${encodeURIComponent(mapDifficultyToBackend(params.difficulty))}`);
+        }
+        if (params.type && params.type !== 'all') {
+            queryParts.push(`type=${encodeURIComponent(params.type)}`);
+        }
+        if (params.status && params.status !== 'all') {
+            queryParts.push(`status=${encodeURIComponent(params.status)}`);
+        }
+
+        const queryString = queryParts.join('&');
+
         const response = await http.get<{
             success: boolean;
             data: {
                 papers: any[];
+                subjects: { id: string; name: string }[];
                 stats: {
                     total: number;
                     completed: number;
@@ -54,46 +77,49 @@ export async function getPapers(params: GetPapersParams = {}): Promise<GetPapers
                 };
             };
         }>(
-            DASHBOARD_ENDPOINTS.getPracticeExams(page, limit)
+            `${API_BASE_URL}/student/practice-exams?${queryString}`
         );
 
-        const papers: any[] = response.data.papers.map((paper: any) => ({
+        // Map backend papers to frontend Paper type
+        const papers: Paper[] = response.data.papers.map((paper: any) => ({
             id: paper.id,
             title: paper.title,
-            description: paper.description || '',
-            subject: paper.subject?.name || 'General',
+            type: paper.isAssigned ? 'assigned' : 'practice' as const,
+            subject: paper.subject?.name || paper.subjectName || 'General',
             difficulty: mapDifficulty(paper.difficulty),
+            questions: paper.questionsCount || paper.totalQuestions || 0,
             duration: paper.duration || 0,
-            totalQuestions: paper.questions?.length || 0,
-            totalMarks: paper.questions?.reduce((sum: number, q: any) => sum + (q.marks || 0), 0) || 0,
-            price: paper.price || 0,
-            isPurchased: true,
+            marks: paper.totalMarks || 0,
+
+            // Assignment info
+            assignedBy: paper.assignedBy,
+            assignedByAvatar: paper.assignedByAvatar,
+            dueDate: paper.dueDate,
+            assignmentNote: paper.assignmentNote,
+
+            // Progress tracking
+            status: paper.studentStatus || 'not-started',
+            score: paper.score,
+            percentage: paper.percentage,
+            bestScore: paper.bestScore,
+            bestPercentage: paper.bestPercentage,
+            attempts: paper.attempts || 0,
+            lastAttemptedAt: paper.lastAttemptedAt,
+            attemptId: paper.attemptId,
+
+            // Bookmark
+            isBookmarked: paper.isBookmarked || false,
+
+            // Metadata
             createdAt: paper.createdAt,
+            updatedAt: paper.updatedAt || paper.createdAt,
         }));
-
-        let filteredPapers = papers;
-
-        if (params.subject && params.subject !== 'All') {
-            filteredPapers = filteredPapers.filter(p => p.subject === params.subject);
-        }
-
-        if (params.difficulty) {
-            filteredPapers = filteredPapers.filter(p => p.difficulty === params.difficulty);
-        }
-
-        if (params.search) {
-            const query = params.search.toLowerCase();
-            filteredPapers = filteredPapers.filter(p =>
-                p.title.toLowerCase().includes(query) ||
-                p.description.toLowerCase().includes(query) ||
-                p.subject.toLowerCase().includes(query)
-            );
-        }
 
         return {
             success: true,
             data: {
-                papers: filteredPapers,
+                papers,
+                subjects: response.data.subjects || [],
                 stats: response.data.stats || {
                     total: 0,
                     completed: 0,
@@ -167,7 +193,7 @@ export async function getPaperById(id: string): Promise<GetPaperDetailsResponse>
             duration: backendPaper.duration || 0,
             marks: attempt.totalMarks,
             status: 'in-progress' as const,
-            attempts: 1,
+            attempts: attempt.attemptNumber || 1,
             createdAt: backendPaper.createdAt || new Date().toISOString(),
             updatedAt: backendPaper.updatedAt || new Date().toISOString(),
         };
@@ -240,6 +266,7 @@ export async function startTest(paperId: string): Promise<StartTestResponse> {
 /**
  * Submit practice test
  * Maps to: POST /api/exam/:attemptId/submit
+ * Now returns complete result data from the backend
  */
 export async function submitTest(
     paperId: string,
@@ -258,6 +285,11 @@ export async function submitTest(
                 totalMarks: number;
                 percentage: number;
                 timeSpent: number;
+                // New enriched fields from backend
+                correctAnswers?: number;
+                incorrectAnswers?: number;
+                unanswered?: number;
+                totalQuestions?: number;
             };
         }>(
             EXAM_ENDPOINTS.submit(attemptId),
@@ -270,10 +302,11 @@ export async function submitTest(
                 score: response.data.totalScore,
                 totalMarks: response.data.totalMarks,
                 percentage: response.data.percentage,
-                correctAnswers: 0,
-                incorrectAnswers: 0,
-                unanswered: 0,
+                correctAnswers: response.data.correctAnswers ?? 0,
+                incorrectAnswers: response.data.incorrectAnswers ?? 0,
+                unanswered: response.data.unanswered ?? 0,
                 timeTaken: response.data.timeSpent,
+                totalQuestions: response.data.totalQuestions ?? 0,
             },
             timestamp: new Date().toISOString(),
         };
@@ -283,19 +316,76 @@ export async function submitTest(
     }
 }
 
+/**
+ * Toggle paper bookmark
+ * Maps to: POST /api/student/papers/:paperId/bookmark
+ */
+export async function toggleBookmark(paperId: string): Promise<{ bookmarked: boolean }> {
+    try {
+        const response = await http.post<{
+            success: boolean;
+            data: { bookmarked: boolean };
+        }>(`${API_BASE_URL}/student/papers/${paperId}/bookmark`, {});
+        return response.data;
+    } catch (error) {
+        console.error('[PracticePaper] Error toggling bookmark:', error);
+        throw error;
+    }
+}
+
+/**
+ * Get all bookmarked papers
+ * Maps to: GET /api/student/bookmarks
+ */
+export async function getBookmarks(): Promise<Paper[]> {
+    try {
+        const response = await http.get<{
+            success: boolean;
+            data: any[];
+        }>(`${API_BASE_URL}/student/bookmarks`);
+        return response.data.map((b: any) => ({
+            id: b.paper?.id || b.id,
+            title: b.paper?.title || b.title,
+            type: 'bookmarked' as const,
+            subject: b.paper?.subject?.name || 'General',
+            difficulty: mapDifficulty(b.paper?.difficulty),
+            questions: 0,
+            duration: b.paper?.duration || 0,
+            marks: 0,
+            status: 'not-started' as const,
+            attempts: 0,
+            isBookmarked: true,
+            createdAt: b.createdAt,
+            updatedAt: b.createdAt,
+        }));
+    } catch (error) {
+        console.error('[PracticePaper] Error fetching bookmarks:', error);
+        throw error;
+    }
+}
+
 // ============================================
 // HELPER FUNCTIONS
 // ============================================
 
-function mapDifficulty(backendDifficulty: string): 'Beginner' | 'Intermediate' | 'Advanced' {
-    const difficultyMap: Record<string, 'Beginner' | 'Intermediate' | 'Advanced'> = {
-        'EASY': 'Beginner',
-        'MEDIUM': 'Intermediate',
-        'INTERMEDIATE': 'Intermediate',
-        'HARD': 'Advanced',
-        'ADVANCED': 'Advanced',
+function mapDifficulty(backendDifficulty: string): 'easy' | 'medium' | 'hard' {
+    const difficultyMap: Record<string, 'easy' | 'medium' | 'hard'> = {
+        'EASY': 'easy',
+        'MEDIUM': 'medium',
+        'INTERMEDIATE': 'medium',
+        'HARD': 'hard',
+        'ADVANCED': 'hard',
     };
-    return difficultyMap[backendDifficulty?.toUpperCase()] || 'Intermediate';
+    return difficultyMap[backendDifficulty?.toUpperCase()] || 'medium';
+}
+
+function mapDifficultyToBackend(frontendDifficulty: string): string {
+    const map: Record<string, string> = {
+        'easy': 'EASY',
+        'medium': 'INTERMEDIATE',
+        'hard': 'ADVANCED',
+    };
+    return map[frontendDifficulty?.toLowerCase()] || frontendDifficulty?.toUpperCase() || 'INTERMEDIATE';
 }
 
 // ============================================
@@ -307,4 +397,6 @@ export const practicePaperService = {
     getPaperById,
     startTest,
     submitTest,
+    toggleBookmark,
+    getBookmarks,
 };

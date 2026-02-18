@@ -62,14 +62,31 @@ export const chatService = {
     },
 
     /**
-     * Get messages for a specific paper/room
+     * Get messages for a specific paper/room with pagination
      */
-    getMessages: async (paperId: string) => {
+    getMessages: async (paperId: string, limit: number = 20, offset: number = 0) => {
         try {
-            const response = await http.get<ChatMessagesResponse>(
-                CHAT_ENDPOINTS.getMessages(paperId)
+            const response = await http.get<{
+                success: boolean;
+                data: ChatMessage[];
+                pagination?: {
+                    totalCount: number;
+                    limit: number;
+                    offset: number;
+                    hasMore: boolean;
+                };
+            }>(
+                `${CHAT_ENDPOINTS.getMessages(paperId)}?limit=${limit}&offset=${offset}`
             );
-            return response.data;
+            return {
+                messages: response.data,
+                pagination: response.pagination || {
+                    totalCount: response.data.length,
+                    limit,
+                    offset,
+                    hasMore: false,
+                },
+            };
         } catch (error) {
             console.error("[Chat] Failed to fetch messages:", error);
             throw error;
@@ -83,7 +100,7 @@ export const chatService = {
         try {
             const response = await http.post<any>(CHAT_ENDPOINTS.sendMessage(), {
                 paperId,
-                content
+                message: content
             });
             return response;
         } catch (error) {
@@ -108,7 +125,18 @@ export const chatService = {
     },
 
     /**
-     * Mark a message as read
+     * Mark all messages in a room as read
+     */
+    markRoomAsRead: async (paperId: string) => {
+        try {
+            await http.put(`/api/chat/rooms/${paperId}/mark-read`);
+        } catch (error) {
+            console.error("[Chat] Failed to mark room as read:", error);
+        }
+    },
+
+    /**
+     * Mark a single message as read
      */
     markAsRead: async (messageId: string) => {
         try {

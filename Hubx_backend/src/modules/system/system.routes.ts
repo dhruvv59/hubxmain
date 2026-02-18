@@ -15,4 +15,11 @@ const router = Router()
  */
 router.get("/status", systemController.getStatus)
 
+/**
+ * GET /api/system/debug
+ * Developer endpoint - shows comprehensive debug information
+ * For development/staging only (restricted in production)
+ */
+router.get("/debug", systemController.getDebug)
+
 export default router

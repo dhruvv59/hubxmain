@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useRef } from "react";
-import { Upload, Eye, Link as LinkIcon } from "lucide-react";
+import React, { useRef, useState } from "react";
+import { Upload, Eye, Link as LinkIcon, Camera, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { QuestionBankQuestion } from "@/types/question-bank";
 import { MathSymbolsToolbar } from "./MathSymbolsToolbar";
 import { MathPreviewModal } from "../questions/MathPreviewModal";
+import { ocrService } from "@/services/ocr";
 
 interface QuestionEditorProps {
   question: QuestionBankQuestion;
@@ -15,10 +16,14 @@ interface QuestionEditorProps {
 export function QuestionEditor({ question, onUpdate }: QuestionEditorProps) {
   const [showQuestionPreview, setShowQuestionPreview] = React.useState(false);
   const [showSolutionPreview, setShowSolutionPreview] = React.useState(false);
+  const [isOcrLoadingQuestion, setIsOcrLoadingQuestion] = useState(false);
+  const [isOcrLoadingSolution, setIsOcrLoadingSolution] = useState(false);
   const questionTextRef = useRef<HTMLTextAreaElement>(null);
   const solutionTextRef = useRef<HTMLTextAreaElement>(null);
   const questionImageInputRef = useRef<HTMLInputElement>(null);
   const solutionImageInputRef = useRef<HTMLInputElement>(null);
+  const ocrQuestionInputRef = useRef<HTMLInputElement>(null);
+  const ocrSolutionInputRef = useRef<HTMLInputElement>(null);
 
   const handleFieldChange = (field: keyof QuestionBankQuestion, value: any) => {
     onUpdate({ ...question, [field]: value });
@@ -51,6 +56,46 @@ export function QuestionEditor({ question, onUpdate }: QuestionEditorProps) {
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>, field: "questionImage" | "solutionImage") => {
     if (e.target.files && e.target.files[0]) {
       handleFieldChange(field, e.target.files[0]);
+    }
+  };
+
+  const handleOcrImageSelect = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    field: "text" | "solutionText"
+  ) => {
+    if (!e.target.files || !e.target.files[0]) return;
+
+    const file = e.target.files[0];
+    const isQuestion = field === "text";
+
+    if (isQuestion) {
+      setIsOcrLoadingQuestion(true);
+    } else {
+      setIsOcrLoadingSolution(true);
+    }
+
+    try {
+      const result = await ocrService.extractText(file);
+      const currentValue = isQuestion ? question.text : (question.solutionText || "");
+      const separator = currentValue.trim() ? " " : "";
+      const newValue = currentValue + separator + result.text;
+
+      handleFieldChange(field, newValue);
+    } catch (error) {
+      console.error("OCR extraction failed:", error);
+      alert("Failed to extract text from image. Please try another image or enter the text manually.");
+    } finally {
+      if (isQuestion) {
+        setIsOcrLoadingQuestion(false);
+        if (ocrQuestionInputRef.current) {
+          ocrQuestionInputRef.current.value = "";
+        }
+      } else {
+        setIsOcrLoadingSolution(false);
+        if (ocrSolutionInputRef.current) {
+          ocrSolutionInputRef.current.value = "";
+        }
+      }
     }
   };
 
@@ -115,7 +160,7 @@ export function QuestionEditor({ question, onUpdate }: QuestionEditorProps) {
           rows={5}
           className="w-full mt-2 p-3 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-sm"
         />
-        <div className="flex items-center gap-4 mt-3 text-sm">
+        <div className="flex items-center gap-4 mt-3 text-sm flex-wrap">
           <button
             type="button"
             onClick={() => setShowQuestionPreview(true)}
@@ -123,6 +168,19 @@ export function QuestionEditor({ question, onUpdate }: QuestionEditorProps) {
           >
             <Eye className="w-4 h-4" />
             View Question (Math Preview)
+          </button>
+          <button
+            type="button"
+            onClick={() => ocrQuestionInputRef.current?.click()}
+            disabled={isOcrLoadingQuestion}
+            className="text-blue-600 hover:text-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center gap-1"
+          >
+            {isOcrLoadingQuestion ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Camera className="w-4 h-4" />
+            )}
+            {isOcrLoadingQuestion ? "Scanning..." : "Scan from Image"}
           </button>
           <button
             type="button"
@@ -140,6 +198,13 @@ export function QuestionEditor({ question, onUpdate }: QuestionEditorProps) {
           className="hidden"
           accept="image/*"
         />
+        <input
+          type="file"
+          ref={ocrQuestionInputRef}
+          onChange={(e) => handleOcrImageSelect(e, "text")}
+          className="hidden"
+          accept="image/*"
+        />
       </div>
 
       {/* Solution Section */}
@@ -154,7 +219,7 @@ export function QuestionEditor({ question, onUpdate }: QuestionEditorProps) {
           rows={5}
           className="w-full mt-2 p-3 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-sm"
         />
-        <div className="flex items-center gap-4 mt-3 text-sm">
+        <div className="flex items-center gap-4 mt-3 text-sm flex-wrap">
           <button
             type="button"
             onClick={() => setShowSolutionPreview(true)}
@@ -162,6 +227,19 @@ export function QuestionEditor({ question, onUpdate }: QuestionEditorProps) {
           >
             <Eye className="w-4 h-4" />
             View Solution (Math Preview)
+          </button>
+          <button
+            type="button"
+            onClick={() => ocrSolutionInputRef.current?.click()}
+            disabled={isOcrLoadingSolution}
+            className="text-blue-600 hover:text-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center gap-1"
+          >
+            {isOcrLoadingSolution ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Camera className="w-4 h-4" />
+            )}
+            {isOcrLoadingSolution ? "Scanning..." : "Scan from Image"}
           </button>
           <button
             type="button"
@@ -176,6 +254,13 @@ export function QuestionEditor({ question, onUpdate }: QuestionEditorProps) {
           type="file"
           ref={solutionImageInputRef}
           onChange={(e) => handleImageSelect(e, "solutionImage")}
+          className="hidden"
+          accept="image/*"
+        />
+        <input
+          type="file"
+          ref={ocrSolutionInputRef}
+          onChange={(e) => handleOcrImageSelect(e, "solutionText")}
           className="hidden"
           accept="image/*"
         />

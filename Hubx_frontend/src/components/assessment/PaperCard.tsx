@@ -133,15 +133,6 @@ export function PaperCard({ data, onPurchase, onPreview, onTeacherClick, onStart
                             <button
                                 onClick={(e) => {
                                     e.stopPropagation();
-                                    onPreview?.();
-                                }}
-                                className="flex-1 sm:flex-none px-4 sm:px-5 py-2.5 sm:py-2 rounded-lg text-[#5b5bd6] font-bold text-sm hover:bg-gray-50 transition-colors z-10 relative min-h-[44px] flex items-center justify-center"
-                            >
-                                View Questions
-                            </button>
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
                                     onStartTest?.();
                                 }}
                                 className="flex-1 sm:flex-none px-4 sm:px-5 py-2.5 sm:py-2 rounded-lg bg-[#5b5bd6] text-white font-bold text-sm hover:bg-[#4f4fbe] transition-colors shadow-md shadow-indigo-200 z-10 relative min-h-[44px] flex items-center justify-center"
@@ -151,15 +142,6 @@ export function PaperCard({ data, onPurchase, onPreview, onTeacherClick, onStart
                         </>
                     ) : (
                         <>
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    onPreview?.();
-                                }}
-                                className="flex-1 sm:flex-none px-4 sm:px-5 py-2.5 sm:py-2 rounded-lg border border-gray-300 text-gray-700 font-bold text-sm hover:bg-gray-50 transition-colors z-10 relative min-h-[44px] flex items-center justify-center"
-                            >
-                                Preview
-                            </button>
                             <button
                                 onClick={(e) => {
                                     e.stopPropagation();

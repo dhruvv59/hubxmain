@@ -3,6 +3,7 @@ import redis from "@config/redis"
 import { AppError } from "@utils/errors"
 import { ERROR_MESSAGES, EXAM_STATUS, PAPER_STATUS } from "@utils/constants"
 import { studentService } from "@modules/student/student.service"
+import { sendEmail } from "@utils/email"
 
 export class ExamService {
   async startExam(paperId: string, studentId: string) {
@@ -40,23 +41,23 @@ export class ExamService {
       }
     }
 
-    // Check if student already has an ongoing attempt
-    const existingAttempt = await prisma.examAttempt.findUnique({
-      where: { paperId_studentId: { paperId, studentId } },
+    // Check if student already has an ONGOING attempt for this paper
+    const ongoingAttempt = await prisma.examAttempt.findFirst({
+      where: { paperId, studentId, status: "ONGOING" },
+      orderBy: { createdAt: "desc" },
     })
 
-    if (existingAttempt && existingAttempt.status === "ONGOING") {
-      return existingAttempt
+    if (ongoingAttempt) {
+      // Resume existing attempt
+      return ongoingAttempt
     }
 
-    // If attempt exists but is submitted, delete it for a fresh attempt
-    if (existingAttempt && existingAttempt.status === "SUBMITTED") {
-      await prisma.examAttempt.delete({
-        where: { id: existingAttempt.id },
-      })
-    }
+    // Count previous attempts to set attemptNumber
+    const previousAttempts = await prisma.examAttempt.count({
+      where: { paperId, studentId },
+    })
 
-    // Create exam attempt
+    // Create new exam attempt (allows multiple re-attempts)
     const attempt = await prisma.examAttempt.create({
       data: {
         paperId,
@@ -64,10 +65,13 @@ export class ExamService {
         status: "ONGOING" as const,
         startedAt: new Date(),
         totalMarks: paper.questions.reduce((sum, q) => sum + (q.marks || 1), 0),
+        attemptNumber: previousAttempts + 1,
       },
     })
 
     // If paper is time bound, set timer in Redis
+    // Note: Auto-submit is handled by the background job worker (src/jobs/exam-timer.ts)
+    // that polls Redis every 10 seconds for expired timers
     if (paper.type === "TIME_BOUND" && paper.duration) {
       const timerKey = `timer:${attempt.id}`
       const durationSeconds = paper.duration * 60
@@ -84,10 +88,7 @@ export class ExamService {
         }),
       )
 
-      // Schedule auto-submit when timer expires
-      setTimeout(() => {
-        this.autoSubmitExam(attempt.id, studentId)
-      }, durationSeconds * 1000)
+      console.log(`[Exam Timer] Set for attempt ${attempt.id}, duration: ${paper.duration}m`)
     }
 
     return attempt
@@ -182,6 +183,7 @@ export class ExamService {
       try {
         const OPENAI_API_KEY = process.env.OPENAI_API_KEY
         if (OPENAI_API_KEY) {
+          let aiEvaluationFailed = false
           const payload = {
             model: "gpt-4.1-mini",
             messages: [
@@ -198,50 +200,109 @@ export class ExamService {
             temperature: 0.2,
           }
 
-          const resp = await fetch("https://api.openai.com/v1/chat/completions", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${OPENAI_API_KEY}`,
-            },
-            body: JSON.stringify(payload),
-          })
+          try {
+            const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${OPENAI_API_KEY}`,
+              },
+              body: JSON.stringify(payload),
+            })
 
-          if (resp.ok) {
-            const j = await resp.json() as any
-            const content = j?.choices?.[0]?.message?.content || ""
-            let parsed: any = null
-            try {
-              parsed = JSON.parse(content)
-            } catch (e) {
-              // try to extract JSON substring
-              const m = content.match(/\{[\s\S]*\}/)
-              if (m) {
-                try {
-                  parsed = JSON.parse(m[0])
-                } catch (e) {
-                  parsed = null
+            if (resp.ok) {
+              const j = await resp.json() as any
+              const content = j?.choices?.[0]?.message?.content || ""
+              let parsed: any = null
+              try {
+                parsed = JSON.parse(content)
+              } catch (e) {
+                // try to extract JSON substring
+                const m = content.match(/\{[\s\S]*\}/)
+                if (m) {
+                  try {
+                    parsed = JSON.parse(m[0])
+                  } catch (e) {
+                    parsed = null
+                  }
                 }
               }
+
+              if (parsed && typeof parsed.marksObtained === "number") {
+                marksObtained = Math.min(questionMarks, Math.max(0, Math.round(parsed.marksObtained)))
+                isCorrect = marksObtained >= 1
+              } else {
+                aiEvaluationFailed = true
+              }
+            } else {
+              aiEvaluationFailed = true
+              const errorText = await resp.text()
+              console.error("[OpenAI API Error]", {
+                attemptId,
+                questionId: question.id,
+                status: resp.status,
+                statusText: resp.statusText,
+                response: errorText.substring(0, 500),
+              })
+            }
+          } catch (fetchError: any) {
+            aiEvaluationFailed = true
+            console.error("[OpenAI Fetch Error]", {
+              attemptId,
+              questionId: question.id,
+              errorType: fetchError?.name,
+              errorMessage: fetchError?.message,
+            })
+          }
+
+          // If AI evaluation failed, use fallback and notify admin
+          if (aiEvaluationFailed) {
+            console.warn("[AI Evaluation Fallback]", {
+              attemptId,
+              questionId: question.id,
+              studentId,
+              questionMarks,
+              message: "OpenAI evaluation failed, using word-similarity fallback",
+            })
+
+            // Send notification to admin
+            try {
+              const adminEmail = process.env.SMTP_USER || "support@lernen-hub.com"
+              const subject = "[HubX] TEXT Question Evaluation Failed"
+              const html = `
+                <p>OpenAI API evaluation failed for a TEXT type question.</p>
+                <ul>
+                  <li><strong>Attempt ID:</strong> ${attemptId}</li>
+                  <li><strong>Question ID:</strong> ${question.id}</li>
+                  <li><strong>Student ID:</strong> ${studentId}</li>
+                  <li><strong>Max Marks:</strong> ${questionMarks}</li>
+                  <li><strong>Student Answer:</strong> ${String(answer.answerText).substring(0, 200)}...</li>
+                </ul>
+                <p>The answer has been evaluated using a fallback word-similarity algorithm. Please review manually if needed.</p>
+              `
+              await sendEmail({ to: adminEmail, subject, html })
+            } catch (emailError) {
+              console.error("[Notification Error] Failed to send admin email", emailError)
             }
 
-            if (parsed && typeof parsed.marksObtained === "number") {
-              marksObtained = Math.min(questionMarks, Math.max(0, Math.round(parsed.marksObtained)))
-              isCorrect = marksObtained >= 1
-            } else {
-              // Fallback: basic similarity scoring
-              const sol = (question.solutionText || "").toLowerCase()
-              const ans = String(answer.answerText).toLowerCase()
-              const solWords = sol.split(/\s+/).filter(Boolean)
-              const common = solWords.filter((w) => ans.includes(w)).length
-              const score = solWords.length > 0 ? common / solWords.length : 0
-              marksObtained = Math.round(Math.min(questionMarks, Math.max(0, score * questionMarks)))
-              isCorrect = marksObtained >= 1
-            }
+            // Use fallback word-similarity scoring
+            const sol = (question.solutionText || "").toLowerCase()
+            const ans = String(answer.answerText).toLowerCase()
+            const solWords = sol.split(/\s+/).filter(Boolean)
+            const common = solWords.filter((w) => ans.includes(w)).length
+            const score = solWords.length > 0 ? common / solWords.length : 0
+            marksObtained = Math.round(Math.min(questionMarks, Math.max(0, score * questionMarks)))
+            isCorrect = marksObtained >= 1
           }
         }
       } catch (e) {
-        // Swallow errors and fall back to 0 marks (non-blocking)
+        // Catch any unexpected errors and use fallback
+        console.error("[TEXT Evaluation Unexpected Error]", {
+          attemptId,
+          questionId: question.id,
+          error: (e as any)?.message,
+        })
+        // Keep marksObtained as 0, will be caught as fallback above
       }
     }
 
@@ -336,12 +397,14 @@ export class ExamService {
   /**
    * SHARED SCORING LOGIC - Used by both manual and auto-submit
    * Ensures consistent score calculation across all submission types
+   * Uses database transaction for atomicity
    */
   private async calculateAndSubmitExam(
     attemptId: string,
     studentId: string,
     isAutoSubmit: boolean = false
   ) {
+    // Fetch data first (outside transaction)
     const attempt = await prisma.examAttempt.findUnique({
       where: { id: attemptId },
       include: {
@@ -371,47 +434,59 @@ export class ExamService {
     // Calculate time spent
     const timeSpent = Math.floor((Date.now() - attempt.startedAt.getTime()) / 1000)
 
-    // Update attempt with calculated scores
-    const submittedAttempt = await prisma.examAttempt.update({
-      where: { id: attemptId },
-      data: {
-        status: isAutoSubmit ? "AUTO_SUBMITTED" : "SUBMITTED",
-        submittedAt: new Date(),
-        totalScore,
-        percentage,
-        timeSpent,
-      },
-    })
+    try {
+      // Use transaction to ensure atomic updates
+      const submittedAttempt = await prisma.$transaction(async (tx) => {
+        // Update attempt with calculated scores
+        const updated = await tx.examAttempt.update({
+          where: { id: attemptId },
+          data: {
+            status: isAutoSubmit ? "AUTO_SUBMITTED" : "SUBMITTED",
+            submittedAt: new Date(),
+            totalScore,
+            percentage,
+            timeSpent,
+          },
+        })
 
-    // Update paper statistics (aggregated)
-    const allAttempts = await prisma.examAttempt.findMany({
-      where: {
-        paperId: attempt.paperId,
-        status: { in: ["SUBMITTED", "AUTO_SUBMITTED"] }
-      },
-    })
+        // Update paper statistics (aggregated) within same transaction
+        const allAttempts = await tx.examAttempt.findMany({
+          where: {
+            paperId: attempt.paperId,
+            status: { in: ["SUBMITTED", "AUTO_SUBMITTED"] }
+          },
+        })
 
-    const averageScore =
-      allAttempts.length > 0 ? allAttempts.reduce((sum, a) => sum + a.totalScore, 0) / allAttempts.length : 0
+        const averageScore =
+          allAttempts.length > 0 ? allAttempts.reduce((sum, a) => sum + a.totalScore, 0) / allAttempts.length : 0
 
-    await prisma.paper.update({
-      where: { id: attempt.paperId },
-      data: {
-        totalAttempts: allAttempts.length,
-        averageScore,
-      },
-    })
+        await tx.paper.update({
+          where: { id: attempt.paperId },
+          data: {
+            totalAttempts: allAttempts.length,
+            averageScore,
+          },
+        })
 
-    // Clear Redis timer
-    const timerKey = `timer:${attemptId}`
-    await redis.del(timerKey).catch(() => { }) // Fail silently if key doesn't exist
+        return updated
+      })
 
-    // PERFORMANCE: Invalidate rankings cache since scores have changed
-    studentService.invalidateRankingsCache().catch((err) => {
-      console.error("Failed to invalidate rankings cache:", err)
-    })
+      // Clear Redis timer (outside transaction, non-critical)
+      const timerKey = `timer:${attemptId}`
+      await redis.del(timerKey).catch(() => { }) // Fail silently if key doesn't exist
 
-    return submittedAttempt
+      // PERFORMANCE: Invalidate rankings cache since scores have changed (non-critical)
+      studentService.invalidateRankingsCache().catch((err) => {
+        console.error("Failed to invalidate rankings cache:", err)
+      })
+
+      console.log(`[Exam Submission] Successfully submitted attempt ${attemptId} with score ${totalScore}/${attempt.totalMarks}`)
+
+      return submittedAttempt
+    } catch (error) {
+      console.error(`[Exam Submission] Transaction failed for attempt ${attemptId}:`, error)
+      throw new AppError(500, "Failed to submit exam. Please try again.")
+    }
   }
 
   async submitExam(attemptId: string, studentId: string) {
@@ -427,7 +502,31 @@ export class ExamService {
       throw new AppError(400, "Exam is not ongoing")
     }
 
-    return this.calculateAndSubmitExam(attemptId, studentId, false)
+    const submittedAttempt = await this.calculateAndSubmitExam(attemptId, studentId, false)
+
+    // Fetch enriched result data for immediate frontend display
+    const answers = await prisma.studentAnswer.findMany({
+      where: { attemptId },
+      include: { question: true },
+    })
+
+    const totalQuestions = await prisma.question.count({
+      where: { paperId: attempt.paperId },
+    })
+
+    const answeredCount = answers.filter(
+      (a) => a.selectedOption !== null || (a.answerText !== null && String(a.answerText).trim() !== "")
+    ).length
+    const correctCount = answers.filter((a) => a.isCorrect === true).length
+    const incorrectCount = answers.filter((a) => a.isCorrect === false).length
+
+    return {
+      ...submittedAttempt,
+      correctAnswers: correctCount,
+      incorrectAnswers: incorrectCount,
+      unanswered: Math.max(0, totalQuestions - answeredCount),
+      totalQuestions,
+    }
   }
 
   async autoSubmitExam(attemptId: string, studentId: string) {

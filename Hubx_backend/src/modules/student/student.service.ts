@@ -1597,7 +1597,29 @@ export class StudentService {
       take: 20, // Limit to common subjects
     })
 
-    // 4. Merge performance data with all subjects
+    // 4. Fetch question counts for all chapters in parallel
+    const chapterQuestionCounts = new Map<string, number>()
+    const allChapters = allSubjects.flatMap((s) => s.chapters)
+
+    const countPromises = allChapters.map((chapter) =>
+      prisma.question.count({
+        where: {
+          paper: {
+            chapters: {
+              some: {
+                chapterId: chapter.id,
+              },
+            },
+          },
+        },
+      }).then((count) => {
+        chapterQuestionCounts.set(chapter.id, count)
+      })
+    )
+
+    await Promise.all(countPromises)
+
+    // 5. Merge performance data with all subjects
     const subjectsList = allSubjects.map((subject) => {
       const performance = subjectPerformanceMap.get(subject.id)
       const avgScore = performance ? Math.round(performance.score / performance.count) : 0
@@ -1623,7 +1645,7 @@ export class StudentService {
         chapters: subject.chapters.map((ch) => ({
           id: ch.id,
           name: ch.name,
-          questionCount: 0, // Will be populated if needed
+          questionCount: chapterQuestionCounts.get(ch.id) || 0,
         })),
       }
     })
@@ -1668,7 +1690,15 @@ export class StudentService {
       targetChapterIds = subjects.flatMap(s => s.chapters.map(c => c.id))
     }
 
-    // 3. Find available questions matching criteria
+    // 3. Get student's purchased papers (for access control)
+    const purchases = await prisma.paperPurchase.findMany({
+      where: { studentId },
+      select: { paperId: true },
+    })
+    const purchasedPaperIds = purchases.map((p) => p.paperId)
+
+    // 4. Find available questions matching criteria (only from accessible papers)
+    // ✅ Access Rule: Private papers (free) OR purchased public papers
     // Strategy: Select from Question Bank OR existing papers
     const availableQuestions = await prisma.question.findMany({
       where: {
@@ -1679,6 +1709,13 @@ export class StudentService {
               chapterId: { in: targetChapterIds },
             },
           },
+          // ✅ Access control: Only fetch from PUBLIC papers (free or purchased)
+          isPublic: true, // Only public papers (NOT private/draft)
+          OR: [
+            { price: null },                                    // Free public papers
+            { price: 0 },                                       // Free public papers (price = 0)
+            { id: { in: purchasedPaperIds } },                 // Purchased public papers
+          ],
         },
       },
       include: {
@@ -1691,7 +1728,7 @@ export class StudentService {
       take: 100, // Limit initial fetch
     })
 
-    // 4. Intelligent question selection
+    // 5. Intelligent question selection
     // Goal: ~10-20 questions, balanced across selected chapters
     const questionsPerChapter = Math.ceil(15 / targetChapterIds.length)
     const chapterQuestionMap = new Map<string, typeof availableQuestions>()
@@ -1716,7 +1753,7 @@ export class StudentService {
       throw new AppError(400, "Not enough questions available for selected criteria. Try selecting more chapters or different difficulty.")
     }
 
-    // 5. Create adaptive paper
+    // 6. Create adaptive paper
     const paper = await prisma.paper.create({
       data: {
         title: `Custom ${difficulty} Assessment - ${new Date().toLocaleDateString()}`,
@@ -1732,7 +1769,7 @@ export class StudentService {
       },
     })
 
-    // 6. Clone selected questions into the new paper
+    // 7. Clone selected questions into the new paper
     const questionPromises = selectedQuestions.map((q, index) =>
       prisma.question.create({
         data: {
@@ -1754,7 +1791,7 @@ export class StudentService {
 
     await Promise.all(questionPromises)
 
-    // 7. Link selected chapters to paper
+    // 8. Link selected chapters to paper
     const chapterLinkPromises = targetChapterIds.map((chapterId) =>
       prisma.paperChapter.create({
         data: {
@@ -1766,7 +1803,7 @@ export class StudentService {
 
     await Promise.all(chapterLinkPromises)
 
-    // 8. Return paper info for frontend to start exam
+    // 9. Return paper info for frontend to start exam
     return {
       paperId: paper.id,
       title: paper.title,

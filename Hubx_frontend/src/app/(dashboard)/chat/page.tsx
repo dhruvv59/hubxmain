@@ -6,8 +6,6 @@ import {
     Search,
     MessageSquare,
     MoreVertical,
-    Phone,
-    Video,
     Paperclip,
     Smile,
     Send,
@@ -28,15 +26,28 @@ export default function ChatPage() {
     const [newMessage, setNewMessage] = useState("");
     const [isLoadingRooms, setIsLoadingRooms] = useState(true);
     const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+    const [isLoadingMoreMessages, setIsLoadingMoreMessages] = useState(false);
     const [currentUserId, setCurrentUserId] = useState<string>("");
     const [isSocketConnected, setIsSocketConnected] = useState(false);
     const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
+    const [messageOffset, setMessageOffset] = useState(0);
+    const [hasMoreMessages, setHasMoreMessages] = useState(false);
+    const [isSendingMessage, setIsSendingMessage] = useState(false);
+    const [showRoomMenu, setShowRoomMenu] = useState(false);
+    const messagesContainerRef = React.useRef<HTMLDivElement>(null);
+    const menuRef = React.useRef<HTMLDivElement>(null);
 
     // Initialize: Load rooms and connect to socket
     useEffect(() => {
         loadRooms();
         fetchCurrentUser();
-        initializeSocket();
+
+        // Initialize socket with proper cleanup
+        const cleanup = initializeSocket();
+
+        return () => {
+            if (cleanup) cleanup();
+        };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -46,6 +57,9 @@ export default function ChatPage() {
 
         // Join the chat room via WebSocket
         socketService.joinRoom(selectedRoom.paperId);
+
+        // Mark all messages in this room as read
+        chatService.markRoomAsRead(selectedRoom.paperId);
 
         // Load initial messages (for history)
         loadMessages(selectedRoom.paperId);
@@ -96,9 +110,11 @@ export default function ChatPage() {
             }
 
             const socket = socketService.connect(token);
+            let connectionTimeout: NodeJS.Timeout;
 
             socket.on("connect", () => {
                 console.log("✅ WebSocket connected for chat");
+                clearTimeout(connectionTimeout);
                 setIsSocketConnected(true);
             });
 
@@ -111,8 +127,17 @@ export default function ChatPage() {
                 console.error("❌ WebSocket error:", error);
             });
 
+            // Set timeout for connection attempt (10 seconds)
+            connectionTimeout = setTimeout(() => {
+                if (!socket.connected) {
+                    console.warn("⏱️ Socket connection timeout, will retry on next action");
+                    setIsSocketConnected(false);
+                }
+            }, 10000);
+
             // Cleanup on unmount
             return () => {
+                clearTimeout(connectionTimeout);
                 socketService.disconnect();
             };
         } catch (error) {
@@ -134,23 +159,80 @@ export default function ChatPage() {
 
     const loadMessages = async (paperId: string, silent = false) => {
         if (!silent) setIsLoadingMessages(true);
+        setMessageOffset(0);
         try {
-            const data = await chatService.getMessages(paperId);
+            const { messages: data, pagination } = await chatService.getMessages(paperId, 20, 0);
             setMessages(data);
-        } catch (error) {
+            setHasMoreMessages(pagination.hasMore);
+            setMessageOffset(20);
+        } catch (error: any) {
             console.error("Failed to load messages:", error);
+            if (!silent) {
+                alert("Failed to load messages. Please try again.");
+            }
+            setMessages([]); // Clear messages on error
         } finally {
             if (!silent) setIsLoadingMessages(false);
         }
     };
 
+    const loadOlderMessages = async (paperId: string) => {
+        if (isLoadingMoreMessages || !hasMoreMessages) return;
+        setIsLoadingMoreMessages(true);
+        try {
+            const { messages: olderMessages, pagination } = await chatService.getMessages(
+                paperId,
+                20,
+                messageOffset
+            );
+            setMessages((prev) => [...olderMessages, ...prev]);
+            setHasMoreMessages(pagination.hasMore);
+            setMessageOffset((prev) => prev + 20);
+        } catch (error: any) {
+            console.error("Failed to load older messages:", error);
+            alert("Failed to load older messages. Please try again.");
+        } finally {
+            setIsLoadingMoreMessages(false);
+        }
+    };
+
+    const handleMessagesScroll = () => {
+        if (!messagesContainerRef.current || !selectedRoom) return;
+        const { scrollTop } = messagesContainerRef.current;
+
+        // Load older messages when user scrolls to top (within 100px)
+        if (scrollTop < 100 && hasMoreMessages && !isLoadingMoreMessages) {
+            loadOlderMessages(selectedRoom.paperId);
+        }
+    };
+
     const handleSendMessage = async () => {
-        if (!newMessage.trim() || !selectedRoom) return;
+        // Prevent double-send (rate limiting)
+        if (isSendingMessage) return;
+
+        // Validation
+        if (!selectedRoom) {
+            console.error("No room selected");
+            return;
+        }
+
+        const trimmedMessage = newMessage.trim();
+        const MAX_MESSAGE_LENGTH = 2000;
+
+        if (!trimmedMessage) {
+            console.warn("Cannot send empty message");
+            return;
+        }
+
+        if (trimmedMessage.length > MAX_MESSAGE_LENGTH) {
+            alert(`Message exceeds maximum length of ${MAX_MESSAGE_LENGTH} characters`);
+            return;
+        }
 
         // Show optimistic message immediately
         const tempMessage: ChatMessage = {
             id: `temp-${Date.now()}`,
-            content: newMessage,
+            content: trimmedMessage,
             senderId: currentUserId,
             createdAt: new Date().toISOString(),
             isRead: false,
@@ -160,26 +242,31 @@ export default function ChatPage() {
         };
 
         setMessages(prev => [...prev, tempMessage]);
-        const messageToSend = newMessage;
         setNewMessage("");
+        setIsSendingMessage(true);
 
         try {
             if (isSocketConnected) {
                 // Use WebSocket for real-time message sending
-                socketService.sendMessage(selectedRoom.paperId, messageToSend);
+                socketService.sendMessage(selectedRoom.paperId, trimmedMessage);
                 // Message will arrive via socketService.onReceiveMessage listener
             } else {
                 // Fallback to HTTP if WebSocket not available
-                await chatService.sendMessage(selectedRoom.paperId, messageToSend);
+                await chatService.sendMessage(selectedRoom.paperId, trimmedMessage);
                 // Reload messages to get the sent message
                 await loadMessages(selectedRoom.paperId);
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to send message:", error);
             // Remove optimistic message on error
             setMessages(prev => prev.filter(msg => msg.id !== tempMessage.id));
             // Re-add the unsent message to input
-            setNewMessage(messageToSend);
+            setNewMessage(trimmedMessage);
+            // Show error to user
+            const errorMsg = error?.message || "Failed to send message. Please try again.";
+            alert(errorMsg);
+        } finally {
+            setIsSendingMessage(false);
         }
     };
 
@@ -189,12 +276,55 @@ export default function ChatPage() {
         }
     };
 
+    const handleDeleteRoom = () => {
+        if (!selectedRoom) return;
+        const confirmed = confirm(
+            `Delete conversation "${selectedRoom.paperTitle}"? This cannot be undone.`
+        );
+        if (confirmed) {
+            setRooms(rooms.filter(r => r.id !== selectedRoom.id));
+            setSelectedRoom(null);
+            setShowRoomMenu(false);
+        }
+    };
+
+    const handleMuteRoom = () => {
+        if (!selectedRoom) return;
+        alert(`Muted notifications for "${selectedRoom.paperTitle}"`);
+        setShowRoomMenu(false);
+    };
+
+    const handleArchiveRoom = () => {
+        if (!selectedRoom) return;
+        alert(`Archived "${selectedRoom.paperTitle}"`);
+        setRooms(rooms.filter(r => r.id !== selectedRoom.id));
+        setSelectedRoom(null);
+        setShowRoomMenu(false);
+    };
+
+    // Close menu when clicking outside
+    React.useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+                setShowRoomMenu(false);
+            }
+        };
+
+        if (showRoomMenu) {
+            document.addEventListener("mousedown", handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, [showRoomMenu]);
+
     return (
         <div className="flex h-[calc(100vh-100px)] bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100">
             {/* Sidebar - Rooms List */}
             <div className={cn(
                 "w-full md:w-[320px] lg:w-[380px] bg-white border-r border-gray-100 flex flex-col",
-                selectedRoom ? "hidden md:flex" : "flex"
+                selectedRoom && !isLoadingRooms ? "hidden md:flex" : "flex"
             )}>
                 {/* Header */}
                 <div className="p-4 border-b border-gray-100">
@@ -232,7 +362,7 @@ export default function ChatPage() {
                             >
                                 <div className="h-12 w-12 rounded-full bg-[#e0e7ff] flex items-center justify-center shrink-0">
                                     <span className="text-[#6366f1] font-bold text-lg">
-                                        {room.paperTitle.charAt(0)}
+                                        {(room.paperTitle || "U").charAt(0)}
                                     </span>
                                 </div>
                                 <div className="flex-1 min-w-0">
@@ -279,7 +409,7 @@ export default function ChatPage() {
                                 </button>
                                 <div className="h-10 w-10 rounded-full bg-[#e0e7ff] flex items-center justify-center">
                                     <span className="text-[#6366f1] font-bold">
-                                        {selectedRoom.paperTitle.charAt(0)}
+                                        {(selectedRoom.paperTitle || "U").charAt(0)}
                                     </span>
                                 </div>
                                 <div>
@@ -296,21 +426,52 @@ export default function ChatPage() {
                                     </span>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-1">
-                                <button className="p-2 text-gray-400 hover:text-[#6366f1] hover:bg-[#f5f6ff] rounded-full transition-colors">
-                                    <Phone className="h-5 w-5" />
-                                </button>
-                                <button className="p-2 text-gray-400 hover:text-[#6366f1] hover:bg-[#f5f6ff] rounded-full transition-colors">
-                                    <Video className="h-5 w-5" />
-                                </button>
-                                <button className="p-2 text-gray-400 hover:text-[#6366f1] hover:bg-[#f5f6ff] rounded-full transition-colors">
+                            <div className="flex items-center gap-1 relative" ref={menuRef}>
+                                <button
+                                    onClick={() => setShowRoomMenu(!showRoomMenu)}
+                                    className="p-2 text-gray-400 hover:text-[#6366f1] hover:bg-[#f5f6ff] rounded-full transition-colors"
+                                    title="More options"
+                                >
                                     <MoreVertical className="h-5 w-5" />
                                 </button>
+
+                                {/* Dropdown Menu */}
+                                {showRoomMenu && (
+                                    <div className="absolute right-0 top-12 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                                        <button
+                                            onClick={handleMuteRoom}
+                                            className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 border-b border-gray-100"
+                                        >
+                                            🔇 Mute Notifications
+                                        </button>
+                                        <button
+                                            onClick={handleArchiveRoom}
+                                            className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 border-b border-gray-100"
+                                        >
+                                            📦 Archive
+                                        </button>
+                                        <button
+                                            onClick={handleDeleteRoom}
+                                            className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                                        >
+                                            🗑️ Delete Conversation
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
                         {/* Messages */}
-                        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                        <div
+                            ref={messagesContainerRef}
+                            onScroll={handleMessagesScroll}
+                            className="flex-1 overflow-y-auto p-6 space-y-6"
+                        >
+                            {isLoadingMoreMessages && (
+                                <div className="flex justify-center py-4">
+                                    <div className="animate-spin h-5 w-5 border-2 border-[#6366f1] border-t-transparent rounded-full" />
+                                </div>
+                            )}
                             {isLoadingMessages ? (
                                 <div className="flex items-center justify-center h-full">
                                     <div className="animate-spin h-6 w-6 border-2 border-[#6366f1] border-t-transparent rounded-full" />
@@ -342,11 +503,16 @@ export default function ChatPage() {
                                                     {msg.sender.name.charAt(0)}
                                                 </div>
                                                 <div className={cn(
-                                                    "rounded-2xl p-4 shadow-sm",
+                                                    "rounded-2xl p-4 shadow-sm max-w-xs",
                                                     isMe
                                                         ? "bg-[#6366f1] text-white rounded-tr-none"
                                                         : "bg-white text-gray-800 rounded-tl-none border border-gray-100"
                                                 )}>
+                                                    {!isMe && (
+                                                        <p className="text-xs font-semibold mb-1 text-gray-600">
+                                                            {msg.sender.name}
+                                                        </p>
+                                                    )}
                                                     <p className="text-sm leading-relaxed">{msg.content}</p>
                                                     <div className={cn(
                                                         "flex items-center gap-1 mt-1 text-[10px]",
@@ -403,10 +569,15 @@ export default function ChatPage() {
                                 </button>
                                 <button
                                     onClick={handleSendMessage}
-                                    disabled={!newMessage.trim()}
+                                    disabled={!newMessage.trim() || isSendingMessage}
+                                    title={isSendingMessage ? "Sending message..." : "Send message"}
                                     className="p-2 bg-[#6366f1] text-white rounded-xl hover:bg-[#4f4fbe] transition-colors disabled:opacity-50 disabled:hover:bg-[#6366f1]"
                                 >
-                                    <Send className="h-5 w-5" />
+                                    {isSendingMessage ? (
+                                        <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full" />
+                                    ) : (
+                                        <Send className="h-5 w-5" />
+                                    )}
                                 </button>
                             </div>
                         </div>
@@ -414,11 +585,23 @@ export default function ChatPage() {
                 ) : (
                     <div className="flex-1 flex flex-col items-center justify-center text-gray-400 p-8">
                         <div className="h-32 w-32 bg-gray-100 rounded-full flex items-center justify-center mb-6">
-                            <MessageSquare className="h-16 w-16 text-gray-300" />
+                            {isLoadingRooms ? (
+                                <div className="animate-spin h-12 w-12 border-3 border-[#6366f1] border-t-transparent rounded-full" />
+                            ) : !isSocketConnected ? (
+                                <div className="animate-pulse h-16 w-16 text-gray-300">📡</div>
+                            ) : (
+                                <MessageSquare className="h-16 w-16 text-gray-300" />
+                            )}
                         </div>
-                        <h3 className="text-xl font-bold text-gray-900 mb-2">Select a Conversation</h3>
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">
+                            {isLoadingRooms ? "Loading Conversations..." : !isSocketConnected ? "Connecting..." : "Select a Conversation"}
+                        </h3>
                         <p className="max-w-md text-center">
-                            Choose a chat from the sidebar to start messaging with your teachers or peers about specific papers.
+                            {isLoadingRooms
+                                ? "Please wait while we load your chat rooms."
+                                : !isSocketConnected
+                                ? "Establishing real-time connection..."
+                                : "Choose a chat from the sidebar to start messaging with your teachers or peers about specific papers."}
                         </p>
                     </div>
                 )}
