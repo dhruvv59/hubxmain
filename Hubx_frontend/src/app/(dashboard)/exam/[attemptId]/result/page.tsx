@@ -38,6 +38,8 @@ export default function ResultPage() {
   const [result, setResult] = useState<ResultData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
     const loadResult = async () => {
       try {
@@ -49,9 +51,13 @@ export default function ResultPage() {
         if (response.ok) {
           const data = await response.json();
           setResult(data.data);
+        } else {
+          const errorData = await response.json();
+          setError(errorData.message || "Failed to load exam results");
         }
       } catch (error) {
         console.error("Error loading result:", error);
+        setError("Failed to load exam results. Please try again.");
       } finally {
         setIsLoading(false);
       }
@@ -64,6 +70,24 @@ export default function ResultPage() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6 flex items-center justify-center">
+        <div className="bg-white rounded-3xl p-12 shadow-xl max-w-md text-center">
+          <div className="text-red-500 text-5xl mb-4">⚠️</div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Error</h2>
+          <p className="text-gray-600 mb-6">{error}</p>
+          <button
+            onClick={() => router.push("/dashboard")}
+            className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+          >
+            Back to Dashboard
+          </button>
+        </div>
       </div>
     );
   }
