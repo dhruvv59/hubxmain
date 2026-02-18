@@ -1,4 +1,4 @@
-import { PaperConfig, Question, Difficulty } from "@/types/generate-paper";
+import { PaperConfig, Question, Difficulty, QuestionType } from "@/types/generate-paper";
 import { http } from "@/lib/http-client";
 import { TEACHER_ENDPOINTS, TEACHER_QUESTION_ENDPOINTS } from "@/lib/api-config";
 
@@ -71,10 +71,17 @@ export const getDraft = async (draftId: string): Promise<PaperConfig | null> => 
                 // Parse options if it's a string
                 const parsedOptions = q.options ? (typeof q.options === 'string' ? JSON.parse(q.options) : q.options) : null;
 
+                // Map backend question type to frontend format
+                const typeMap: Record<string, QuestionType> = {
+                    "MCQ": "MCQ",
+                    "TEXT": "Text",
+                    "FILL_IN_THE_BLANKS": "Fill in the Blanks"
+                };
+
                 // Map backend question to frontend format
                 const questionData: any = {
                     id: q.id,
-                    type: q.type,
+                    type: typeMap[q.type] || (q.type as QuestionType),
                     difficulty: mapDifficulty(q.difficulty),
                     content: q.questionText,
                     solution: q.solutionText || "",
