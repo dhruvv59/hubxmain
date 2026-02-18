@@ -8,6 +8,7 @@ import { systemService } from "./system.service"
 import { debugService } from "./debug.service"
 import { sendResponse } from "@utils/helpers"
 import { asyncHandler } from "@utils/errors"
+import type { AuthRequest } from "@middlewares/auth"
 
 export class SystemController {
   /**
@@ -29,7 +30,7 @@ export class SystemController {
    * Returns comprehensive debug information for developers
    * Includes: Feature checklist, database stats, environment status, performance metrics
    */
-  getDebug = asyncHandler(async (req: Request, res: Response) => {
+  getDebug = asyncHandler(async (req: AuthRequest, res: Response) => {
     // In production, you may want to check for admin/developer authorization here
     // For now, it's only recommended for internal development and staging
     if (process.env.NODE_ENV === 'production' && !req.user?.role?.includes('SUPER_ADMIN')) {

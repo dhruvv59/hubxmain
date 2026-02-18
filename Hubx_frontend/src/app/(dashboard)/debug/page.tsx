@@ -238,7 +238,7 @@ export default function DebugPage() {
               <p className="text-xs text-gray-600 uppercase font-semibold">
                 {key.replace(/([A-Z])/g, " $1").trim()}
               </p>
-              <p className="text-2xl font-bold text-indigo-600 mt-1">{value}</p>
+              <p className="text-2xl font-bold text-indigo-600 mt-1">{String(value)}</p>
             </div>
           ))}
         </div>
@@ -344,11 +344,10 @@ export default function DebugPage() {
               {debug.environment.required.map((env: any, idx: number) => (
                 <div
                   key={idx}
-                  className={`flex items-center gap-2 p-2 rounded ${
-                    env.configured
+                  className={`flex items-center gap-2 p-2 rounded ${env.configured
                       ? "bg-green-50 border border-green-200"
                       : "bg-red-50 border border-red-200"
-                  }`}
+                    }`}
                 >
                   {env.configured ? (
                     <CheckCircle className="h-4 w-4 text-green-600" />
@@ -370,11 +369,10 @@ export default function DebugPage() {
               {debug.environment.optional.map((env: any, idx: number) => (
                 <div
                   key={idx}
-                  className={`flex items-center gap-2 p-2 rounded ${
-                    env.configured
+                  className={`flex items-center gap-2 p-2 rounded ${env.configured
                       ? "bg-blue-50 border border-blue-200"
                       : "bg-gray-50 border border-gray-200"
-                  }`}
+                    }`}
                 >
                   {env.configured ? (
                     <CheckCircle className="h-4 w-4 text-blue-600" />
@@ -429,9 +427,8 @@ function CollapsibleSection({
           <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
         </div>
         <RefreshCw
-          className={`h-5 w-5 text-gray-400 transition-transform ${
-            isExpanded ? "rotate-180" : ""
-          }`}
+          className={`h-5 w-5 text-gray-400 transition-transform ${isExpanded ? "rotate-180" : ""
+            }`}
         />
       </button>
       {isExpanded && (

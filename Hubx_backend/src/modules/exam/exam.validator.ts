@@ -98,7 +98,7 @@ export const validate = (req: Request, res: Response, next: NextFunction) => {
       success: false,
       message: "Validation failed",
       errors: errors.array().map((err) => ({
-        field: err.type === "param" ? err.param : err.type === "query" ? err.param : err.path,
+        field: err.type === "field" ? err.path : err.type,
         message: err.msg,
       })),
     })
