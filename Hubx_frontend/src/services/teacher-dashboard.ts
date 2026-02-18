@@ -13,6 +13,8 @@ interface BackendTeacherAnalyticsResponse {
         totalPapers: number;
         totalAttempts: number;
         totalEarnings: number;
+        totalPurchases: number;          // Actual paper purchase count
+        trendingPapersCount: number;     // Papers with attempts in last 30 days
         averageScore: number;
         revenueData: Array<{ name: string; value: number }>;
         likeabilityData: Array<{ name: string; value: number }>;
@@ -50,7 +52,7 @@ function transformToTeacherStats(
         {
             id: "purchased",
             title: "TOTAL PURCHASED PAPERS",
-            value: analytics.totalAttempts.toString(),
+            value: analytics.totalPurchases.toString(),
             subValue: "",
             lastMonthValue: "",
             trend: "up",
@@ -68,7 +70,7 @@ function transformToTeacherStats(
         {
             id: "trending",
             title: "TRENDING PAPERS",
-            value: analytics.topPerformingPapers.length.toString().padStart(2, '0'),
+            value: analytics.trendingPapersCount.toString().padStart(2, '0'),
             subValue: "",
             lastMonthValue: "",
             trend: "up",

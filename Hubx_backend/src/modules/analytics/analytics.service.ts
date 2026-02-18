@@ -22,9 +22,25 @@ export class AnalyticsService {
     })
 
     const totalEarnings = purchases.reduce((sum, p) => sum + p.price, 0)
+    const totalPurchases = purchases.length  // Actual purchase count
 
     // Calculate statistics
     const totalAttempts = papers.reduce((sum, p) => sum + (p._count.examAttempts || 0), 0)
+
+    // Trending Papers: papers that have at least 1 attempt in the last 30 days
+    const thirtyDaysAgo = new Date()
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+
+    const trendingPapersCount = await prisma.paper.count({
+      where: {
+        teacherId,
+        examAttempts: {
+          some: {
+            createdAt: { gte: thirtyDaysAgo }
+          }
+        }
+      }
+    })
 
     // Average score across all attempts (percentage)
     let totalScoreSum = 0;
@@ -133,10 +149,12 @@ export class AnalyticsService {
     return {
       totalStudents: uniqueStudents.size,
       totalPapers: papers.length,
-      averageRating: Math.round((averageScore / 20) * 10) / 10, // Convert percentage to 5-star rating (e.g. 80% -> 4.0)
-      revenue: totalEarnings,
-      studentPerformance, // Added
-      recentActivities,   // Added
+      totalPurchases,       // Actual paper purchase count
+      trendingPapersCount,  // Papers with attempts in last 30 days
+      averageRating: Math.round((averageScore / 20) * 10) / 10,
+      totalEarnings,
+      studentPerformance,
+      recentActivities,
 
       // Keep old fields just in case
       totalAttempts,

@@ -54,13 +54,15 @@ export function StatCard({ stat }: StatCardProps) {
                 </div>
             </div>
 
-            <div className="relative pt-4">
-                {/* Colored Divider Line */}
-                <div className={cn("absolute top-0 left-0 w-full h-[1.5px]", currentTheme.divider)}></div>
+            {lastMonthValue && (
+                <div className="relative pt-4">
+                    {/* Colored Divider Line */}
+                    <div className={cn("absolute top-0 left-0 w-full h-[1.5px]", currentTheme.divider)}></div>
 
-                <p className="text-[10px] text-gray-400 uppercase font-bold mb-1 tracking-wider">LAST MONTH</p>
-                <p className="text-lg sm:text-xl font-black text-gray-800 italic">{lastMonthValue}</p>
-            </div>
+                    <p className="text-[10px] text-gray-400 uppercase font-bold mb-1 tracking-wider">LAST MONTH</p>
+                    <p className="text-lg sm:text-xl font-black text-gray-800 italic">{lastMonthValue}</p>
+                </div>
+            )}
         </div>
     );
 }
