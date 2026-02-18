@@ -535,7 +535,7 @@ export default function PublicPapersPage() {
                     {/* Pagination Info (Optional - shows current range) */}
                     {!isLoading && totalPages > 0 && (
                         <div className="text-center text-xs sm:text-sm text-gray-500 pb-4">
-                            Showing {startIndex + 1}-{Math.min(endIndex, totalItems)} of {totalItems} papers
+                            Showing {startIndex + 1}-{Math.min(endIndex, filteredPapers.length)} of {filteredPapers.length} papers
                         </div>
                     )}
                 </div>
