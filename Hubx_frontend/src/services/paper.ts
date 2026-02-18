@@ -72,11 +72,10 @@ function transformBackendPaper(paper: BackendPublicPapersResponse['data']['paper
 }
 
 /**
- * Fetch public papers with optional filters.
- * IMPORTANT: Filters out already purchased papers - only shows papers available for purchase
- * Client-side filtering is applied for fields the backend doesn't support filtering on.
+ * Internal: Fetch ALL papers (both purchased and unpurchased)
+ * Used as base for both getPublicPapers and getPurchasedPapers
  */
-export async function getPublicPapers(filters: PaperFilters = {}): Promise<PublicPaper[]> {
+async function getAllPapers(filters: PaperFilters = {}): Promise<PublicPaper[]> {
     try {
         const page = 1;
         const limit = 50; // Fetch enough for client-side filtering
@@ -85,9 +84,6 @@ export async function getPublicPapers(filters: PaperFilters = {}): Promise<Publi
         );
 
         let uiPapers = response.data.papers.map(transformBackendPaper);
-
-        // FILTER 1: Remove already purchased papers (only show papers available to purchase)
-        uiPapers = uiPapers.filter(p => !p.purchased);
 
         // Client-side filtering (backend doesn't support these filters yet)
         if (filters.level && filters.level !== "All") {
@@ -117,6 +113,22 @@ export async function getPublicPapers(filters: PaperFilters = {}): Promise<Publi
 
         return uiPapers;
     } catch (error) {
+        console.error('[Paper] Failed to fetch papers:', error);
+        throw error;
+    }
+}
+
+/**
+ * Fetch public papers with optional filters.
+ * IMPORTANT: Filters out already purchased papers - only shows papers available for purchase
+ * Client-side filtering is applied for fields the backend doesn't support filtering on.
+ */
+export async function getPublicPapers(filters: PaperFilters = {}): Promise<PublicPaper[]> {
+    try {
+        const allPapers = await getAllPapers(filters);
+        // FILTER: Remove already purchased papers (only show papers available to purchase)
+        return allPapers.filter(p => !p.purchased);
+    } catch (error) {
         console.error('[Paper] Failed to fetch public papers:', error);
         throw error;
     }
@@ -141,11 +153,11 @@ export async function getPurchasedPapersCount(): Promise<number> {
 
 /**
  * Gets list of purchased papers for the current student.
- * Filters public papers to only those marked as purchased.
+ * Filters papers to only those marked as purchased.
  */
 export async function getPurchasedPapers(): Promise<PublicPaper[]> {
     try {
-        const allPapers = await getPublicPapers({});
+        const allPapers = await getAllPapers({});
         return allPapers.filter(p => p.purchased);
     } catch (error) {
         console.error('[Paper] Failed to fetch purchased papers:', error);
