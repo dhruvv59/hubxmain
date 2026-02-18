@@ -18,6 +18,7 @@ router.get("/exam-result/:attemptId", studentController.getExamResult)
 
 // New Dashboard Metrics Endpoints
 router.get("/performance-metrics", studentController.getPerformanceMetrics)
+router.get("/percentile-range", studentController.getPercentileForDateRange)
 router.get("/subject-performance", studentController.getSubjectPerformance)
 router.get("/syllabus-coverage", studentController.getSyllabusCoverage)
 router.get("/notifications", studentController.getNotifications)

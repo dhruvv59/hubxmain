@@ -371,16 +371,17 @@ export async function getPeerRank() {
         const totalStudents = perfData.totalStudents || 1;
 
         // Calculate what the percentile would be for rank #1 (best student)
-        // Percentile = ((totalStudents - rank) / totalStudents) * 100
-        // For rank 1: ((totalStudents - 1) / totalStudents) * 100
-        const highestRankPercentile = totalStudents > 0
-            ? Math.round(((totalStudents - 1) / totalStudents) * 100)
-            : 100;
+        // Special case: if only 1 student, they're at 100th percentile
+        // Otherwise: Percentile = ((totalStudents - 1) / totalStudents) * 100
+        let highestRankPercentile = 100; // Default for rank #1
+        if (totalStudents > 1) {
+            highestRankPercentile = Math.round(((totalStudents - 1) / totalStudents) * 100);
+        }
 
         return {
             currentRank: perfData.rank,
             currentPercentile: perfData.percentile || 0, // Student's percentile rank (0-100)
-            highestRankPercentile, // Rank #1's percentile
+            highestRankPercentile, // Rank #1's percentile (always 100 or close)
             history: perfData.history || [], // Performance scores over time
             totalStudents,
         };

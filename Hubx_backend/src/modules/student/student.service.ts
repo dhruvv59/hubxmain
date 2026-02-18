@@ -44,6 +44,13 @@ export class StudentService {
       rank = await this.calculateAndCacheStudentRank(studentId, averagePercentage)
     }
 
+    // Calculate total number of students with exam attempts
+    const totalStudents = await prisma.examAttempt.groupBy({
+      by: ["studentId"],
+    }).then(results => results.length)
+
+    // Calculate percentile rank (what % of students is this student better than)
+    const percentile = totalStudents > 0 ? await this.calculatePercentile(rank, totalStudents) : 0
 
     // Streak Logic - TIMEZONE SAFE (uses UTC)
     const user = await prisma.user.findUnique({
@@ -98,10 +105,12 @@ export class StudentService {
     return {
       performance: {
         rank,
+        percentile, // Percentile rank among all students (0-100)
         averageScore,
         averagePercentage,
         averageTime: Math.round(averageTime),
         totalAttempts,
+        totalStudents, // Total number of students for percentile calculation
         history: attemptedPapers
           .sort((a, b) => (a.submittedAt ? a.submittedAt.getTime() : 0) - (b.submittedAt ? b.submittedAt.getTime() : 0)) // Sort by date ascending
           .map((attempt, index) => ({
@@ -343,6 +352,79 @@ export class StudentService {
     }))
   }
 
+  /**
+   * Calculate percentile rank for a student within a specific date range
+   * Returns the student's percentile among all students for the given period
+   */
+  async getPercentileForDateRange(studentId: string, from?: string, to?: string) {
+    try {
+      const whereClause: any = {
+        status: "SUBMITTED" as any,
+      }
+
+      // Build date filter for all students
+      if (from && to) {
+        const startDate = new Date(from)
+        const endDate = new Date(to)
+        endDate.setHours(23, 59, 59, 999)
+
+        if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime())) {
+          whereClause.submittedAt = {
+            gte: startDate,
+            lte: endDate,
+          }
+        }
+      }
+
+      // Get this student's average score for the period
+      const studentAttempts = await prisma.examAttempt.findMany({
+        where: {
+          ...whereClause,
+          studentId,
+        },
+      })
+
+      if (studentAttempts.length === 0) {
+        return 0 // No data for this period
+      }
+
+      const studentAvgScore =
+        studentAttempts.reduce((sum, a) => sum + a.percentage, 0) / studentAttempts.length
+
+      // Get all students' average scores for comparison
+      const allStudentsData = await prisma.examAttempt.groupBy({
+        by: ["studentId"],
+        where: whereClause,
+        _avg: { percentage: true },
+      })
+
+      if (allStudentsData.length === 0) {
+        return 0
+      }
+
+      // Count how many students scored better than this student
+      const betterCount = allStudentsData.filter(
+        (s) => (s._avg.percentage || 0) > studentAvgScore
+      ).length
+
+      const totalStudents = allStudentsData.length
+
+      // Calculate percentile: what percentage of students are you better than
+      // Edge case: if only 1 student, they're at 100th percentile
+      if (totalStudents === 1) {
+        return 100
+      }
+
+      // Standard calculation: (number of students you're better than / total) * 100
+      const percentile = Math.round(((totalStudents - betterCount - 1) / (totalStudents - 1)) * 100)
+
+      return Math.max(0, Math.min(100, percentile)) // Clamp between 0-100
+    } catch (error) {
+      console.error("Error calculating percentile for date range:", error)
+      return 0
+    }
+  }
+
   async getSubjectPerformance(studentId: string, from?: string, to?: string, subjectId?: string) {
     const whereClause: any = {
       studentId,
@@ -507,187 +589,477 @@ export class StudentService {
     }
   }
 
+  /**
+   * FEATURE 1: SYLLABUS COVERAGE
+   * Tracks chapter progress across subjects for student
+   *
+   * Algorithm:
+   * 1. Get all subjects from student's attempted papers
+   * 2. Count total chapters per subject
+   * 3. Count completed chapters (score >= 40%)
+   * 4. Assign colors dynamically
+   * 5. Filter to only subjects attempted
+   */
   async getSyllabusCoverage(studentId: string) {
-    const subjects = await prisma.subject.findMany({
-      include: {
-        _count: {
-          select: { chapters: true },
-        },
-      },
-    })
-
-    const passedAttempts = await prisma.examAttempt.findMany({
-      where: {
-        studentId,
-        status: "SUBMITTED" as any,
-        percentage: { gt: 40 },
-      },
-      select: {
-        paper: {
-          select: {
-            chapters: {
-              select: { chapterId: true },
-            },
-            subjectId: true,
+    try {
+      // Step 1: Get all subjects from student's attempted papers
+      const studentPapers = await prisma.paper.findMany({
+        where: {
+          examAttempts: {
+            some: { studentId },
           },
         },
-      },
-    })
+        select: {
+          subjectId: true,
+          subject: {
+            select: {
+              id: true,
+              name: true,
+              chapters: { select: { id: true } },
+            },
+          },
+        },
+        distinct: ["subjectId"],
+      })
 
-    const coveredChaptersBySubject = new Map<string, Set<string>>()
-
-    passedAttempts.forEach((attempt) => {
-      const subjectId = attempt.paper.subjectId
-      if (!coveredChaptersBySubject.has(subjectId)) {
-        coveredChaptersBySubject.set(subjectId, new Set())
+      if (studentPapers.length === 0) {
+        return [] // Student hasn't attempted anything yet
       }
 
-      const set = coveredChaptersBySubject.get(subjectId)!
-      attempt.paper.chapters.forEach((pc) => set.add(pc.chapterId))
-    })
+      // Step 2: Get all passed attempts (score >= 40%) with chapters
+      const passedAttempts = await prisma.examAttempt.findMany({
+        where: {
+          studentId,
+          status: "SUBMITTED" as any,
+          percentage: { gte: 40 }, // Only count passed attempts
+        },
+        select: {
+          paperId: true,
+          percentage: true,
+          paper: {
+            select: {
+              subjectId: true,
+              chapters: {
+                select: { chapterId: true },
+              },
+            },
+          },
+        },
+      })
 
-    const colors = [
-      { color: "bg-blue-500", hex: "#3b82f6" },
-      { color: "bg-purple-500", hex: "#8b5cf6" },
-      { color: "bg-pink-500", hex: "#ec4899" },
-      { color: "bg-orange-500", hex: "#f97316" },
-    ]
+      // Step 3: Aggregate chapters covered per subject
+      const coverageMap = new Map<
+        string,
+        {
+          name: string
+          totalChapters: number
+          coveredChapters: Set<string>
+        }
+      >()
 
-    return subjects.map((sub, idx) => {
-      const coveredCount = coveredChaptersBySubject.get(sub.id)?.size || 0
-      const colorSet = colors[idx % colors.length]
-      const total = sub._count.chapters || 1
+      // Initialize with all subjects and their chapter counts
+      studentPapers.forEach((paper) => {
+        const subjectId = paper.subject.id
+        if (!coverageMap.has(subjectId)) {
+          coverageMap.set(subjectId, {
+            name: paper.subject.name,
+            totalChapters: paper.subject.chapters.length || 1,
+            coveredChapters: new Set<string>(),
+          })
+        }
+      })
+
+      // Add covered chapters from passed attempts
+      passedAttempts.forEach((attempt) => {
+        const subject = coverageMap.get(attempt.paper.subjectId)
+        if (subject) {
+          attempt.paper.chapters.forEach((pc) => {
+            subject.coveredChapters.add(pc.chapterId)
+          })
+        }
+      })
+
+      // Step 4: Transform to frontend format with colors
+      const colors = [
+        { hex: "#86efac", tailwind: "bg-green-400" },
+        { hex: "#60a5fa", tailwind: "bg-blue-400" },
+        { hex: "#c084fc", tailwind: "bg-purple-400" },
+        { hex: "#f472b6", tailwind: "bg-pink-400" },
+        { hex: "#fb923c", tailwind: "bg-orange-400" },
+        { hex: "#34d399", tailwind: "bg-emerald-400" },
+      ]
+
+      const result = Array.from(coverageMap.values())
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map((subject, index) => {
+          const color = colors[index % colors.length]
+          return {
+            subject: subject.name,
+            totalChapters: subject.totalChapters,
+            completedChapters: subject.coveredChapters.size,
+            hexColor: color.hex,
+            color: color.tailwind,
+          }
+        })
+
+      return result
+    } catch (error) {
+      console.error("[SyllabusCoverage] Error:", error)
+      throw new AppError(500, "Failed to fetch syllabus coverage")
+    }
+  }
+
+
+  /**
+   * FEATURE 4: NOTIFICATIONS & FOCUS AREAS (ENHANCED)
+   * Shows real notifications + AI-detected weak areas
+   *
+   * Algorithm:
+   * 1. Fetch real notifications from DB
+   * 2. Detect weak areas from exam performance
+   * 3. Assign colors based on severity
+   * 4. Return formatted data
+   */
+  async getNotificationData(studentId: string) {
+    try {
+      // Step 1: Fetch real notifications
+      const dbNotifications = await (prisma as any).notification.findMany({
+        where: { userId: studentId },
+        orderBy: { createdAt: "desc" },
+        take: 10,
+      })
+
+      const notifications = dbNotifications.map((n: any) => ({
+        id: n.id,
+        avatar: n.senderAvatar || undefined,
+        author: n.senderName || "HubX System",
+        text: n.message,
+      }))
+
+      // Step 2: Detect focus areas from weak performance
+      const focusAreas = await this.detectWeakAreas(studentId)
 
       return {
-        subject: sub.name,
-        completedChapters: coveredCount,
-        totalChapters: total,
-        color: colorSet.color,
-        hexColor: colorSet.hex,
+        notifications: notifications.length > 0 ? notifications : [],
+        focusAreas,
       }
-    })
+    } catch (error) {
+      console.error("[NotificationData] Error:", error)
+      return {
+        notifications: [],
+        focusAreas: [],
+      }
+    }
   }
 
-
-  async getNotificationData(studentId: string) {
-    const dbNotifications = await (prisma as any).notification.findMany({
-      where: { userId: studentId },
-      orderBy: { createdAt: "desc" },
-      take: 10,
-    })
-
-    let notifications = dbNotifications.map((n: any) => ({
-      id: n.id,
-      avatar: "", // System default or specific icon
-      author: "System",
-      text: n.message,
-      time: n.createdAt.toISOString(),
-      type: n.type,
-      isRead: n.isRead,
-      actionUrl: n.actionUrl,
-    }))
-
-    // Fallback if no notifications
-    if (notifications.length === 0) {
-      notifications = [
-        {
-          id: "welcome-msg",
-          avatar: "",
-          author: "HubX Team",
-          text: "Welcome to your new dashboard! Start by taking a practice test.",
-          time: new Date().toISOString(),
-          type: "INFO",
-          isRead: false,
-          actionUrl: "/practice-exams",
+  /**
+   * Helper: Detect student's weak areas using AI-like logic
+   *
+   * Algorithm:
+   * 1. Get all submitted attempts
+   * 2. Calculate chapter-wise performance
+   * 3. Find chapters with score < 50%
+   * 4. Sort by severity (lowest score first)
+   * 5. Assign colors based on score
+   * 6. Return top 3-5 focus areas
+   */
+  private async detectWeakAreas(studentId: string) {
+    try {
+      // Step 1: Get all submitted attempts with details
+      const attempts = await prisma.examAttempt.findMany({
+        where: {
+          studentId,
+          status: "SUBMITTED" as any,
         },
-      ]
-    }
-
-    const weakAttempts = await prisma.examAttempt.findMany({
-      where: {
-        studentId,
-        status: "SUBMITTED" as any,
-        percentage: { lt: 50 },
-      },
-      include: {
-        paper: {
-          include: {
-            subject: true,
+        include: {
+          paper: {
+            include: {
+              chapters: {
+                include: {
+                  chapter: { select: { name: true } },
+                },
+              },
+              subject: { select: { name: true, id: true } },
+            },
           },
         },
-      },
-      take: 3,
-      orderBy: { percentage: "asc" },
-    })
+        orderBy: { submittedAt: "desc" },
+        take: 20,
+      })
 
-    const focusAreas = weakAttempts.map((attempt) => ({
-      id: attempt.id,
-      subject: attempt.paper.subject.name,
-      topic: attempt.paper.title,
-      score: Math.round(attempt.percentage),
-      scoreColorClass: "text-red-500",
-    }))
+      if (attempts.length === 0) {
+        return []
+      }
 
-    return {
-      notifications,
-      focusAreas,
+      // Step 2: Analyze chapter-wise performance
+      const chapterPerformance = new Map<
+        string,
+        {
+          chapterName: string
+          subjectId: string
+          subjectName: string
+          totalScore: number
+          count: number
+          avgScore: number
+        }
+      >()
+
+      attempts.forEach((attempt) => {
+        attempt.paper.chapters.forEach((pc) => {
+          const key = `${pc.chapter.name}|${attempt.paper.subjectId}`
+          const current = chapterPerformance.get(key) || {
+            chapterName: pc.chapter.name,
+            subjectId: attempt.paper.subjectId,
+            subjectName: attempt.paper.subject.name,
+            totalScore: 0,
+            count: 0,
+            avgScore: 0,
+          }
+
+          current.totalScore += attempt.percentage
+          current.count += 1
+          current.avgScore = current.totalScore / current.count
+
+          chapterPerformance.set(key, current)
+        })
+      })
+
+      // Step 3: Filter weak areas (score < 50%)
+      const weakAreas = Array.from(chapterPerformance.values())
+        .filter((c) => c.avgScore < 50)
+        .sort((a, b) => a.avgScore - b.avgScore)
+
+      // Step 4: Assign colors based on severity
+      const focusAreas = weakAreas.slice(0, 5).map((area) => {
+        let colorClass = "text-red-600" // Critical < 30%
+        if (area.avgScore >= 30) {
+          colorClass = "text-orange-600" // Warning 30-40%
+        }
+        if (area.avgScore >= 40) {
+          colorClass = "text-yellow-600" // Improvement 40-50%
+        }
+
+        return {
+          id: `${area.subjectId}|${area.chapterName}`,
+          subject: area.subjectName,
+          topic: area.chapterName,
+          score: `${Math.round(area.avgScore)}%`,
+          scoreColorClass: colorClass,
+        }
+      })
+
+      return focusAreas
+    } catch (error) {
+      console.error("[DetectWeakAreas] Error:", error)
+      return []
     }
   }
 
+  /**
+   * FEATURE 3: UPCOMING EXAMS (ENHANCED)
+   * Shows available unattempted papers that student can take
+   *
+   * Algorithm:
+   * 1. Get all attempted paper IDs
+   * 2. Find published unattempted papers
+   * 3. Format with proper date/time
+   * 4. Sort by recency
+   * 5. Return top 5
+   */
   async getUpcomingExams(studentId: string) {
-    // 1. Get papers student has already attempted
-    const attempts = await prisma.examAttempt.findMany({
-      where: { studentId },
-      select: { paperId: true },
-    })
-    const attemptedIds = attempts.map((a) => a.paperId)
+    try {
+      // Step 1: Get attempted papers
+      const attemptedPaperIds = await prisma.examAttempt.findMany({
+        where: { studentId },
+        select: { paperId: true },
+      }).then(a => a.map(x => x.paperId))
 
-    // 2. Find internal/practice exams (published, not public) that are not attempted
-    // We treat "Upcoming" as "New Available Tests" (Unattempted Practice Papers) since there is no schedule in schema
-    const upcomingPapers = await prisma.paper.findMany({
-      where: {
-        id: { notIn: attemptedIds },
-        status: "PUBLISHED" as any,
-        isPublic: false, // Internal papers (assigned or general practice)
-      },
-      include: {
-        subject: true,
-      },
-      take: 5,
-      orderBy: { createdAt: "desc" },
-    })
+      // Step 2: Find unattempted, published papers
+      const upcomingPapers = await prisma.paper.findMany({
+        where: {
+          id: { notIn: attemptedPaperIds },
+          status: "PUBLISHED" as any,
+        },
+        include: {
+          subject: { select: { name: true } },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 5,
+      })
 
-    // 3. Map to UI format
-    return upcomingPapers.map((paper) => ({
-      id: paper.id,
-      title: paper.title,
-      date: paper.createdAt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }).replace(',', ''),
-      time: paper.duration ? `${paper.duration} mins` : "Anytime",
-      subject: paper.subject.name,
-      type: "Mock Test", // Default type since schema has different enum
-    }))
+      // Step 3: Format for frontend
+      const result = upcomingPapers.map((paper) => {
+        // Format date as "12 Oct" (day and month only)
+        const dateStr = new Intl.DateTimeFormat("en-GB", {
+          day: "numeric",
+          month: "short",
+        }).format(paper.createdAt)
+
+        // Format time: either "45 mins" or "Anytime"
+        const timeStr = paper.duration ? `${paper.duration} mins` : "Anytime"
+
+        return {
+          id: paper.id,
+          title: paper.title,
+          date: dateStr,
+          time: timeStr,
+          subject: paper.subject.name,
+          type: paper.isPublic ? "Full Mock" : "Practice",
+        }
+      })
+
+      return result
+    } catch (error) {
+      console.error("[UpcomingExams] Error:", error)
+      throw new AppError(500, "Failed to fetch upcoming exams")
+    }
   }
 
+  /**
+   * FEATURE 2: TEST RECOMMENDATIONS (ENHANCED)
+   * Recommends tests based on student's weak areas
+   *
+   * Algorithm:
+   * 1. Analyze subject-wise performance
+   * 2. Identify weak subjects (avg score < 60%)
+   * 3. Find unattempted papers in weak subjects
+   * 4. Rank by: relevance score (weakness + popularity + difficulty + recency)
+   * 5. Return top 5 recommendations
+   *
+   * Ranking Score Formula:
+   * score = weakness_bonus (0-3) + popularity (0-2) + difficulty_match (0-1.5) + recency (0-1)
+   */
   async getTestRecommendations(studentId: string) {
-    const attempted = await prisma.examAttempt.findMany({
-      where: { studentId },
-      select: { paperId: true },
-    })
-    const attemptedIds = attempted.map(a => a.paperId)
+    try {
+      // Step 1: Get student's performance by subject
+      const performanceBySubject = await this.getSubjectPerformance(studentId)
 
-    const recommendations = await prisma.paper.findMany({
+      if (!performanceBySubject || performanceBySubject.metrics.length === 0) {
+        // Cold start: student hasn't attempted anything, recommend popular papers
+        return await this.getPopularPapersForNewStudent()
+      }
+
+      // Step 2: Identify weak subjects (score < 60%)
+      const weakSubjects = performanceBySubject.metrics
+        .filter((m: any) => m.score < 60)
+        .map((m: any) => m.subjectId)
+
+      // Step 3: Get unattempted papers
+      const attemptedPaperIds = await prisma.examAttempt.findMany({
+        where: { studentId },
+        select: { paperId: true },
+      }).then(a => a.map(x => x.paperId))
+
+      // Step 4: Find papers in weak subjects or high-attempt papers
+      const candidatePapers = await prisma.paper.findMany({
+        where: {
+          id: { notIn: attemptedPaperIds },
+          status: "PUBLISHED" as any,
+          isPublic: true,
+          OR: [
+            { subjectId: { in: weakSubjects } },
+            { totalAttempts: { gte: 10 } },
+          ],
+        },
+        include: {
+          subject: { select: { name: true } },
+          _count: { select: { questions: true } },
+        },
+        take: 20,
+      })
+
+      if (candidatePapers.length === 0) {
+        return []
+      }
+
+      // Step 5: Score and rank papers
+      const scoredPapers = candidatePapers.map((paper) => {
+        let score = 0
+
+        // Bonus: In weak subject (3 points)
+        if (weakSubjects.includes(paper.subjectId)) {
+          score += 3
+        }
+
+        // Bonus: Popular (0-2 points)
+        score += Math.min(paper.totalAttempts / 20, 2)
+
+        // Bonus: Difficulty match - medium for practice (0-1.5 points)
+        if (paper.difficulty === "INTERMEDIATE") {
+          score += 1.5
+        } else if (paper.difficulty === "EASY") {
+          score += 0.5
+        }
+
+        // Bonus: Recent papers (0-1 point)
+        const daysSinceCreation = Math.floor(
+          (Date.now() - paper.createdAt.getTime()) / (1000 * 60 * 60 * 24)
+        )
+        if (daysSinceCreation < 7) score += 1
+        if (daysSinceCreation < 30) score += 0.5
+
+        return { ...paper, _score: score }
+      })
+
+      // Step 6: Sort by score and return top 5
+      const recommendations = scoredPapers
+        .sort((a, b) => b._score - a._score)
+        .slice(0, 5)
+        .map((paper) => ({
+          id: paper.id,
+          title: paper.title,
+          subject: paper.subject.name,
+          difficulty: paper.difficulty as "EASY" | "INTERMEDIATE" | "ADVANCED",
+          questions: paper._count.questions,
+          time: paper.duration || 0,
+          type: this.getPaperType(paper.difficulty),
+        }))
+
+      return recommendations
+    } catch (error) {
+      console.error("[TestRecommendations] Error:", error)
+      return await this.getPopularPapersForNewStudent()
+    }
+  }
+
+  /**
+   * Helper: Get popular papers for students with no history
+   */
+  private async getPopularPapersForNewStudent() {
+    const papers = await prisma.paper.findMany({
       where: {
-        id: { notIn: attemptedIds },
         isPublic: true,
         status: "PUBLISHED" as any,
       },
-      take: 3,
-      orderBy: {
-        totalAttempts: "desc",
+      include: {
+        subject: { select: { name: true } },
+        _count: { select: { questions: true } },
       },
+      orderBy: { totalAttempts: "desc" },
+      take: 5,
     })
 
-    return recommendations
+    return papers.map((p) => ({
+      id: p.id,
+      title: p.title,
+      subject: p.subject.name,
+      difficulty: p.difficulty as "EASY" | "INTERMEDIATE" | "ADVANCED",
+      questions: p._count.questions,
+      time: p.duration || 0,
+      type: this.getPaperType(p.difficulty),
+    }))
+  }
+
+  /**
+   * Helper: Map difficulty to paper type
+   */
+  private getPaperType(difficulty: string): string {
+    const typeMap: Record<string, string> = {
+      EASY: "Practice",
+      INTERMEDIATE: "Full Mock",
+      ADVANCED: "Challenge",
+    }
+    return typeMap[difficulty] || "Practice"
   }
 
   /**
@@ -714,6 +1086,21 @@ export class StudentService {
       console.error("Error calculating student rank:", error)
       return 0
     }
+  }
+
+  /**
+   * Calculate percentile rank for a student
+   * Percentile = (number of students you're better than / total students) * 100
+   * If there's only 1 student, they're at the 100th percentile (top)
+   */
+  private async calculatePercentile(rank: number, totalStudents: number): Promise<number> {
+    if (totalStudents === 0) return 0
+    if (totalStudents === 1) return 100 // Only student = 100th percentile
+
+    // Percentile: how many students are you better than / total students * 100
+    // If rank = 1 and totalStudents = 100: you're better than 99 students = 99th percentile
+    const percentile = Math.round(((totalStudents - rank) / totalStudents) * 100)
+    return Math.max(0, Math.min(100, percentile)) // Clamp between 0-100
   }
 
   /**
