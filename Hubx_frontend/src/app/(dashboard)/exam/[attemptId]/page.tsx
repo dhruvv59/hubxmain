@@ -94,7 +94,22 @@ export default function ExamPage() {
         isFillInWithOptions = Array.isArray(options) && options.length > 0;
       }
 
-      await fetch(
+      // Prepare answer payload
+      const answerPayload = {
+        selectedOptionIndex: (currentQuestion?.type === "MCQ" || isFillInWithOptions) ? selectedAnswer : undefined,
+        answerText: (currentQuestion?.type === "TEXT" || (currentQuestion?.type === "FILL_IN_THE_BLANKS" && !isFillInWithOptions)) ? selectedAnswer : undefined,
+      };
+
+      // Debug logging
+      console.log("📝 Saving Answer", {
+        questionType: currentQuestion?.type,
+        selectedAnswer: selectedAnswer,
+        isFillInWithOptions: isFillInWithOptions,
+        payload: answerPayload,
+        questionId: currentQuestion?.id,
+      });
+
+      const response = await fetch(
         `${API_BASE_URL}/exam/${attemptId}/answer/${currentQuestion?.id}`,
         {
           method: "POST",
@@ -102,16 +117,22 @@ export default function ExamPage() {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            selectedOptionIndex: (currentQuestion?.type === "MCQ" || isFillInWithOptions) ? selectedAnswer : undefined,
-            answerText: (currentQuestion?.type === "TEXT" || (currentQuestion?.type === "FILL_IN_THE_BLANKS" && !isFillInWithOptions)) ? selectedAnswer : undefined,
-          }),
+          body: JSON.stringify(answerPayload),
         }
       );
 
-      setAnswers({ ...answers, [currentQuestion?.id || ""]: selectedAnswer });
+      if (response.ok) {
+        const data = await response.json();
+        console.log("✅ Answer saved successfully:", data);
+        setAnswers({ ...answers, [currentQuestion?.id || ""]: selectedAnswer });
+      } else {
+        const error = await response.json();
+        console.error("❌ Error saving answer:", error);
+        alert("Error saving answer: " + (error.message || "Unknown error"));
+      }
     } catch (error) {
-      console.error("Error saving answer:", error);
+      console.error("❌ Error saving answer:", error);
+      alert("Error saving answer");
     }
   };
 
@@ -195,6 +216,9 @@ export default function ExamPage() {
 
           {/* Answer Section */}
           <div className="mt-8">
+            {/* Debug: Log question type */}
+            {typeof window !== 'undefined' && console.log("Question Type:", currentQuestion.type, "Type Check - MCQ:", currentQuestion.type === "MCQ", "FITB:", currentQuestion.type === "FILL_IN_THE_BLANKS", "TEXT:", currentQuestion.type === "TEXT")}
+
             {currentQuestion.type === "MCQ" && (
               <div className="space-y-3">
                 {(() => {
@@ -269,6 +293,22 @@ export default function ExamPage() {
                 rows={6}
                 className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
               />
+            )}
+
+            {/* Fallback for unknown question types - shows textarea */}
+            {currentQuestion.type !== "MCQ" && currentQuestion.type !== "FILL_IN_THE_BLANKS" && currentQuestion.type !== "TEXT" && (
+              <div className="bg-yellow-50 border-2 border-yellow-200 p-4 rounded-lg mb-4">
+                <p className="text-sm text-yellow-800 mb-2">
+                  Question Type: <strong>{currentQuestion.type}</strong> (Free text entry)
+                </p>
+                <textarea
+                  value={selectedAnswer as string || ""}
+                  onChange={(e) => setSelectedAnswer(e.target.value)}
+                  placeholder="Type your answer here..."
+                  rows={6}
+                  className="w-full px-4 py-3 rounded-lg border-2 border-yellow-300 focus:border-yellow-500 focus:ring-2 focus:ring-yellow-100"
+                />
+              </div>
             )}
           </div>
         </div>

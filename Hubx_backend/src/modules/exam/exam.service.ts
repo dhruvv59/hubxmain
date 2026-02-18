@@ -188,6 +188,10 @@ export class ExamService {
 
     // Handle TEXT question type by calling OpenAI to evaluate answer liberally
     if (question.type === "TEXT" && answer.answerText !== undefined && answer.answerText !== null) {
+      console.log(`[TEXT Question] Processing answer for question ${questionId}`, {
+        answerLength: String(answer.answerText).length,
+        questionMarks: questionMarks,
+      })
       try {
         const OPENAI_API_KEY = process.env.OPENAI_API_KEY
         if (OPENAI_API_KEY) {
@@ -395,6 +399,16 @@ export class ExamService {
         },
       })
     }
+
+    // Log answer result
+    console.log(`[Answer Saved] Question Type: ${question.type}`, {
+      questionId,
+      isCorrect,
+      marksObtained,
+      attemptId,
+      questionType: question.type,
+      answerProvided: !!answer.answerText || answer.selectedOption !== undefined,
+    })
 
     return studentAnswer
   }
