@@ -73,6 +73,7 @@ function transformBackendPaper(paper: BackendPublicPapersResponse['data']['paper
 
 /**
  * Fetch public papers with optional filters.
+ * IMPORTANT: Filters out already purchased papers - only shows papers available for purchase
  * Client-side filtering is applied for fields the backend doesn't support filtering on.
  */
 export async function getPublicPapers(filters: PaperFilters = {}): Promise<PublicPaper[]> {
@@ -84,6 +85,9 @@ export async function getPublicPapers(filters: PaperFilters = {}): Promise<Publi
         );
 
         let uiPapers = response.data.papers.map(transformBackendPaper);
+
+        // FILTER 1: Remove already purchased papers (only show papers available to purchase)
+        uiPapers = uiPapers.filter(p => !p.purchased);
 
         // Client-side filtering (backend doesn't support these filters yet)
         if (filters.level && filters.level !== "All") {

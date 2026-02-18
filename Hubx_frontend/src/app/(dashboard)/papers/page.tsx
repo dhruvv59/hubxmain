@@ -270,12 +270,10 @@ export default function PublicPapersPage() {
     };
 
     const handlePaymentSuccess = () => {
-        if (selectedPaper) {
-            setPapers(prev => prev.map(p =>
-                p.id === selectedPaper.id ? { ...p, purchased: true } : p
-            ));
-        }
+        // Refresh the papers list to remove the purchased paper from public list
+        // and show updated pricing/purchase status
         setIsPaymentOpen(false);
+        fetchPapers(); // Re-fetch to get updated purchase status from backend
     };
 
     // Pagination Handlers

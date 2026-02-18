@@ -198,18 +198,24 @@ export function PaymentModal({ isOpen, onClose, paperTitle, paperId, amount: ini
                         </div>
                     </div>
 
-                    <h2 className="text-2xl font-bold text-green-500 mb-2">Access Granted!</h2>
-                    <p className="text-center text-gray-500 font-medium mb-8">
-                        You can now access the paper<br />
+                    <h2 className="text-2xl font-bold text-green-600 mb-2">Purchase Successful! ✓</h2>
+                    <p className="text-center text-gray-600 font-medium mb-8">
+                        Paper has been added to your purchased papers<br />
                         <span className="text-gray-900 font-bold">"{paperTitle}"</span>
                     </p>
 
-                    <button
-                        onClick={onSuccess}
-                        className="w-full py-3 rounded-xl bg-[#6366f1] text-white font-bold hover:bg-[#4f4fbe] transition-colors"
-                    >
-                        View Paper
-                    </button>
+                    <div className="space-y-3 w-full">
+                        <button
+                            onClick={onSuccess}
+                            className="w-full py-3 rounded-xl bg-[#6366f1] text-white font-bold hover:bg-[#4f4fbe] active:scale-95 transition-all"
+                        >
+                            Close
+                        </button>
+                    </div>
+
+                    <p className="text-xs text-gray-500 mt-4 text-center">
+                        Your paper is now available in the Purchased Papers section
+                    </p>
                 </div>
             </div>
         );
