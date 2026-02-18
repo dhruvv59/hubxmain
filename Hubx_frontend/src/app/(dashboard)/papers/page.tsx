@@ -43,8 +43,8 @@ function FilterSidebar({ filters, onFilterChange, allPapers, isMobileDrawerOpen,
     };
 
     // Fixed difficulty levels - ALWAYS show all options
-    // Never hide difficulty options, user should always be able to select any difficulty
-    const difficulties = ["All", "Advanced", "Beginner", "Intermediate"];
+    // Order: All → Beginner → Intermediate → Advanced (logical progression)
+    const difficulties = ["All", "Beginner", "Intermediate", "Advanced"];
 
     const subjects = getAvailableSubjects();
     const ratings = ["4 ★ & above", "Most Popular"];
