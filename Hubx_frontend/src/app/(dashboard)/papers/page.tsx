@@ -22,15 +22,43 @@ import { TestSettingsModal } from "@/components/assessment/TestSettingsModal";
 interface FilterSidebarProps {
     filters: PaperFilters;
     onFilterChange: (newFilters: Partial<PaperFilters>) => void;
-    totalCount: number;
+    papers: PublicPaper[];
     isMobileDrawerOpen?: boolean;
     onCloseMobileDrawer?: () => void;
 }
 
-function FilterSidebar({ filters, onFilterChange, isMobileDrawerOpen, onCloseMobileDrawer }: FilterSidebarProps) {
+function FilterSidebar({ filters, onFilterChange, papers, isMobileDrawerOpen, onCloseMobileDrawer }: FilterSidebarProps) {
     const router = useRouter();
-    const subjects = ["All", "Science", "Mathematics", "Geography", "English", "Hindi", "Social Science", "Information Technology", "Economics"];
-    const difficulties = ["All", "Beginner", "Intermediate", "Advanced"];
+
+    // Extract unique subjects from papers dynamically
+    const getAvailableSubjects = (): string[] => {
+        const subjects = new Set<string>(["All"]);
+        papers.forEach(p => {
+            if (p.subject && p.subject.trim()) {
+                subjects.add(p.subject);
+            }
+        });
+        return Array.from(subjects).sort();
+    };
+
+    // Extract unique difficulty levels from papers dynamically
+    const getAvailableDifficulties = (): string[] => {
+        const difficultyMap: Record<string, string> = {
+            "Advanced": "Advanced",
+            "Beginner": "Beginner",
+            "Intermediate": "Intermediate"
+        };
+        const difficulties = new Set<string>(["All"]);
+        papers.forEach(p => {
+            if (p.level && difficultyMap[p.level]) {
+                difficulties.add(p.level);
+            }
+        });
+        return Array.from(difficulties).sort();
+    };
+
+    const subjects = getAvailableSubjects();
+    const difficulties = getAvailableDifficulties();
     const ratings = ["4 ★ & above", "Most Popular"];
 
     const filterContent = (
@@ -354,7 +382,7 @@ export default function PublicPapersPage() {
                 <FilterSidebar
                     filters={filters}
                     onFilterChange={handleFilterChange}
-                    totalCount={papers.length}
+                    papers={papers}
                     isMobileDrawerOpen={isMobileFilterOpen}
                     onCloseMobileDrawer={() => setIsMobileFilterOpen(false)}
                 />
