@@ -241,8 +241,30 @@ export default function PublicPapersPage() {
     const [currentPage, setCurrentPage] = useState(1);
     const ITEMS_PER_PAGE = 10; // Production: this should come from backend or user preference
 
-    // Memoize filtered papers to avoid recalculation
-    const filteredPapers = allPapers; // In real app, apply client-side filters here if needed
+    // Apply filters to papers
+    const filteredPapers = allPapers.filter(p => {
+        // Filter by subject
+        if (filters.subject && filters.subject !== "All") {
+            if (p.subject !== filters.subject) return false;
+        }
+
+        // Filter by difficulty level
+        if (filters.level && filters.level !== "All") {
+            if (p.level !== filters.level) return false;
+        }
+
+        // Filter by search term
+        if (filters.search) {
+            const q = filters.search.toLowerCase();
+            const matchesSearch =
+                p.title.toLowerCase().includes(q) ||
+                p.teacher.name.toLowerCase().includes(q) ||
+                p.subject.toLowerCase().includes(q);
+            if (!matchesSearch) return false;
+        }
+
+        return true;
+    });
 
     // Calculate pagination
     const totalPages = Math.ceil(filteredPapers.length / ITEMS_PER_PAGE);
