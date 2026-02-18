@@ -98,7 +98,7 @@ export default function ExamPage() {
 
       // Prepare answer payload
       const answerPayload = {
-        selectedOptionIndex: (currentQuestion?.type === "MCQ" || isFillInWithOptions) ? selectedAnswer : undefined,
+        selectedOption: (currentQuestion?.type === "MCQ" || isFillInWithOptions) ? selectedAnswer : undefined,
         answerText: (currentQuestion?.type === "TEXT" || (currentQuestion?.type === "FILL_IN_THE_BLANKS" && !isFillInWithOptions)) ? selectedAnswer : undefined,
       };
 
@@ -177,7 +177,7 @@ export default function ExamPage() {
     loadExamData();
   }, [attemptId]);
 
-  if (isLoading || !examData || !currentQuestion) {
+  if (isLoading || !examData || !examData.paper || !currentQuestion) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
