@@ -7,7 +7,13 @@ import type { AuthRequest } from "@middlewares/auth"
 export class ExamController {
   startExam = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { paperId } = req.params
-    const attempt = await examService.startExam(paperId, req.user!.userId)
+    const { noTimeLimit, showAnswerAfterWrong, enableSolutionView } = req.body
+
+    const attempt = await examService.startExam(paperId, req.user!.userId, {
+      noTimeLimit: noTimeLimit === true,
+      showAnswerAfterWrong: showAnswerAfterWrong === true,
+      enableSolutionView: enableSolutionView === true,
+    })
 
     const responseData = {
       attemptId: attempt.id,
@@ -20,6 +26,9 @@ export class ExamController {
       totalMarks: attempt.totalMarks,
       percentage: attempt.percentage,
       timeSpent: attempt.timeSpent,
+      noTimeLimit: attempt.noTimeLimit,
+      showAnswerAfterWrong: attempt.showAnswerAfterWrong,
+      enableSolutionView: attempt.enableSolutionView,
     }
 
     sendResponse(res, 200, "Exam started successfully", responseData)
@@ -42,11 +51,11 @@ export class ExamController {
 
   saveAnswer = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { attemptId, questionId } = req.params
-    const { answerText, selectedOptionIndex } = req.body
+    const { answerText, selectedOption } = req.body
 
     const answer = await examService.saveAnswer(attemptId, req.user!.userId, questionId, {
       answerText,
-      selectedOption: selectedOptionIndex,
+      selectedOption,
     })
     sendResponse(res, 200, "Answer saved successfully", answer)
   })
