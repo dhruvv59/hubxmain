@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Loader2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Loader2, ChevronLeft, ChevronRight, HelpCircle } from "lucide-react";
 import { API_BASE_URL } from "@/lib/api-config";
+import { DoubtSubmitModal } from "@/components/exam/DoubtSubmitModal";
 
 interface Question {
   id: string;
@@ -40,6 +41,7 @@ export default function ExamPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedAnswer, setSelectedAnswer] = useState<string | number | null>(null);
   const [answers, setAnswers] = useState<Record<string, any>>({});
+  const [isDoubtModalOpen, setIsDoubtModalOpen] = useState(false);
 
   const loadExamData = async () => {
     try {
@@ -211,9 +213,18 @@ export default function ExamPage() {
         <div className="bg-white rounded-2xl p-8 mb-8 shadow-sm">
           <div className="flex justify-between items-start mb-6">
             <h2 className="text-lg font-bold text-gray-900 flex-1">{currentQuestion.questionText}</h2>
-            <span className="px-3 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-700 ml-4">
-              {currentQuestion.marks} marks
-            </span>
+            <div className="flex items-center gap-2 ml-4">
+              <button
+                onClick={() => setIsDoubtModalOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-orange-50 text-orange-600 text-sm font-medium hover:bg-orange-100 transition-colors"
+              >
+                <HelpCircle className="w-4 h-4" />
+                Ask Teacher
+              </button>
+              <span className="px-3 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-700">
+                {currentQuestion.marks} marks
+              </span>
+            </div>
           </div>
 
           {/* Answer Section */}
@@ -359,6 +370,17 @@ export default function ExamPage() {
           </button>
         </div>
       </div>
+
+      {/* Doubt Modal */}
+      {currentQuestion && (
+        <DoubtSubmitModal
+          isOpen={isDoubtModalOpen}
+          onClose={() => setIsDoubtModalOpen(false)}
+          attemptId={attemptId}
+          questionId={currentQuestion.id}
+          questionNumber={currentQuestion.questionNumber || questionIndex + 1}
+        />
+      )}
     </div>
   );
 }

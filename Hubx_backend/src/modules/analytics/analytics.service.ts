@@ -256,6 +256,7 @@ export class AnalyticsService {
       rank,
       performanceByDifficulty,
       recentAttempts: attempts
+        .filter((a) => a.submittedAt !== null)
         .sort((a, b) => b.submittedAt!.getTime() - a.submittedAt!.getTime())
         .slice(0, 5)
         .map((a) => ({

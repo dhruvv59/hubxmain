@@ -11,12 +11,12 @@ import type { AuthRequest } from "@middlewares/auth"
 export class TeacherController {
   // Standard endpoints
   createStandard = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const { name } = req.body
+    const { name, description } = req.body
     if (!name) {
       return sendError(res, 400, "Standard name is required")
     }
 
-    const standard = await standardService.createStandard(req.user!.userId, name)
+    const standard = await standardService.createStandard(req.user!.userId, name, description)
     sendResponse(res, 201, "Standard created successfully", standard)
   })
 
@@ -33,13 +33,13 @@ export class TeacherController {
 
   updateStandard = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { standardId } = req.params
-    const { name } = req.body
+    const { name, description } = req.body
 
     if (!name) {
       return sendError(res, 400, "Standard name is required")
     }
 
-    const standard = await standardService.updateStandard(standardId, req.user!.userId, name)
+    const standard = await standardService.updateStandard(standardId, req.user!.userId, name, description)
     sendResponse(res, 200, "Standard updated successfully", standard)
   })
 
@@ -52,12 +52,12 @@ export class TeacherController {
   // Subject endpoints
   createSubject = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { standardId } = req.params
-    const { name } = req.body
+    const { name, code } = req.body
     if (!name) {
       return sendError(res, 400, "Subject name is required")
     }
 
-    const subject = await subjectService.createSubject(standardId, req.user!.userId, name)
+    const subject = await subjectService.createSubject(standardId, req.user!.userId, name, code)
     sendResponse(res, 201, "Subject created successfully", subject)
   })
 
@@ -75,13 +75,13 @@ export class TeacherController {
 
   updateSubject = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { standardId, subjectId } = req.params
-    const { name } = req.body
+    const { name, code } = req.body
 
     if (!name) {
       return sendError(res, 400, "Subject name is required")
     }
 
-    const subject = await subjectService.updateSubject(subjectId, standardId, req.user!.userId, name)
+    const subject = await subjectService.updateSubject(subjectId, standardId, req.user!.userId, name, code)
     sendResponse(res, 200, "Subject updated successfully", subject)
   })
 
@@ -94,13 +94,13 @@ export class TeacherController {
   // Chapter endpoints
   createChapter = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { standardId, subjectId } = req.params
-    const { name } = req.body
+    const { name, description, sequence } = req.body
 
     if (!name) {
       return sendError(res, 400, "Chapter name is required")
     }
 
-    const chapter = await subjectService.createChapter(subjectId, standardId, req.user!.userId, name)
+    const chapter = await subjectService.createChapter(subjectId, standardId, req.user!.userId, name, description, sequence ? parseInt(sequence as string) : undefined)
     sendResponse(res, 201, "Chapter created successfully", chapter)
   })
 
@@ -112,13 +112,13 @@ export class TeacherController {
 
   updateChapter = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { standardId, subjectId, chapterId } = req.params
-    const { name } = req.body
+    const { name, description, sequence } = req.body
 
     if (!name) {
       return sendError(res, 400, "Chapter name is required")
     }
 
-    const chapter = await subjectService.updateChapter(chapterId, subjectId, standardId, req.user!.userId, name)
+    const chapter = await subjectService.updateChapter(chapterId, subjectId, standardId, req.user!.userId, name, description, sequence ? parseInt(sequence as string) : undefined)
     sendResponse(res, 200, "Chapter updated successfully", chapter)
   })
 

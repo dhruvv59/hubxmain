@@ -1,9 +1,10 @@
  "use client";
 
 import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from "react";
-import { Paperclip, HelpCircle, Loader2, Plus, X } from "lucide-react";
+import { Paperclip, HelpCircle, Loader2, Plus, X, Wand2, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { QuestionType, Difficulty, Question, MCQOption, FillInTheBlank } from "@/types/generate-paper";
+import { ocrService } from "@/services/ocr";
 import katex from "katex";
 
 interface ManualQuestionFormProps {
@@ -11,7 +12,9 @@ interface ManualQuestionFormProps {
     onAdd: (question: Question) => void;
     onCancel: () => void;
     onOpenBank?: () => void;
+    onDone?: () => void;
     isSubmitting?: boolean;
+    showDoneButton?: boolean;
 }
 
 export interface ManualQuestionFormRef {
@@ -19,7 +22,7 @@ export interface ManualQuestionFormRef {
 }
 
 export const ManualQuestionForm = forwardRef<ManualQuestionFormRef, ManualQuestionFormProps>(
-    function ManualQuestionFormComponent({ questionNumber, onAdd, onCancel, onOpenBank, isSubmitting }, ref) {
+    function ManualQuestionFormComponent({ questionNumber, onAdd, onCancel, onOpenBank, onDone, isSubmitting, showDoneButton }, ref) {
     const [type, setType] = useState<QuestionType>("Text");
     const [difficulty, setDifficulty] = useState<Difficulty>("Intermediate");
     const [content, setContent] = useState("");
@@ -27,9 +30,21 @@ export const ManualQuestionForm = forwardRef<ManualQuestionFormRef, ManualQuesti
     const [showQuestionPreview, setShowQuestionPreview] = useState(false);
     const [showSolutionPreview, setShowSolutionPreview] = useState(false);
 
+    // Image state
+    const [questionImage, setQuestionImage] = useState<File | null>(null);
+    const [solutionImage, setSolutionImage] = useState<File | null>(null);
+    const [questionImagePreview, setQuestionImagePreview] = useState<string>("");
+    const [solutionImagePreview, setSolutionImagePreview] = useState<string>("");
+
+    // OCR state
+    const [isOcrProcessing, setIsOcrProcessing] = useState<"question" | "solution" | null>(null);
+    const [ocrError, setOcrError] = useState<string>("");
+
     // Refs for inserting symbols at cursor position
     const questionRef = useRef<HTMLTextAreaElement | null>(null);
     const solutionRef = useRef<HTMLTextAreaElement | null>(null);
+    const questionImageInputRef = useRef<HTMLInputElement | null>(null);
+    const solutionImageInputRef = useRef<HTMLInputElement | null>(null);
 
     const MATH_SYMBOLS = ["²", "³", "±", "×", "÷", "≤", "≥", "√", "π"];
 
@@ -73,6 +88,12 @@ export const ManualQuestionForm = forwardRef<ManualQuestionFormRef, ManualQuesti
             setSolution("");
             setShowQuestionPreview(false);
             setShowSolutionPreview(false);
+            setQuestionImage(null);
+            setSolutionImage(null);
+            setQuestionImagePreview("");
+            setSolutionImagePreview("");
+            setIsOcrProcessing(null);
+            setOcrError("");
             setOptions([
                 { id: "opt-1", text: "", isCorrect: false },
                 { id: "opt-2", text: "", isCorrect: false },
@@ -180,12 +201,149 @@ export const ManualQuestionForm = forwardRef<ManualQuestionFormRef, ManualQuesti
         }
     };
 
+    const handleQuestionImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            // Validate file type (image, PDF, or ODF)
+            const isImage = file.type.startsWith('image/');
+            const isPdf = file.type === 'application/pdf';
+            const isOdf = file.type.startsWith('application/vnd.oasis.opendocument');
+
+            if (!isImage && !isPdf && !isOdf) {
+                alert('Please select a valid image, PDF, or ODF file');
+                return;
+            }
+            // Validate file size (10MB max for docs, 5MB for images)
+            const maxSize = (isPdf || isOdf) ? 10 * 1024 * 1024 : 5 * 1024 * 1024;
+            if (file.size > maxSize) {
+                alert(`File size must be less than ${(isPdf || isOdf) ? '10MB' : '5MB'}`);
+                return;
+            }
+            setQuestionImage(file);
+
+            // For images, show preview; for PDFs/ODF, show file info
+            if (isImage) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    setQuestionImagePreview(event.target?.result as string);
+                };
+                reader.readAsDataURL(file);
+            } else if (isPdf) {
+                // For PDFs, show a placeholder preview
+                setQuestionImagePreview(`pdf:${file.name}`);
+            } else if (isOdf) {
+                // For ODF files, show a placeholder preview
+                setQuestionImagePreview(`odf:${file.name}`);
+            }
+        }
+    };
+
+    const handleSolutionImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            // Validate file type (image, PDF, or ODF)
+            const isImage = file.type.startsWith('image/');
+            const isPdf = file.type === 'application/pdf';
+            const isOdf = file.type.startsWith('application/vnd.oasis.opendocument');
+
+            if (!isImage && !isPdf && !isOdf) {
+                alert('Please select a valid image, PDF, or ODF file');
+                return;
+            }
+            // Validate file size (10MB max for docs, 5MB for images)
+            const maxSize = (isPdf || isOdf) ? 10 * 1024 * 1024 : 5 * 1024 * 1024;
+            if (file.size > maxSize) {
+                alert(`File size must be less than ${(isPdf || isOdf) ? '10MB' : '5MB'}`);
+                return;
+            }
+            setSolutionImage(file);
+
+            // For images, show preview; for PDFs/ODF, show file info
+            if (isImage) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    setSolutionImagePreview(event.target?.result as string);
+                };
+                reader.readAsDataURL(file);
+            } else if (isPdf) {
+                // For PDFs, show a placeholder preview
+                setSolutionImagePreview(`pdf:${file.name}`);
+            } else if (isOdf) {
+                // For ODF files, show a placeholder preview
+                setSolutionImagePreview(`odf:${file.name}`);
+            }
+        }
+    };
+
+    const removeQuestionImage = () => {
+        setQuestionImage(null);
+        setQuestionImagePreview("");
+        if (questionImageInputRef.current) {
+            questionImageInputRef.current.value = "";
+        }
+    };
+
+    const removeSolutionImage = () => {
+        setSolutionImage(null);
+        setSolutionImagePreview("");
+        if (solutionImageInputRef.current) {
+            solutionImageInputRef.current.value = "";
+        }
+    };
+
+    const extractTextFromQuestionImage = async () => {
+        if (!questionImage) return;
+
+        setIsOcrProcessing("question");
+        setOcrError("");
+        try {
+            const result = await ocrService.extractText(questionImage);
+            if (result.text) {
+                // Replace content with extracted text (can be modified by user)
+                setContent(result.text);
+            } else {
+                setOcrError("No text could be extracted from the image");
+            }
+        } catch (error: any) {
+            console.error("OCR failed:", error);
+            setOcrError(error.message || "Failed to extract text from image");
+        } finally {
+            setIsOcrProcessing(null);
+        }
+    };
+
+    const extractTextFromSolutionImage = async () => {
+        if (!solutionImage) return;
+
+        setIsOcrProcessing("solution");
+        setOcrError("");
+        try {
+            const result = await ocrService.extractText(solutionImage);
+            if (result.text) {
+                // Replace solution with extracted text (can be modified by user)
+                setSolution(result.text);
+            } else {
+                setOcrError("No text could be extracted from the image");
+            }
+        } catch (error: any) {
+            console.error("OCR failed:", error);
+            setOcrError(error.message || "Failed to extract text from image");
+        } finally {
+            setIsOcrProcessing(null);
+        }
+    };
+
     const validateForm = (): boolean => {
         if (!content.trim()) return false;
 
         if (type === "MCQ") {
-            // Check if all options have text
-            if (options.some(opt => !opt.text.trim())) return false;
+            // Count non-empty options
+            const nonEmptyOptions = options.filter(opt => opt.text.trim());
+
+            // Check if at least 2-6 options have text
+            if (nonEmptyOptions.length < 2) return false;
+            if (nonEmptyOptions.length > 6) return false;
+
             // Check if at least one option is marked as correct
             if (!options.some(opt => opt.isCorrect)) return false;
         }
@@ -199,13 +357,21 @@ export const ManualQuestionForm = forwardRef<ManualQuestionFormRef, ManualQuesti
     };
 
     const handleAdd = () => {
-        const questionData: Question = {
+        const questionData: Question & { questionImage?: File; solutionImage?: File } = {
             id: `q-${Date.now()}`,
             type,
             difficulty,
             content,
             solution
         };
+
+        // Add image files if they exist
+        if (questionImage) {
+            questionData.questionImage = questionImage;
+        }
+        if (solutionImage) {
+            questionData.solutionImage = solutionImage;
+        }
 
         // Add type-specific data
         if (type === "MCQ") {
@@ -324,10 +490,21 @@ export const ManualQuestionForm = forwardRef<ManualQuestionFormRef, ManualQuesti
                             {showQuestionPreview ? "Hide Question Preview" : "View Question (Math Preview)"}
                         </button>
                         <div className="flex items-center gap-4">
-                            <button className="flex items-center gap-1.5 text-xs font-bold text-[#5b5bd6] hover:text-[#4f46e5]">
+                            <button
+                                type="button"
+                                onClick={() => questionImageInputRef.current?.click()}
+                                className="flex items-center gap-1.5 text-xs font-bold text-[#5b5bd6] hover:text-[#4f46e5]"
+                            >
                                 <Paperclip className="w-3.5 h-3.5" />
-                                Attach Image for question
+                                {questionImage ? "Change Image" : "Attach Image for question"}
                             </button>
+                            <input
+                                ref={questionImageInputRef}
+                                type="file"
+                                accept="image/*,.pdf,.odt,.ods,.odp,.odg"
+                                onChange={handleQuestionImageSelect}
+                                className="hidden"
+                            />
                             <button
                                 onClick={onOpenBank}
                                 className="flex items-center gap-1.5 text-xs font-bold text-[#5b5bd6] hover:text-[#4f46e5]"
@@ -337,6 +514,60 @@ export const ManualQuestionForm = forwardRef<ManualQuestionFormRef, ManualQuesti
                             </button>
                         </div>
                     </div>
+                    {questionImagePreview && (
+                        <div className="mt-3">
+                            <div className="relative inline-block">
+                                {questionImagePreview.startsWith('pdf:') || questionImagePreview.startsWith('odf:') ? (
+                                    <div className="max-w-xs px-6 py-8 rounded-lg border border-gray-200 bg-gradient-to-br from-red-50 to-orange-50 flex flex-col items-center justify-center gap-2">
+                                        <div className="text-3xl">📄</div>
+                                        <p className="text-xs font-bold text-gray-700 text-center break-words">
+                                            {questionImagePreview.replace('pdf:', '').replace('odf:', '')}
+                                        </p>
+                                        <p className="text-[11px] text-gray-500">
+                                            {questionImagePreview.startsWith('pdf:') ? 'PDF' : 'ODF'} uploaded
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <img
+                                        src={questionImagePreview}
+                                        alt="Question preview"
+                                        className="max-w-xs max-h-64 rounded-lg border border-gray-200"
+                                    />
+                                )}
+                                <button
+                                    type="button"
+                                    onClick={removeQuestionImage}
+                                    className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+                                    title="Remove image"
+                                >
+                                    <X className="w-4 h-4" />
+                                </button>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={extractTextFromQuestionImage}
+                                disabled={isOcrProcessing === "question"}
+                                className="mt-3 flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 text-xs font-bold text-[#5b5bd6] hover:from-purple-100 hover:to-indigo-100 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {isOcrProcessing === "question" ? (
+                                    <>
+                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                        Extracting text...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Wand2 className="w-3.5 h-3.5" />
+                                        Extract Text with AI (OCR)
+                                    </>
+                                )}
+                            </button>
+                            {ocrError && isOcrProcessing === "question" && (
+                                <div className="mt-2 p-2 rounded-lg bg-red-50 border border-red-200 text-xs text-red-600">
+                                    {ocrError}
+                                </div>
+                            )}
+                        </div>
+                    )}
                     {showQuestionPreview && (
                         <div className="mt-3">
                             <p className="text-[11px] text-gray-500 mb-1">
@@ -478,11 +709,76 @@ export const ManualQuestionForm = forwardRef<ManualQuestionFormRef, ManualQuesti
                         >
                             {showSolutionPreview ? "Hide Solution Preview" : "View Solution (Math Preview)"}
                         </button>
-                        <button className="flex items-center gap-1.5 text-xs font-bold text-[#5b5bd6] hover:text-[#4f46e5]">
+                        <button
+                            type="button"
+                            onClick={() => solutionImageInputRef.current?.click()}
+                            className="flex items-center gap-1.5 text-xs font-bold text-[#5b5bd6] hover:text-[#4f46e5]"
+                        >
                             <Paperclip className="w-3.5 h-3.5" />
-                            Attach Image for solution
+                            {solutionImage ? "Change Image" : "Attach Image for solution"}
                         </button>
+                        <input
+                            ref={solutionImageInputRef}
+                            type="file"
+                            accept="image/*,.pdf"
+                            onChange={handleSolutionImageSelect}
+                            className="hidden"
+                        />
                     </div>
+                    {solutionImagePreview && (
+                        <div className="mt-3">
+                            <div className="relative inline-block">
+                                {solutionImagePreview.startsWith('pdf:') || solutionImagePreview.startsWith('odf:') ? (
+                                    <div className="max-w-xs px-6 py-8 rounded-lg border border-gray-200 bg-gradient-to-br from-red-50 to-orange-50 flex flex-col items-center justify-center gap-2">
+                                        <div className="text-3xl">📄</div>
+                                        <p className="text-xs font-bold text-gray-700 text-center break-words">
+                                            {solutionImagePreview.replace('pdf:', '').replace('odf:', '')}
+                                        </p>
+                                        <p className="text-[11px] text-gray-500">
+                                            {solutionImagePreview.startsWith('pdf:') ? 'PDF' : 'ODF'} uploaded
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <img
+                                        src={solutionImagePreview}
+                                        alt="Solution preview"
+                                        className="max-w-xs max-h-64 rounded-lg border border-gray-200"
+                                    />
+                                )}
+                                <button
+                                    type="button"
+                                    onClick={removeSolutionImage}
+                                    className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+                                    title="Remove image"
+                                >
+                                    <X className="w-4 h-4" />
+                                </button>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={extractTextFromSolutionImage}
+                                disabled={isOcrProcessing === "solution"}
+                                className="mt-3 flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 text-xs font-bold text-[#5b5bd6] hover:from-purple-100 hover:to-indigo-100 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {isOcrProcessing === "solution" ? (
+                                    <>
+                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                        Extracting text...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Wand2 className="w-3.5 h-3.5" />
+                                        Extract Text with AI (OCR)
+                                    </>
+                                )}
+                            </button>
+                            {ocrError && isOcrProcessing === "solution" && (
+                                <div className="mt-2 p-2 rounded-lg bg-red-50 border border-red-200 text-xs text-red-600">
+                                    {ocrError}
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 {/* Footer Buttons */}
@@ -494,15 +790,27 @@ export const ManualQuestionForm = forwardRef<ManualQuestionFormRef, ManualQuesti
                     >
                         Cancel
                     </button>
-                    <button
-                        onClick={handleAdd}
-                        disabled={!validateForm() || isSubmitting}
-                        className="h-10 px-8 rounded-lg bg-[#5b5bd6] text-white text-xs font-bold hover:bg-[#4f46e5] transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                        title={!validateForm() ? "Please fill all required fields" : ""}
-                    >
-                        {isSubmitting && <Loader2 className="w-3 h-3 animate-spin" />}
-                        Add Question
-                    </button>
+                    {showDoneButton ? (
+                        <button
+                            onClick={onDone}
+                            disabled={isSubmitting}
+                            className="h-10 px-8 rounded-lg bg-green-600 text-white text-xs font-bold hover:bg-green-700 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                        >
+                            {isSubmitting && <Loader2 className="w-3 h-3 animate-spin" />}
+                            <Check className="w-4 h-4" />
+                            Done
+                        </button>
+                    ) : (
+                        <button
+                            onClick={handleAdd}
+                            disabled={!validateForm() || isSubmitting}
+                            className="h-10 px-8 rounded-lg bg-[#5b5bd6] text-white text-xs font-bold hover:bg-[#4f46e5] transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                            title={!validateForm() ? "Please fill all required fields" : ""}
+                        >
+                            {isSubmitting && <Loader2 className="w-3 h-3 animate-spin" />}
+                            Add Question
+                        </button>
+                    )}
                 </div>
             </div>
         </div>

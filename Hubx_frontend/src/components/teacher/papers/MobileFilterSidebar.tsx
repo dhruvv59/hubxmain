@@ -15,9 +15,14 @@ interface MobileFilterSidebarProps {
         rating: string;
     };
     onFilterChange: (key: string, value: string) => void;
+    availableSubjects?: string[];
+    availableStandards?: string[];
 }
 
-export function MobileFilterSidebar({ isOpen, onClose, filters, onFilterChange }: MobileFilterSidebarProps) {
+export function MobileFilterSidebar({ isOpen, onClose, filters, onFilterChange, availableSubjects = [], availableStandards = [] }: MobileFilterSidebarProps) {
+    // Use dynamic lists if available, otherwise default to empty (user will see only "All")
+    const subjectOptions = availableSubjects.length > 0 ? ["All", ...availableSubjects] : ["All"];
+    const standardOptions = availableStandards.length > 0 ? ["All", ...availableStandards] : ["All"];
     // Prevent scrolling when the modal is open
     useEffect(() => {
         if (isOpen) {
@@ -67,13 +72,13 @@ export function MobileFilterSidebar({ isOpen, onClose, filters, onFilterChange }
                         <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
                             <FilterSection
                                 title="Subjects"
-                                options={["All", "Science", "Mathematics"]}
+                                options={subjectOptions}
                                 selected={filters.subject}
                                 onChange={(val) => onFilterChange("subject", val)}
                             />
                             <FilterSection
                                 title="Standard"
-                                options={["All", "8th", "9th", "10th"]}
+                                options={standardOptions}
                                 selected={filters.standard}
                                 onChange={(val) => onFilterChange("standard", val)}
                             />

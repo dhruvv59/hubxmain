@@ -43,9 +43,14 @@ interface FilterSidebarProps {
         rating: string;
     };
     onFilterChange: (key: string, value: string) => void;
+    availableSubjects?: string[];
+    availableStandards?: string[];
 }
 
-export function FilterSidebar({ filters, onFilterChange }: FilterSidebarProps) {
+export function FilterSidebar({ filters, onFilterChange, availableSubjects = [], availableStandards = [] }: FilterSidebarProps) {
+    // Use dynamic lists if available, otherwise default to empty (user will see only "All")
+    const subjectOptions = availableSubjects.length > 0 ? ["All", ...availableSubjects] : ["All"];
+    const standardOptions = availableStandards.length > 0 ? ["All", ...availableStandards] : ["All"];
 
     return (
         <div className="w-[280px] flex-shrink-0 pt-2">
@@ -53,13 +58,13 @@ export function FilterSidebar({ filters, onFilterChange }: FilterSidebarProps) {
             <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm mb-6">
                 <FilterSection
                     title="Subjects"
-                    options={["All", "Science", "Mathematics"]}
+                    options={subjectOptions}
                     selected={filters.subject}
                     onChange={(val) => onFilterChange("subject", val)}
                 />
                 <FilterSection
                     title="Standard"
-                    options={["All", "8th", "9th", "10th"]}
+                    options={standardOptions}
                     selected={filters.standard}
                     onChange={(val) => onFilterChange("standard", val)}
                 />

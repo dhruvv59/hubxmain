@@ -2,7 +2,7 @@ import prisma from "@config/database"
 import { AppError } from "@utils/errors"
 
 export class StandardService {
-  async createStandard(teacherId: string, name: string) {
+  async createStandard(teacherId: string, name: string, description?: string) {
     // Verify teacher exists
     const teacher = await prisma.user.findUnique({ where: { id: teacherId } })
     if (!teacher) {
@@ -25,6 +25,7 @@ export class StandardService {
     const standard = await prisma.standard.create({
       data: {
         name,
+        description,
         teacherId,
       },
     })
@@ -41,6 +42,7 @@ export class StandardService {
       id: std.id,
       standard: parseInt(std.name, 10), // Convert name "10" to number 10
       name: std.name,
+      description: std.description,
       subjects: std.subjects,
     }))
   }
@@ -58,11 +60,12 @@ export class StandardService {
       id: standard.id,
       standard: parseInt(standard.name, 10),
       name: standard.name,
+      description: standard.description,
       subjects: standard.subjects,
     }
   }
 
-  async updateStandard(standardId: string, teacherId: string, name: string) {
+  async updateStandard(standardId: string, teacherId: string, name: string, description?: string) {
     const standard = await prisma.standard.findUnique({ where: { id: standardId } })
     if (!standard || standard.teacherId !== teacherId) {
       throw new AppError(404, "Standard not found")
@@ -70,7 +73,7 @@ export class StandardService {
 
     const updatedStandard = await prisma.standard.update({
       where: { id: standardId },
-      data: { name },
+      data: { name, description },
     })
     return updatedStandard
   }

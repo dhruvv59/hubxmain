@@ -44,6 +44,10 @@ interface BackendResponse {
             total: number;
             pages: number;
         };
+        filters?: {
+            subjects: string[];
+            standards: string[];
+        };
     };
 }
 
@@ -87,6 +91,8 @@ export default function PublicPapersPage() {
     const [totalPages, setTotalPages] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [availableSubjects, setAvailableSubjects] = useState<string[]>([]);
+    const [availableStandards, setAvailableStandards] = useState<string[]>([]);
 
     const ITEMS_PER_PAGE = 9;
 
@@ -134,6 +140,13 @@ export default function PublicPapersPage() {
             setPapers(response.data.otherPapers);
             setTotalItems(response.data.pagination.total);
             setTotalPages(response.data.pagination.pages);
+
+            // Set available filters from backend
+            if (response.data.filters) {
+                setAvailableSubjects(response.data.filters.subjects);
+                setAvailableStandards(response.data.filters.standards);
+            }
+
             setIsLoading(false);
         } catch (err: any) {
             console.error('[PublicPapersPage] Failed to fetch papers:', err);
@@ -184,6 +197,8 @@ export default function PublicPapersPage() {
                 onClose={() => setIsMobileFilterOpen(false)}
                 filters={filters}
                 onFilterChange={handleFilterChange}
+                availableSubjects={availableSubjects}
+                availableStandards={availableStandards}
             />
 
             {/* Page Header */}
@@ -203,6 +218,8 @@ export default function PublicPapersPage() {
                     <FilterSidebar
                         filters={filters}
                         onFilterChange={handleFilterChange}
+                        availableSubjects={availableSubjects}
+                        availableStandards={availableStandards}
                     />
                 </div>
 

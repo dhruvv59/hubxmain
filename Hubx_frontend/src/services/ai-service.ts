@@ -19,6 +19,7 @@ export interface GeneratedQuestion {
     marks: number;
     options?: string[];
     correctOption?: number;
+    correctAnswers?: string[][]; // For FILL_IN_THE_BLANKS
     caseSensitive?: boolean;
 }
 

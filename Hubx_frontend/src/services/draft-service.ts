@@ -118,7 +118,7 @@ export const getDraft = async (draftId: string): Promise<PaperConfig | null> => 
 /**
  * Adds a question to an existing paper (draft)
  */
-export const addQuestionToDraft = async (draftId: string, question: Question): Promise<void> => {
+export const addQuestionToDraft = async (draftId: string, question: Question & { questionImage?: File; solutionImage?: File }): Promise<void> => {
     try {
         // Map frontend question types to backend format
         const typeMap: Record<string, string> = {
@@ -133,13 +133,20 @@ export const addQuestionToDraft = async (draftId: string, question: Question): P
             originalType: question.type,
             mappedType: mappedType,
             difficulty: question.difficulty.toUpperCase(),
-            content: question.content?.substring(0, 50)
+            content: question.content?.substring(0, 50),
+            hasQuestionImage: !!question.questionImage,
+            hasSolutionImage: !!question.solutionImage
         };
 
         // Add type-specific debug info
         if (question.options) {
-            debugLog.optionsCount = question.options.length;
-            debugLog.correctOptionIndex = question.options.findIndex(o => o.isCorrect);
+            const opts = question.options as any[];
+            debugLog.optionsCount = opts.length;
+            debugLog.optionsFormat = opts.length > 0 ? (typeof opts[0] === 'string' ? 'string[]' : 'object[]') : 'empty';
+            debugLog.optionsPreview = opts.slice(0, 2);
+            if (opts.length > 0 && typeof opts[0] === 'object') {
+                debugLog.correctOptionIndex = opts.findIndex((o: any) => o.isCorrect);
+            }
         } else if (question.blanks) {
             debugLog.blanksCount = question.blanks.length;
             debugLog.blanks = question.blanks.map(b => ({ position: b.position, answer: b.correctAnswer }));
@@ -147,7 +154,7 @@ export const addQuestionToDraft = async (draftId: string, question: Question): P
 
         console.log('🔍 DEBUG addQuestionToDraft:', debugLog);
 
-        // Prepare multipart form data for question creation (supports images if needed, but here simple text)
+        // Prepare multipart form data for question creation (supports images)
         const formData = new FormData();
         formData.append("type", mappedType);
         formData.append("difficulty", question.difficulty.toUpperCase());
@@ -155,15 +162,50 @@ export const addQuestionToDraft = async (draftId: string, question: Question): P
         formData.append("solutionText", question.solution);
         formData.append("marks", (question.marks || 1).toString());
 
-        if (question.options) {
-            // Send only option text as array of strings
-            const optionTexts = question.options.map(o => o.text);
-            formData.append("options", JSON.stringify(optionTexts));
+        // Append image files if they exist
+        if (question.questionImage) {
+            formData.append("questionImage", question.questionImage);
+        }
+        if (question.solutionImage) {
+            formData.append("solutionImage", question.solutionImage);
+        }
 
-            // Calculate correct option index (backend expects correctOption: number for MCQ)
-            const CORRECT_IDX = question.options.findIndex(o => o.isCorrect);
-            if (CORRECT_IDX !== -1) {
-                formData.append("correctOption", CORRECT_IDX.toString());
+        if (question.options) {
+            // Handle both formats: MCQOption objects or string arrays
+            let optionTexts: string[] = [];
+            let correctOptionIndex = -1;
+
+            // Check if options are objects (MCQOption format from manual form)
+            if (Array.isArray(question.options) && question.options.length > 0) {
+                const firstOption = question.options[0];
+
+                if (typeof firstOption === 'object' && 'text' in firstOption) {
+                    // Format: MCQOption[] from manual form
+                    const nonEmptyOptions = question.options.filter((o: any) => o.text?.trim());
+                    optionTexts = nonEmptyOptions.map((o: any) => o.text);
+
+                    // Find correct option index
+                    const correctOption = question.options.find((o: any) => o.isCorrect);
+                    if (correctOption) {
+                        correctOptionIndex = nonEmptyOptions.findIndex((o: any) => o.id === correctOption.id);
+                    }
+                } else if (typeof firstOption === 'string') {
+                    // Format: string[] from question bank
+                    optionTexts = (question.options as unknown as string[]).map(o => o.trim()).filter(o => o.length > 0);
+                    // Assume first option is correct if not specified (common in question bank)
+                    correctOptionIndex = 0;
+                }
+            }
+
+            // Validate: MCQ must have 2-6 options
+            if (optionTexts.length < 2 || optionTexts.length > 6) {
+                throw new Error(`MCQ must have between 2 and 6 options (you have ${optionTexts.length})`);
+            }
+
+            // Send options and correct answer index
+            formData.append("options", JSON.stringify(optionTexts));
+            if (correctOptionIndex !== -1) {
+                formData.append("correctOption", correctOptionIndex.toString());
             }
         } else if (question.blanks && question.type === 'Fill in the Blanks') {
             // Map blanks to correctAnswers for storage

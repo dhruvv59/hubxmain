@@ -3,6 +3,38 @@ import { AppError } from "@utils/errors"
 import { ERROR_MESSAGES, PAPER_STATUS } from "@utils/constants"
 
 export class PaperService {
+  /**
+   * Validate paper access configuration based on isPublic and isFreeAccess flags
+   * Rules:
+   * - If isPublic: true → price MUST be set, isFreeAccess MUST be false
+   * - If isPublic: false + isFreeAccess: true → price MUST be null (free paper)
+   * - If isPublic: false + isFreeAccess: false → price MUST be null (private draft)
+   */
+  private validatePaperAccessConfig(
+    isPublic: boolean,
+    isFreeAccess: boolean,
+    price: number | undefined | null,
+  ): void {
+    // Public paper - must have price and cannot be free access
+    if (isPublic) {
+      if (price === undefined || price === null) {
+        throw new AppError(400, ERROR_MESSAGES.PUBLIC_PAPER_REQUIRES_PRICE)
+      }
+      if (isFreeAccess) {
+        throw new AppError(
+          400,
+          "Public papers cannot be marked as free access. Toggle off public paper first.",
+        )
+      }
+      return
+    }
+
+    // Private/Draft paper - cannot have a price
+    if (price !== undefined && price !== null && price > 0) {
+      throw new AppError(400, ERROR_MESSAGES.FREE_ACCESS_CANNOT_HAVE_PRICE)
+    }
+  }
+
   async createPaper(
     teacherId: string,
     data: {
@@ -15,6 +47,7 @@ export class PaperService {
       type: string
       duration?: number
       isPublic: boolean
+      isFreeAccess?: boolean
       price?: number
     },
   ) {
@@ -51,10 +84,12 @@ export class PaperService {
       throw new AppError(400, ERROR_MESSAGES.TIME_BOUND_REQUIRES_DURATION)
     }
 
-    // Validate public paper has price (allow 0)
-    if (data.isPublic && data.price === undefined) {
-      throw new AppError(400, ERROR_MESSAGES.PUBLIC_PAPER_REQUIRES_PRICE)
-    }
+    // Validate paper access configuration (public/free access/private)
+    this.validatePaperAccessConfig(
+      data.isPublic,
+      data.isFreeAccess || false,
+      data.price,
+    )
 
     const paper = await prisma.paper.create({
       data: {
@@ -67,7 +102,8 @@ export class PaperService {
         type: data.type as any,
         duration: data.duration,
         isPublic: data.isPublic,
-        price: data.price,
+        isFreeAccess: data.isFreeAccess || false,
+        price: data.isPublic ? data.price : null, // Only store price if public
         status: PAPER_STATUS.DRAFT as any,
       },
       include: { questions: true, subject: true },
@@ -258,18 +294,37 @@ export class PaperService {
       throw new AppError(400, "Cannot update published paper")
     }
 
+    // Prepare update data with defaults
+    const updateData: any = {
+      title: data.title !== undefined ? data.title : paper.title,
+      description: data.description !== undefined ? data.description : paper.description,
+      standard: data.standard !== undefined ? data.standard : paper.standard,
+      difficulty: data.difficulty !== undefined ? data.difficulty : paper.difficulty,
+      type: data.type !== undefined ? data.type : paper.type,
+      duration: data.duration !== undefined ? data.duration : paper.duration,
+    }
+
+    // Handle paper access configuration updates
+    const isPublic = data.isPublic !== undefined ? data.isPublic : paper.isPublic
+    const isFreeAccess = data.isFreeAccess !== undefined ? data.isFreeAccess : paper.isFreeAccess
+    const price = data.price !== undefined ? data.price : paper.price
+
+    // Validate new access configuration
+    this.validatePaperAccessConfig(isPublic, isFreeAccess, price)
+
+    // Set access fields
+    updateData.isPublic = isPublic
+    updateData.isFreeAccess = isFreeAccess
+    updateData.price = isPublic ? price : null // Only store price if public
+
+    // Validate time bound changes
+    if (updateData.type === "TIME_BOUND" && !updateData.duration) {
+      throw new AppError(400, ERROR_MESSAGES.TIME_BOUND_REQUIRES_DURATION)
+    }
+
     const updatedPaper = await prisma.paper.update({
       where: { id: paperId },
-      data: {
-        title: data.title || paper.title,
-        description: data.description || paper.description,
-        standard: data.standard || paper.standard,
-        difficulty: data.difficulty || paper.difficulty,
-        type: data.type || paper.type,
-        duration: data.duration || paper.duration,
-        isPublic: data.isPublic !== undefined ? data.isPublic : paper.isPublic,
-        price: data.price || paper.price,
-      },
+      data: updateData,
     })
 
     return updatedPaper
@@ -294,26 +349,35 @@ export class PaperService {
       throw new AppError(404, ERROR_MESSAGES.PAPER_NOT_FOUND)
     }
 
+    // Paper must have at least one question
     if (paper.questions.length === 0) {
       throw new AppError(400, ERROR_MESSAGES.INSUFFICIENT_QUESTIONS)
     }
 
+    // Validate public paper has price
     if (paper.isPublic && paper.price === null) {
       throw new AppError(400, ERROR_MESSAGES.PUBLIC_PAPER_REQUIRES_PRICE)
     }
 
+    // Validate time bound paper has duration
     if (paper.type === "TIME_BOUND" && !paper.duration) {
       throw new AppError(400, ERROR_MESSAGES.TIME_BOUND_REQUIRES_DURATION)
     }
+
+    // Validate access configuration before publishing
+    this.validatePaperAccessConfig(paper.isPublic, (paper as any).isFreeAccess || false, paper.price)
 
     const publishedPaper = await prisma.paper.update({
       where: { id: paperId },
       data: { status: PAPER_STATUS.PUBLISHED as any },
     })
 
-    // If paper is public and teacher belongs to an organization, generate coupons
-    if (paper.isPublic && paper.teacher.organizationMemberships.length > 0) {
+    // If paper is public or free access and teacher belongs to an organization, generate coupons
+    const shouldGenerateCoupons = (paper.isPublic || (paper as any).isFreeAccess) && paper.teacher.organizationMemberships.length > 0
+
+    if (shouldGenerateCoupons) {
       const teacherOrg = paper.teacher.organizationMemberships[0]
+      const paperType = paper.isPublic ? "paid public" : "free access"
 
       // Import coupon service dynamically to avoid circular dependency
       import("@modules/coupon/coupon.service").then(({ couponService }) => {
@@ -322,7 +386,7 @@ export class PaperService {
           teacherOrg.organizationId,
           paper.standard
         ).catch(err => {
-          console.error("Failed to generate coupons:", err)
+          console.error(`Failed to generate coupons for ${paperType} paper:`, err)
         })
       })
     }
@@ -565,6 +629,30 @@ export class PaperService {
       finalOtherPapers = filteredOtherPapers.slice(paginatedStart, paginatedStart + limit)
     }
 
+    // Get teacher's available subjects and standards
+    const teacherStandards = await prisma.standard.findMany({
+      where: { teacherId },
+      orderBy: { name: "asc" }
+    })
+
+    const teacherSubjects = await prisma.subject.findMany({
+      where: {
+        standard: {
+          teacherId
+        }
+      },
+      select: { name: true },
+      distinct: ['name'],
+      orderBy: { name: "asc" }
+    })
+
+    const availableSubjects = teacherSubjects
+      .map(s => s.name)
+      .filter((value, index, self) => self.indexOf(value) === index)
+
+    const availableStandards = teacherStandards
+      .map(s => `${s.name}th`)
+
     return {
       ownPapers: ownPapersWithRatings,
       otherPapers: finalOtherPapers,
@@ -574,6 +662,10 @@ export class PaperService {
         total: finalTotal,
         pages: Math.ceil(finalTotal / limit),
       },
+      filters: {
+        subjects: availableSubjects,
+        standards: availableStandards
+      }
     }
   }
 

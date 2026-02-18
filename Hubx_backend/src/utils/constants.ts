@@ -73,4 +73,6 @@ export const ERROR_MESSAGES = {
   INSUFFICIENT_QUESTIONS: "Paper must have at least 1 question",
   PUBLIC_PAPER_REQUIRES_PRICE: "Public paper must have a price",
   TIME_BOUND_REQUIRES_DURATION: "Time bound paper must have a duration",
+  FREE_ACCESS_CANNOT_HAVE_PRICE: "Free access papers cannot have a price",
+  INVALID_PAPER_ACCESS_CONFIG: "Invalid paper access configuration",
 }

@@ -17,6 +17,7 @@ function ManualPageContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const draftId = searchParams.get("draftId");
+    const showDoneFromBank = searchParams.get("showDone") === "true";
     const formRef = React.useRef<any>(null);
 
     const [config, setConfig] = useState<PaperConfig | null>(null);
@@ -25,6 +26,7 @@ function ManualPageContent() {
     const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
     const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
     const [isPublishing, setIsPublishing] = useState(false);
+    const [showDoneButton, setShowDoneButton] = useState(false);
 
     useEffect(() => {
         const fetchDraft = async () => {
@@ -35,6 +37,13 @@ function ManualPageContent() {
             try {
                 const data = await getDraft(draftId);
                 if (data) setConfig(data);
+
+                // If coming from question bank, show Done button
+                if (showDoneFromBank) {
+                    setShowDoneButton(true);
+                    // Clean URL by removing the showDone parameter
+                    router.replace(`/teacher/ai-assessments/create/manual?draftId=${draftId}`);
+                }
             } catch (error) {
                 console.error(error);
             } finally {
@@ -42,7 +51,7 @@ function ManualPageContent() {
             }
         };
         fetchDraft();
-    }, [draftId, router]);
+    }, [draftId, router, showDoneFromBank]);
 
     const handleAddQuestion = async (question: Question) => {
         if (!draftId) return;
@@ -54,10 +63,8 @@ function ManualPageContent() {
             const updated = await getDraft(draftId);
             if (updated) setConfig(updated);
 
-            // Clear the form for adding the next question
-            if (formRef.current?.resetForm) {
-                formRef.current.resetForm();
-            }
+            // Show Done button instead of clearing the form
+            setShowDoneButton(true);
 
             alert("Question added successfully!"); // Placeholder for notification
         } catch (error) {
@@ -65,6 +72,13 @@ function ManualPageContent() {
             alert("Failed to add question. Please try again.");
         } finally {
             setIsSubmitting(false);
+        }
+    };
+
+    const handleDone = () => {
+        // Redirect to the paper view page to see the added question
+        if (draftId) {
+            router.push(`/teacher/papers/${draftId}/preview`);
         }
     };
 
@@ -160,7 +174,9 @@ function ManualPageContent() {
                         onAdd={handleAddQuestion}
                         onCancel={() => router.back()}
                         onOpenBank={() => router.push(`/teacher/question-bank?draftId=${draftId}`)}
+                        onDone={handleDone}
                         isSubmitting={isSubmitting}
+                        showDoneButton={showDoneButton}
                     />
 
                     {/* Added Questions List */}

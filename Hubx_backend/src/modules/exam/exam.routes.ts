@@ -29,12 +29,8 @@ const userOrIpKeyGenerator = (req: Request): string => {
   if (authReq.user?.userId) {
     return authReq.user.userId
   }
-  // Extract IP with IPv6 support
-  const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0].trim() ||
-             req.socket?.remoteAddress ||
-             req.ip ||
-             'unknown'
-  return ip
+  // Use express-rate-limit's IPv6-aware IP generator
+  return req.ip || "unknown"
 }
 
 const saveAnswerLimiter = rateLimit({

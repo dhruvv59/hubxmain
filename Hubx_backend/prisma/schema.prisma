@@ -60,15 +60,15 @@ enum OrganizationType {
 
 // Users table
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String
-  firstName String
-  lastName  String
-  role      UserRole
-  avatar    String? // Profile picture URL (S3)
-  streak        Int      @default(0)
-  lastActiveAt  DateTime? // To track streak continuity
+  id                      String               @id @default(cuid())
+  email                   String               @unique
+  password                String
+  firstName               String
+  lastName                String
+  role                    UserRole
+  avatar                  String? // Profile picture URL (S3)
+  streak                  Int                  @default(0)
+  lastActiveAt            DateTime? // To track streak continuity
   teacherPapers           Paper[]
   studentAnswers          StudentAnswer[]
   examAttempts            ExamAttempt[]
@@ -84,16 +84,16 @@ model User {
   questionBank            QuestionBank[]
 
   // New relations for fixed features
-  profile                 StudentProfile?
-  settings                StudentSettings?
-  achievements            UserAchievement[]
-  supportTickets          SupportTicket[]
-  supportTicketReplies    SupportTicketReply[]
+  profile              StudentProfile?
+  settings             StudentSettings?
+  achievements         UserAchievement[]
+  supportTickets       SupportTicket[]
+  supportTicketReplies SupportTicketReply[]
 
   // Paper assignment & bookmark relations
-  assignedPapers          PaperAssignment[]    @relation("AssignedToStudent")
-  createdAssignments      PaperAssignment[]    @relation("AssignedByTeacher")
-  paperBookmarks          PaperBookmark[]
+  assignedPapers     PaperAssignment[] @relation("AssignedToStudent")
+  createdAssignments PaperAssignment[] @relation("AssignedByTeacher")
+  paperBookmarks     PaperBookmark[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -104,10 +104,11 @@ model User {
 
 // Standard (created by teachers) - e.g., Class 9, Class 10
 model Standard {
-  id        String @id @default(cuid())
-  name      String // e.g., "9", "10", "11", "12"
-  teacherId String
-  teacher   User   @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  id          String  @id @default(cuid())
+  name        String // e.g., "9", "10", "11", "12"
+  description String?
+  teacherId   String
+  teacher     User    @relation(fields: [teacherId], references: [id], onDelete: Cascade)
 
   // Relations
   subjects Subject[]
@@ -123,6 +124,7 @@ model Standard {
 model Subject {
   id         String   @id @default(cuid())
   name       String
+  code       String?
   standardId String
   standard   Standard @relation(fields: [standardId], references: [id], onDelete: Cascade)
 
@@ -140,10 +142,12 @@ model Subject {
 
 // Chapter (created by teachers)
 model Chapter {
-  id        String  @id @default(cuid())
-  name      String
-  subjectId String
-  subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+  sequence    Int?
+  subjectId   String
+  subject     Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
 
   // Relations
   papers               PaperChapter[]
@@ -187,8 +191,9 @@ model Paper {
   status     PaperStatus
 
   // Public paper fields
-  isPublic Boolean @default(false)
-  price    Float? // required if isPublic
+  isPublic      Boolean @default(false)
+  price         Float? // required if isPublic
+  isFreeAccess  Boolean @default(false) // true when "Free Access for School Students" toggle is ON
 
   // Relations
   questions    Question[]
@@ -210,6 +215,7 @@ model Paper {
   @@index([subjectId])
   @@index([status])
   @@index([isPublic])
+  @@index([isFreeAccess])
 }
 
 // Question
@@ -267,6 +273,11 @@ model ExamAttempt {
   timeSpent  Int? // in seconds
 
   attemptNumber Int @default(1) // Track which attempt this is (1st, 2nd, etc.)
+
+  // Test Settings (from popup during exam start)
+  noTimeLimit          Boolean @default(false) // Enable no time limit for test
+  showAnswerAfterWrong Boolean @default(false) // Show correct answer & explanation after wrong answer
+  enableSolutionView   Boolean @default(false) // Enable in-test solution view
 
   // Relations
   answers StudentAnswer[]
@@ -604,16 +615,16 @@ model QuestionBankPaperLink {
 // ============================================
 
 model PaperAssignment {
-  id          String   @id @default(cuid())
-  paperId     String
-  paper       Paper    @relation(fields: [paperId], references: [id], onDelete: Cascade)
-  studentId   String
-  student     User     @relation("AssignedToStudent", fields: [studentId], references: [id], onDelete: Cascade)
-  assignedBy  String
-  teacher     User     @relation("AssignedByTeacher", fields: [assignedBy], references: [id], onDelete: Cascade)
+  id         String @id @default(cuid())
+  paperId    String
+  paper      Paper  @relation(fields: [paperId], references: [id], onDelete: Cascade)
+  studentId  String
+  student    User   @relation("AssignedToStudent", fields: [studentId], references: [id], onDelete: Cascade)
+  assignedBy String
+  teacher    User   @relation("AssignedByTeacher", fields: [assignedBy], references: [id], onDelete: Cascade)
 
-  dueDate     DateTime?
-  note        String?   @db.LongText // Optional instruction from teacher
+  dueDate DateTime?
+  note    String?   @db.LongText // Optional instruction from teacher
 
   isCompleted Boolean   @default(false)
   completedAt DateTime?
@@ -681,13 +692,13 @@ enum TicketCategory {
 
 // Extended Student Profile
 model StudentProfile {
-  id               String    @id @default(cuid())
-  userId           String    @unique
-  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  phone            String?
-  address          String?   @db.LongText
-  dateOfBirth      DateTime?
+  phone       String?
+  address     String?   @db.LongText
+  dateOfBirth DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -697,24 +708,24 @@ model StudentProfile {
 
 // Student Settings (Notification, Privacy, Preferences)
 model StudentSettings {
-  id               String    @id @default(cuid())
-  userId           String    @unique
-  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // Notification Settings
-  emailNotifications       Boolean @default(true)
-  pushNotifications        Boolean @default(false)
-  assignmentNotifications  Boolean @default(true)
-  assessmentNotifications  Boolean @default(true)
+  emailNotifications        Boolean @default(true)
+  pushNotifications         Boolean @default(false)
+  assignmentNotifications   Boolean @default(true)
+  assessmentNotifications   Boolean @default(true)
   announcementNotifications Boolean @default(false)
 
   // Privacy Settings
-  profileVisibility String @default("public")  // "public", "private", "friends"
+  profileVisibility String  @default("public") // "public", "private", "friends"
   showPerformance   Boolean @default(true)
 
   // Preference Settings
-  language String @default("en")  // "en", "gu", "hi"
-  theme    String @default("light")  // "light", "dark"
+  language String @default("en") // "en", "gu", "hi"
+  theme    String @default("light") // "light", "dark"
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -724,15 +735,15 @@ model StudentSettings {
 
 // Achievement System
 model Achievement {
-  id               String    @id @default(cuid())
-  title            String
-  description      String    @db.LongText
-  icon             String    // Icon identifier (e.g., "star", "medal")
-  color            String    // Tailwind gradient (e.g., "from-yellow-400 to-orange-500")
+  id          String @id @default(cuid())
+  title       String
+  description String @db.LongText
+  icon        String // Icon identifier (e.g., "star", "medal")
+  color       String // Tailwind gradient (e.g., "from-yellow-400 to-orange-500")
 
   // Achievement requirement logic
-  type             String    // "first_assessment", "score_threshold", "streak", "ranking", "perfect_score", etc.
-  threshold        Int?      // e.g., 90 for 90% score, 5 for 5 assessments
+  type      String // "first_assessment", "score_threshold", "streak", "ranking", "perfect_score", etc.
+  threshold Int? // e.g., 90 for 90% score, 5 for 5 assessments
 
   // Reverse relation to UserAchievement
   userAchievements UserAchievement[]
@@ -743,14 +754,14 @@ model Achievement {
 
 // Track which achievements user has earned
 model UserAchievement {
-  id               String    @id @default(cuid())
-  userId           String
-  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  achievementId    String
-  achievement      Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+  achievementId String
+  achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
 
-  earnedAt         DateTime  @default(now())
+  earnedAt DateTime @default(now())
 
   @@unique([userId, achievementId])
   @@index([userId])
@@ -759,24 +770,24 @@ model UserAchievement {
 
 // Support Tickets
 model SupportTicket {
-  id               String    @id @default(cuid())
-  studentId        String
-  student          User      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  id        String @id @default(cuid())
+  studentId String
+  student   User   @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
-  subject          String
-  message          String    @db.LongText
-  category         TicketCategory
-  status           TicketStatus @default(OPEN)
-  priority         TicketPriority @default(MEDIUM)
+  subject  String
+  message  String         @db.LongText
+  category TicketCategory
+  status   TicketStatus   @default(OPEN)
+  priority TicketPriority @default(MEDIUM)
 
-  assignedTo       String?   // Teacher/Admin ID
+  assignedTo String? // Teacher/Admin ID
 
-  resolution       String?   @db.LongText
-  resolvedAt       DateTime?
+  resolution String?   @db.LongText
+  resolvedAt DateTime?
 
   // Relations
-  attachments      SupportTicketAttachment[]
-  replies          SupportTicketReply[]
+  attachments SupportTicketAttachment[]
+  replies     SupportTicketReply[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -789,17 +800,17 @@ model SupportTicket {
 
 // Support Ticket Replies
 model SupportTicketReply {
-  id               String    @id @default(cuid())
-  ticketId         String
-  ticket           SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  id       String        @id @default(cuid())
+  ticketId String
+  ticket   SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
 
-  userId           String
-  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  message          String    @db.LongText
+  message String @db.LongText
 
   // Relations
-  attachments      SupportTicketAttachment[]
+  attachments SupportTicketAttachment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -810,17 +821,17 @@ model SupportTicketReply {
 
 // Support Ticket Attachments
 model SupportTicketAttachment {
-  id               String    @id @default(cuid())
+  id String @id @default(cuid())
 
-  ticketId         String?
-  ticket           SupportTicket? @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  ticketId String?
+  ticket   SupportTicket? @relation(fields: [ticketId], references: [id], onDelete: Cascade)
 
-  replyId          String?
-  reply            SupportTicketReply? @relation(fields: [replyId], references: [id], onDelete: Cascade)
+  replyId String?
+  reply   SupportTicketReply? @relation(fields: [replyId], references: [id], onDelete: Cascade)
 
-  fileUrl          String    // S3 URL
-  fileName         String
-  fileSize         Int       // in bytes
+  fileUrl  String // S3 URL
+  fileName String
+  fileSize Int // in bytes
 
   createdAt DateTime @default(now())
 

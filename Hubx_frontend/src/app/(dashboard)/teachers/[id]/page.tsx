@@ -91,7 +91,10 @@ export default function TeacherProfilePage() {
     const handleTestStart = (settings: any) => {
         setIsSettingsOpen(false);
         if (selectedPaper) {
-            router.push(`/papers/${selectedPaper.id}/take`);
+            // Store test settings in session storage for the exam page to use
+            sessionStorage.setItem(`testSettings:${selectedPaper.id}`, JSON.stringify(settings));
+            // Navigate to exam start page with test settings
+            router.push(`/papers/${selectedPaper.id}/start-exam`);
         }
     };
 

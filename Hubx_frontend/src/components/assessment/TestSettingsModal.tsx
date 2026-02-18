@@ -13,8 +13,8 @@ interface TestSettingsModalProps {
 export function TestSettingsModal({ isOpen, onClose, onStart }: TestSettingsModalProps) {
     const [settings, setSettings] = useState({
         noTimeLimit: false,
-        showAnswers: true,
-        solutionView: true
+        showAnswerAfterWrong: true,
+        enableSolutionView: true
     });
 
     if (!isOpen) return null;
@@ -43,12 +43,12 @@ export function TestSettingsModal({ isOpen, onClose, onStart }: TestSettingsModa
                     <div className="h-px bg-gray-100" />
 
                     {/* Option 2 */}
-                    <div className="flex items-center space-x-4 cursor-pointer" onClick={() => toggle('showAnswers')}>
+                    <div className="flex items-center space-x-4 cursor-pointer" onClick={() => toggle('showAnswerAfterWrong')}>
                         <div className={cn(
                             "h-6 w-6 rounded border flex items-center justify-center transition-colors",
-                            settings.showAnswers ? "bg-[#6366f1] border-[#6366f1]" : "border-gray-200"
+                            settings.showAnswerAfterWrong ? "bg-[#6366f1] border-[#6366f1]" : "border-gray-200"
                         )}>
-                            {settings.showAnswers && <Check className="h-4 w-4 text-white" />}
+                            {settings.showAnswerAfterWrong && <Check className="h-4 w-4 text-white" />}
                         </div>
                         <span className="text-gray-700 font-medium text-lg">Show the correct answer & explanation after a wrong answer</span>
                     </div>
@@ -56,12 +56,12 @@ export function TestSettingsModal({ isOpen, onClose, onStart }: TestSettingsModa
                     <div className="h-px bg-gray-100" />
 
                     {/* Option 3 */}
-                    <div className="flex items-center space-x-4 cursor-pointer" onClick={() => toggle('solutionView')}>
+                    <div className="flex items-center space-x-4 cursor-pointer" onClick={() => toggle('enableSolutionView')}>
                         <div className={cn(
                             "h-6 w-6 rounded border flex items-center justify-center transition-colors",
-                            settings.solutionView ? "bg-[#6366f1] border-[#6366f1]" : "border-gray-200"
+                            settings.enableSolutionView ? "bg-[#6366f1] border-[#6366f1]" : "border-gray-200"
                         )}>
-                            {settings.solutionView && <Check className="h-4 w-4 text-white" />}
+                            {settings.enableSolutionView && <Check className="h-4 w-4 text-white" />}
                         </div>
                         <span className="text-gray-700 font-medium text-lg">Enable in-test solution view</span>
                     </div>

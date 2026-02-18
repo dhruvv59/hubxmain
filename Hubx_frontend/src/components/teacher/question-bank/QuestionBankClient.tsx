@@ -98,12 +98,13 @@ export function QuestionBankClient({ initialConfig, initialQuestions }: Question
             setToastMessage(`Added ${selectedQuestions.length} questions to draft!`);
             setShowToast(true);
 
-            // Delay navigation slightly to show toast
+            // Redirect back to manual creation page with showDone flag
             setTimeout(() => {
-                router.back();
+                router.push(`/teacher/ai-assessments/create/manual?draftId=${draftId}&showDone=true`);
             }, 1000);
         } catch (error) {
             console.error(error);
+            alert("Failed to add questions. Please try again.");
         } finally {
             setIsAdding(false);
         }

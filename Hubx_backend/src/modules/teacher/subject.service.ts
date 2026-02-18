@@ -2,7 +2,7 @@ import prisma from "@config/database"
 import { AppError } from "@utils/errors"
 
 export class SubjectService {
-  async createSubject(standardId: string, teacherId: string, name: string) {
+  async createSubject(standardId: string, teacherId: string, name: string, code?: string) {
     // Verify standard ownership
     const standard = await prisma.standard.findUnique({ where: { id: standardId } })
     if (!standard || standard.teacherId !== teacherId) {
@@ -12,6 +12,7 @@ export class SubjectService {
     const subject = await prisma.subject.create({
       data: {
         name,
+        code,
         standardId,
       },
     })
@@ -49,7 +50,7 @@ export class SubjectService {
     return subject
   }
 
-  async updateSubject(subjectId: string, standardId: string, teacherId: string, name: string) {
+  async updateSubject(subjectId: string, standardId: string, teacherId: string, name: string, code?: string) {
     // Verify standard ownership
     const standard = await prisma.standard.findUnique({ where: { id: standardId } })
     if (!standard || standard.teacherId !== teacherId) {
@@ -63,7 +64,7 @@ export class SubjectService {
 
     const updatedSubject = await prisma.subject.update({
       where: { id: subjectId },
-      data: { name },
+      data: { name, code },
     })
     return updatedSubject
   }
@@ -84,7 +85,7 @@ export class SubjectService {
     return { message: "Subject deleted successfully" }
   }
 
-  async createChapter(subjectId: string, standardId: string, teacherId: string, name: string) {
+  async createChapter(subjectId: string, standardId: string, teacherId: string, name: string, description?: string, sequence?: number) {
     // Verify standard ownership
     const standard = await prisma.standard.findUnique({ where: { id: standardId } })
     if (!standard || standard.teacherId !== teacherId) {
@@ -99,6 +100,8 @@ export class SubjectService {
     const chapter = await prisma.chapter.create({
       data: {
         name,
+        description,
+        sequence,
         subjectId,
       },
     })
@@ -123,7 +126,7 @@ export class SubjectService {
     return chapters
   }
 
-  async updateChapter(chapterId: string, subjectId: string, standardId: string, teacherId: string, name: string) {
+  async updateChapter(chapterId: string, subjectId: string, standardId: string, teacherId: string, name: string, description?: string, sequence?: number) {
     // Verify standard ownership
     const standard = await prisma.standard.findUnique({ where: { id: standardId } })
     if (!standard || standard.teacherId !== teacherId) {
@@ -140,7 +143,7 @@ export class SubjectService {
 
     const updatedChapter = await prisma.chapter.update({
       where: { id: chapterId },
-      data: { name },
+      data: { name, description, sequence },
     })
     return updatedChapter
   }

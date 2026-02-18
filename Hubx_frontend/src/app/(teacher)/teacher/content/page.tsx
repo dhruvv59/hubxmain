@@ -90,12 +90,12 @@ function StandardsManager() {
 
         try {
             if (form.id) {
-                // Only send name for update
-                await teacherContentService.updateStandard(form.id, { name: form.name });
+                // Send name and description for update
+                await teacherContentService.updateStandard(form.id, { name: form.name, description: form.description });
                 alert("Standard updated successfully!");
             } else {
-                // Only send name for create
-                await teacherContentService.createStandard({ name: form.name });
+                // Send name and description for create
+                await teacherContentService.createStandard({ name: form.name, description: form.description });
                 alert("Standard created successfully!");
             }
             setIsCreating(false);
@@ -414,12 +414,12 @@ function ChaptersManager() {
 
         try {
             if (form.id) {
-                // Only send name for update
-                await teacherContentService.updateChapter(form.standardId, form.subjectId, form.id, { name: form.name });
+                // Send name, description, and sequence for update
+                await teacherContentService.updateChapter(form.standardId, form.subjectId, form.id, { name: form.name, description: form.description, sequence: form.sequence });
                 alert("Chapter updated successfully!");
             } else {
-                // For create, only send name (backend doesn't support description/sequence yet)
-                await teacherContentService.createChapter(form.standardId, form.subjectId, { name: form.name });
+                // Send name, description, and sequence for create
+                await teacherContentService.createChapter(form.standardId, form.subjectId, { name: form.name, description: form.description, sequence: form.sequence });
                 alert("Chapter created successfully!");
             }
             setIsCreating(false);

@@ -17,7 +17,42 @@ interface GeneratePaperFormProps {
 
 export function GeneratePaperForm({ config, onChange, onAddQuestion, isSubmitting, standards, subjects }: GeneratePaperFormProps) {
     const handleChange = (field: keyof PaperConfig, value: any) => {
-        onChange({ ...config, [field]: value });
+        // Special handling for isPublic toggle
+        if (field === "isPublic") {
+            if (value === true) {
+                // When turning PUBLIC ON: turn off free access, set default price
+                onChange({
+                    ...config,
+                    isPublic: true,
+                    schoolOnly: false, // Auto-disable free access
+                    price: config.price || 450 // Set default price if not set
+                });
+            } else {
+                // When turning PUBLIC OFF: clear price
+                onChange({
+                    ...config,
+                    isPublic: false,
+                    price: 0 // Clear price
+                });
+            }
+        }
+        // Special handling for schoolOnly (free access) toggle
+        else if (field === "schoolOnly") {
+            if (value === true && config.isPublic) {
+                // If trying to enable free access while public is ON, disable public first
+                onChange({
+                    ...config,
+                    isPublic: false,
+                    schoolOnly: true,
+                    price: 0
+                });
+            } else {
+                onChange({ ...config, [field]: value });
+            }
+        }
+        else {
+            onChange({ ...config, [field]: value });
+        }
     };
 
     const toggleChapter = (id: string) => {
@@ -217,7 +252,7 @@ export function GeneratePaperForm({ config, onChange, onAddQuestion, isSubmittin
                         </div>
                     </div>
 
-                    {/* Free Access for School Students */}
+                    {/* Free Access for School Students - ALWAYS VISIBLE */}
                     <div className="flex items-center justify-between h-11 px-4 rounded-lg border border-gray-200 hover:border-indigo-200 transition-colors">
                         <span className="text-sm font-bold text-gray-900">Free Access for School Students</span>
                         <div
@@ -256,15 +291,17 @@ export function GeneratePaperForm({ config, onChange, onAddQuestion, isSubmittin
                         <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                     </div>
                 </div>
-                <div>
+
+                {/* Price Field - ALWAYS IN DOM, HIDE WHEN PUBLIC IS OFF */}
+                <div className={cn("transition-all", config.isPublic ? "opacity-100" : "opacity-0 pointer-events-none")}>
                     <label className="block text-xs font-medium text-gray-500 mb-2">Public Paper Price (INR)</label>
                     <div className="relative">
                         <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-sm">₹</span>
                         <input
                             type="number"
                             value={config.price}
-                            onChange={(e) => handleChange("price", Number(e.target.value))}
-                            disabled={isSubmitting}
+                            onChange={(e) => config.isPublic && handleChange("price", Number(e.target.value))}
+                            disabled={isSubmitting || !config.isPublic}
                             className="w-full h-11 pl-8 pr-4 rounded-lg border border-gray-200 text-sm font-bold text-gray-900 focus:outline-none focus:border-indigo-500 disabled:bg-gray-50"
                         />
                     </div>

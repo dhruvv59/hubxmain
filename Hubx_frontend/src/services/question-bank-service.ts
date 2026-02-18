@@ -76,7 +76,7 @@ function transformBackendQuestion(backendQ: BackendQuestionBank): Question {
         'ADVANCED': 'Advanced'
     };
 
-    return {
+    const frontendQuestion: any = {
         id: backendQ.id,
         type: (typeMap[backendQ.type] || backendQ.type) as "Text" | "MCQ" | "Fill in the Blanks",
         difficulty: (difficultyMap[backendQ.difficulty] || backendQ.difficulty) as "Easy" | "Intermediate" | "Advanced",
@@ -84,6 +84,27 @@ function transformBackendQuestion(backendQ: BackendQuestionBank): Question {
         solution: backendQ.solutionText || '',
         marks: backendQ.marks,
     };
+
+    // Handle MCQ: Convert options string array to MCQOption objects
+    if (backendQ.type === 'MCQ' && backendQ.options && Array.isArray(backendQ.options)) {
+        frontendQuestion.options = backendQ.options.map((optText: string, idx: number) => ({
+            id: `opt-${idx}`,
+            text: optText,
+            isCorrect: idx === backendQ.correctOption
+        }));
+    }
+
+    // Handle FILL_IN_THE_BLANKS: Convert correctAnswers to blanks
+    if (backendQ.type === 'FILL_IN_THE_BLANKS' && backendQ.correctAnswers && Array.isArray(backendQ.correctAnswers)) {
+        frontendQuestion.blanks = backendQ.correctAnswers.map((answers: string[], idx: number) => ({
+            id: `blank-${idx}`,
+            position: idx,
+            correctAnswer: Array.isArray(answers) ? answers[0] : answers,
+            placeholder: `Answer ${idx + 1}`
+        }));
+    }
+
+    return frontendQuestion;
 }
 
 /**
