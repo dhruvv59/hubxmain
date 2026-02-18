@@ -6,7 +6,11 @@ import { studentService } from "@modules/student/student.service"
 import { sendEmail } from "@utils/email"
 
 export class ExamService {
-  async startExam(paperId: string, studentId: string) {
+  async startExam(paperId: string, studentId: string, testSettings?: {
+    noTimeLimit?: boolean
+    showAnswerAfterWrong?: boolean
+    enableSolutionView?: boolean
+  }) {
     // Validate that the student exists
     const student = await prisma.user.findUnique({
       where: { id: studentId },
@@ -66,13 +70,17 @@ export class ExamService {
         startedAt: new Date(),
         totalMarks: paper.questions.reduce((sum, q) => sum + (q.marks || 1), 0),
         attemptNumber: previousAttempts + 1,
+        // Store test settings
+        noTimeLimit: testSettings?.noTimeLimit ?? false,
+        showAnswerAfterWrong: testSettings?.showAnswerAfterWrong ?? false,
+        enableSolutionView: testSettings?.enableSolutionView ?? false,
       },
     })
 
-    // If paper is time bound, set timer in Redis
+    // If paper is time bound AND student did NOT select "no time limit", set timer in Redis
     // Note: Auto-submit is handled by the background job worker (src/jobs/exam-timer.ts)
     // that polls Redis every 10 seconds for expired timers
-    if (paper.type === "TIME_BOUND" && paper.duration) {
+    if (paper.type === "TIME_BOUND" && paper.duration && !attempt.noTimeLimit) {
       const timerKey = `timer:${attempt.id}`
       const durationSeconds = paper.duration * 60
 
@@ -89,6 +97,8 @@ export class ExamService {
       )
 
       console.log(`[Exam Timer] Set for attempt ${attempt.id}, duration: ${paper.duration}m`)
+    } else if (attempt.noTimeLimit) {
+      console.log(`[Exam Timer] Skipped for attempt ${attempt.id} - noTimeLimit enabled by student`)
     }
 
     return attempt
@@ -657,7 +667,7 @@ export class ExamService {
 
     // Get timer if exam is ongoing
     let timeRemaining: number | null = null
-    if (attempt.status === "ONGOING" && attempt.paper.type === "TIME_BOUND") {
+    if (attempt.status === "ONGOING" && attempt.paper.type === "TIME_BOUND" && !attempt.noTimeLimit) {
       const timerKey = `timer:${attemptId}`
       const timerData = await redis.get(timerKey)
       if (timerData) {
@@ -667,7 +677,39 @@ export class ExamService {
     }
 
     return {
-      attempt,
+      attempt: {
+        id: attempt.id,
+        paperId: attempt.paperId,
+        status: attempt.status,
+        startedAt: attempt.startedAt,
+        submittedAt: attempt.submittedAt,
+        totalScore: attempt.totalScore,
+        totalMarks: attempt.totalMarks,
+        percentage: attempt.percentage,
+        timeSpent: attempt.timeSpent,
+        answers: attempt.answers,
+        // Return test settings to frontend
+        noTimeLimit: attempt.noTimeLimit,
+        showAnswerAfterWrong: attempt.showAnswerAfterWrong,
+        enableSolutionView: attempt.enableSolutionView,
+      },
+      paper: {
+        id: attempt.paper.id,
+        title: attempt.paper.title,
+        type: attempt.paper.type,
+        duration: attempt.paper.duration,
+        status: attempt.paper.status,
+        questions: attempt.paper.questions.map(q => ({
+          id: q.id,
+          type: q.type,
+          difficulty: q.difficulty,
+          questionText: q.questionText,
+          questionImage: q.questionImage,
+          options: q.options || [],
+          marks: q.marks,
+          order: q.order,
+        })),
+      },
       timeRemaining,
       progress: {
         answered: attempt.answers.filter((a) => a.selectedOption !== null).length,
