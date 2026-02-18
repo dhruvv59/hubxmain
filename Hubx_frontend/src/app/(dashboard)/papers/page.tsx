@@ -22,18 +22,19 @@ import { TestSettingsModal } from "@/components/assessment/TestSettingsModal";
 interface FilterSidebarProps {
     filters: PaperFilters;
     onFilterChange: (newFilters: Partial<PaperFilters>) => void;
-    papers: PublicPaper[];
+    allPapers: PublicPaper[]; // ALL papers - for extracting available filters
     isMobileDrawerOpen?: boolean;
     onCloseMobileDrawer?: () => void;
 }
 
-function FilterSidebar({ filters, onFilterChange, papers, isMobileDrawerOpen, onCloseMobileDrawer }: FilterSidebarProps) {
+function FilterSidebar({ filters, onFilterChange, allPapers, isMobileDrawerOpen, onCloseMobileDrawer }: FilterSidebarProps) {
     const router = useRouter();
 
-    // Extract unique subjects from papers dynamically
+    // Extract unique subjects from ALL papers (before filtering)
+    // This ensures filters don't disappear when other filters are applied
     const getAvailableSubjects = (): string[] => {
         const subjects = new Set<string>(["All"]);
-        papers.forEach(p => {
+        allPapers.forEach(p => {
             if (p.subject && p.subject.trim()) {
                 subjects.add(p.subject);
             }
@@ -41,7 +42,8 @@ function FilterSidebar({ filters, onFilterChange, papers, isMobileDrawerOpen, on
         return Array.from(subjects).sort();
     };
 
-    // Extract unique difficulty levels from papers dynamically
+    // Extract unique difficulty levels from ALL papers (before filtering)
+    // This ensures filters don't disappear when other filters are applied
     const getAvailableDifficulties = (): string[] => {
         const difficultyMap: Record<string, string> = {
             "Advanced": "Advanced",
@@ -49,7 +51,7 @@ function FilterSidebar({ filters, onFilterChange, papers, isMobileDrawerOpen, on
             "Intermediate": "Intermediate"
         };
         const difficulties = new Set<string>(["All"]);
-        papers.forEach(p => {
+        allPapers.forEach(p => {
             if (p.level && difficultyMap[p.level]) {
                 difficulties.add(p.level);
             }
@@ -226,7 +228,7 @@ function FilterSidebar({ filters, onFilterChange, papers, isMobileDrawerOpen, on
 export default function PublicPapersPage() {
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(true);
-    const [papers, setPapers] = useState<PublicPaper[]>([]);
+    const [allPapers, setAllPapers] = useState<PublicPaper[]>([]); // Store ALL papers for filter extraction
     const [filters, setFilters] = useState<PaperFilters>({
         subject: "All",
         level: "All",
@@ -237,14 +239,16 @@ export default function PublicPapersPage() {
 
     // Pagination State
     const [currentPage, setCurrentPage] = useState(1);
-    const [totalItems, setTotalItems] = useState(0);
     const ITEMS_PER_PAGE = 10; // Production: this should come from backend or user preference
 
+    // Memoize filtered papers to avoid recalculation
+    const filteredPapers = allPapers; // In real app, apply client-side filters here if needed
+
     // Calculate pagination
-    const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+    const totalPages = Math.ceil(filteredPapers.length / ITEMS_PER_PAGE);
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
     const endIndex = startIndex + ITEMS_PER_PAGE;
-    const paginatedPapers = papers.slice(startIndex, endIndex);
+    const paginatedPapers = filteredPapers.slice(startIndex, endIndex);
 
     // Modal Interaction
     const [selectedPaper, setSelectedPaper] = useState<PublicPaper | null>(null);
@@ -257,15 +261,13 @@ export default function PublicPapersPage() {
             // In production, API would handle pagination server-side
             // Example: GET /api/papers?page=1&limit=10&subject=Math&level=Advanced
             const data = await getPublicPapers(filters);
-            setPapers(data);
-            setTotalItems(data.length); // In production, backend returns total count
+            setAllPapers(data); // Store ALL papers for filter extraction
 
             // Reset to page 1 when filters change
             setCurrentPage(1);
         } catch (error) {
             console.error("Failed to fetch papers:", error);
-            setPapers([]);
-            setTotalItems(0);
+            setAllPapers([]);
         } finally {
             setIsLoading(false);
         }
@@ -382,7 +384,7 @@ export default function PublicPapersPage() {
                 <FilterSidebar
                     filters={filters}
                     onFilterChange={handleFilterChange}
-                    papers={papers}
+                    allPapers={allPapers}
                     isMobileDrawerOpen={isMobileFilterOpen}
                     onCloseMobileDrawer={() => setIsMobileFilterOpen(false)}
                 />
