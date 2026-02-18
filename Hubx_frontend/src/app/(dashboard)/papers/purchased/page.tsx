@@ -13,6 +13,7 @@ export default function PurchasedPapersPage() {
     const [papers, setPapers] = useState<PublicPaper[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [search, setSearch] = useState("");
+    const [selectedSubject, setSelectedSubject] = useState("All");
 
     // Modal Interaction
     const [selectedPaper, setSelectedPaper] = useState<PublicPaper | null>(null);
@@ -54,10 +55,27 @@ export default function PurchasedPapersPage() {
         }
     };
 
-    const filteredPapers = papers.filter(p =>
-        p.title.toLowerCase().includes(search.toLowerCase()) ||
-        p.teacher.name.toLowerCase().includes(search.toLowerCase())
-    );
+    // Get unique subjects from papers dynamically
+    const getAvailableSubjects = (): string[] => {
+        const subjects = new Set<string>(["All"]);
+        papers.forEach(p => {
+            if (p.subject && p.subject.trim()) {
+                subjects.add(p.subject);
+            }
+        });
+        return Array.from(subjects).sort();
+    };
+
+    // Filter papers by search and subject
+    const filteredPapers = papers.filter(p => {
+        const matchesSearch =
+            p.title.toLowerCase().includes(search.toLowerCase()) ||
+            p.teacher.name.toLowerCase().includes(search.toLowerCase());
+
+        const matchesSubject = selectedSubject === "All" || p.subject === selectedSubject;
+
+        return matchesSearch && matchesSubject;
+    });
 
     return (
         <div className="min-h-screen bg-[#fafbfc] p-6 font-sans">
@@ -82,17 +100,32 @@ export default function PurchasedPapersPage() {
                    So it reuses the filter sidebar structure.
                 */}
                 <div className="w-full lg:w-[280px] shrink-0 space-y-6 hidden lg:block">
-                    {/* Simplified Filter Sidebar for Purchased - reusing structure matches Image 3 */}
+                    {/* Filter Sidebar - Dynamic subjects from purchased papers */}
                     <div className="bg-white rounded-[20px] p-6 shadow-sm border border-gray-100 h-fit">
                         <h3 className="text-base font-bold text-gray-900 mb-4">Subjects</h3>
                         <div className="space-y-3">
-                            {["All", "Science", "Mathematics", "Geography"].map((subject) => (
+                            {getAvailableSubjects().map((subject) => (
                                 <label key={subject} className="flex items-center space-x-3 cursor-pointer group">
                                     <div className="relative flex items-center justify-center shrink-0">
-                                        <input type="radio" name="p_subject" checked={subject === "All"} readOnly className="appearance-none h-5 w-5 rounded-full border border-gray-300 checked:border-[#6366f1]" />
-                                        <div className="absolute h-2.5 w-2.5 bg-[#6366f1] rounded-full opacity-0 scale-0 peer-checked:opacity-100 peer-checked:scale-100 input:checked~&" />
+                                        <input
+                                            type="radio"
+                                            name="p_subject"
+                                            checked={selectedSubject === subject}
+                                            onChange={() => setSelectedSubject(subject)}
+                                            className="appearance-none h-5 w-5 rounded-full border border-gray-300 checked:border-[#6366f1] cursor-pointer transition-colors"
+                                        />
+                                        <div className="absolute h-2.5 w-2.5 bg-[#6366f1] rounded-full opacity-0 scale-0 transition-transform duration-200" style={{
+                                            opacity: selectedSubject === subject ? 1 : 0,
+                                            transform: selectedSubject === subject ? 'scale(1)' : 'scale(0)'
+                                        }} />
                                     </div>
-                                    <span className="text-[14px] text-gray-500 font-medium">{subject}</span>
+                                    <span className={`text-[14px] font-medium transition-colors ${
+                                        selectedSubject === subject
+                                            ? "text-[#6366f1] font-bold"
+                                            : "text-gray-500 group-hover:text-gray-700"
+                                    }`}>
+                                        {subject}
+                                    </span>
                                 </label>
                             ))}
                         </div>
