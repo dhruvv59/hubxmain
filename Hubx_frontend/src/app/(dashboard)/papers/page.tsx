@@ -42,25 +42,11 @@ function FilterSidebar({ filters, onFilterChange, allPapers, isMobileDrawerOpen,
         return Array.from(subjects).sort();
     };
 
-    // Extract unique difficulty levels from ALL papers (before filtering)
-    // This ensures filters don't disappear when other filters are applied
-    const getAvailableDifficulties = (): string[] => {
-        const difficultyMap: Record<string, string> = {
-            "Advanced": "Advanced",
-            "Beginner": "Beginner",
-            "Intermediate": "Intermediate"
-        };
-        const difficulties = new Set<string>(["All"]);
-        allPapers.forEach(p => {
-            if (p.level && difficultyMap[p.level]) {
-                difficulties.add(p.level);
-            }
-        });
-        return Array.from(difficulties).sort();
-    };
+    // Fixed difficulty levels - ALWAYS show all options
+    // Never hide difficulty options, user should always be able to select any difficulty
+    const difficulties = ["All", "Advanced", "Beginner", "Intermediate"];
 
     const subjects = getAvailableSubjects();
-    const difficulties = getAvailableDifficulties();
     const ratings = ["4 ★ & above", "Most Popular"];
 
     const filterContent = (
