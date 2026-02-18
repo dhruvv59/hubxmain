@@ -314,17 +314,26 @@ export class ExamService {
       }
     }
 
-    // Handle FILL_IN_THE_BLANKS (Free Text or Legacy Pipe-Separated Format)
+    // Handle FILL_IN_THE_BLANKS - Two modes:
+    // Mode 1: Free Text (no options) - Student types answer, marked as PENDING_REVIEW
+    // Mode 2: Pipe-Separated Multiple Blanks (with options) - Auto-graded
+    //
+    // Example of Mode 2:
+    // Question: "The brain is the _____ and performs all _____ operations."
+    // Correct: [["CPU", "cpu"], ["processing", "Processing"]]
+    // Student: "CPU|Processing"
+    // Result: Both match (case insensitive) → Correct ✅
     if (question.type === "FILL_IN_THE_BLANKS" && answer.answerText !== undefined && answer.answerText !== null) {
       const hasOptions = Array.isArray(question.options) && question.options.length > 0
 
       if (!hasOptions) {
-        // Free text entry mode - no options provided by teacher
-        // Mark as pending review since manual verification is needed
+        // MODE 1: Free text entry - no options provided by teacher
+        // Verification: Mark as pending review since manual verification is needed
         isCorrect = null // Unknown until teacher reviews
         marksObtained = 0 // No marks until verified
       } else {
-        // Legacy pipe-separated format (if teacher set it up that way)
+        // MODE 2: Pipe-separated format with multiple correct answers per blank
+        // Each element in options array is an array of acceptable answers for that blank
         const studentParts = String(answer.answerText).split("|").map((s) => s.trim())
         const correctArrays: any = question.options || []
 
@@ -333,21 +342,24 @@ export class ExamService {
         if (!Array.isArray(correctArrays) || correctArrays.length === 0) {
           allMatched = false
         } else {
+          // Check each blank against its corresponding correct answers
           for (let i = 0; i < correctArrays.length; i++) {
             const possibleAnswers = Array.isArray(correctArrays[i]) ? correctArrays[i] : []
             const studentAns = studentParts[i] ?? ""
 
+            // Check if student's answer matches ANY of the possible correct answers
             const matched = possibleAnswers.some((ans: any) => {
               if (typeof ans !== "string") return false
               if (question.caseSensitive) {
                 return ans.trim() === studentAns
               }
+              // Case-insensitive comparison (default)
               return ans.trim().toLowerCase() === studentAns.trim().toLowerCase()
             })
 
             if (!matched) {
               allMatched = false
-              break
+              break // If any blank doesn't match, entire answer is wrong
             }
           }
         }
