@@ -130,10 +130,18 @@ function CreatePaperContent() {
 
                 {/* Main Content */}
                 <div className="flex-1 w-full bg-white rounded-2xl border border-gray-200 p-8 shadow-sm">
-                    {/* Dynamic Title */}
-                    <h2 className="text-lg font-bold text-[#5b5bd6] mb-8 pb-4 border-b border-gray-100">
-                        {config.title}
-                    </h2>
+                    {/* Header with Title and Edit Button */}
+                    <div className="flex items-center justify-between mb-8 pb-4 border-b border-gray-100">
+                        <h2 className="text-lg font-bold text-[#5b5bd6]">
+                            {config.title}
+                        </h2>
+                        <button
+                            onClick={() => router.push(`/teacher/new-paper`)}
+                            className="px-4 py-2 text-sm font-semibold text-[#5b5bd6] border border-[#5b5bd6] rounded-lg hover:bg-[#f5f3ff] transition-colors"
+                        >
+                            Edit Paper
+                        </button>
+                    </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
                         <MethodCard

@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 
 interface AiGeneratorFormProps {
     config: PaperConfig;
-    onGenerate: (count: number, instructions: string) => void;
+    onGenerate: (count: number, instructions: string, difficulty: string) => void;
     onCancel: () => void;
     isGenerating?: boolean;
 }
@@ -15,11 +15,12 @@ interface AiGeneratorFormProps {
 export function AiGeneratorForm({ config, onGenerate, onCancel, isGenerating }: AiGeneratorFormProps) {
     const [count, setCount] = useState<string>("");
     const [instructions, setInstructions] = useState("");
+    const [difficulty, setDifficulty] = useState<string>(config.difficulty || "Intermediate");
 
     const handleGenerate = () => {
         const num = parseInt(count);
         if (num > 0) {
-            onGenerate(num, instructions);
+            onGenerate(num, instructions, difficulty);
         }
     };
 
@@ -54,14 +55,31 @@ export function AiGeneratorForm({ config, onGenerate, onCancel, isGenerating }: 
                             <p className="text-xs font-bold text-gray-700 leading-relaxed">
                                 <span className="text-gray-500 font-medium">Chapters:</span> {selectedChaptersText || "All Chapters"}
                             </p>
-                            <p className="text-xs font-bold text-gray-700">
-                                <span className="text-gray-500 font-medium">Difficulty:</span> {config.difficulty},
-                            </p>
                         </div>
                     </div>
 
                     {/* Inputs */}
                     <div className="space-y-6">
+                        <div>
+                            <label className="block text-xs font-medium text-gray-500 mb-2">Difficulty Level</label>
+                            <select
+                                value={difficulty}
+                                onChange={(e) => setDifficulty(e.target.value)}
+                                className="w-full md:w-[300px] h-11 px-4 rounded-lg border border-gray-200 text-sm font-bold text-gray-900 focus:outline-none focus:border-[#d946ef] bg-white appearance-none cursor-pointer hover:border-gray-300 transition-colors"
+                                style={{
+                                    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%235b5bd6' d='M6 9L1 4h10z'/%3E%3C/svg%3E")`,
+                                    backgroundRepeat: 'no-repeat',
+                                    backgroundPosition: 'right 12px center',
+                                    paddingRight: '36px'
+                                }}
+                                disabled={isGenerating}
+                            >
+                                <option value="Easy">Easy</option>
+                                <option value="Intermediate">Intermediate</option>
+                                <option value="Advanced">Advanced</option>
+                            </select>
+                        </div>
+
                         <div>
                             <label className="block text-xs font-medium text-gray-500 mb-2">Number of questions</label>
                             <input

@@ -131,9 +131,6 @@ function BulkPageContent() {
                     <p className="text-gray-500 text-sm ml-9 font-medium">Discover and access quality papers created by expert teachers</p>
                 </div>
                 <div className="flex items-center gap-3">
-                    <button className="h-10 px-6 rounded-lg border border-gray-300 text-gray-600 text-xs font-bold hover:bg-gray-50 transition-colors">
-                        Save Question Paper
-                    </button>
                     <button
                         onClick={() => setIsPublishModalOpen(true)}
                         className="h-10 px-6 rounded-lg bg-[#10b981] hover:bg-[#059669] text-white text-xs font-bold transition-colors shadow-sm"

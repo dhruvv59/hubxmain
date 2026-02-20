@@ -66,9 +66,16 @@ export const getDraft = async (draftId: string): Promise<PaperConfig | null> => 
 
         // Map backend Paper to frontend PaperConfig
         // Handle both custom and standard number standards
-        const standardDisplay = paper.customStandard
-            ? paper.customStandard
-            : (paper.standard ? `Standard ${paper.standard}` : "Not selected");
+        // First try to get the standard name from the related Standard object
+        let standardDisplay = "Not selected";
+        if (paper.subject?.standard?.name) {
+            // Check if the name is purely numeric
+            const isNumericOnly = /^\d+$/.test(paper.subject.standard.name);
+            standardDisplay = isNumericOnly ? `Standard ${paper.subject.standard.name}` : paper.subject.standard.name;
+        } else if (paper.standard !== null && paper.standard !== undefined && paper.standard !== 0) {
+            // Fallback to numeric standard display
+            standardDisplay = `Standard ${paper.standard}`;
+        }
 
         return {
             title: paper.title,

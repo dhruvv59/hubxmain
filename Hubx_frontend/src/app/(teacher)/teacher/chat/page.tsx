@@ -2,6 +2,6 @@
 
 import { ChatInterface } from "@/components/chat/ChatInterface";
 
-export default function ChatPage() {
+export default function TeacherChatPage() {
     return <ChatInterface />;
 }

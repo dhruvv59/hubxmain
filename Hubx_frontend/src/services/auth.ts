@@ -166,3 +166,25 @@ export async function logout(): Promise<void> {
         clearTokens();
     }
 }
+
+/**
+ * Change user password
+ */
+export async function changePassword(data: {
+    currentPassword: string;
+    newPassword: string;
+    confirmPassword: string;
+}): Promise<{ success: boolean; message: string }> {
+    const response = await http.post<any>(
+        AUTH_ENDPOINTS.changePassword(),
+        {
+            currentPassword: data.currentPassword,
+            newPassword: data.newPassword,
+        }
+    );
+
+    return {
+        success: response.success,
+        message: response.message || 'Password changed successfully',
+    };
+}

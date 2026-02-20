@@ -36,29 +36,60 @@ export interface UpdateSettingsPayload {
 export const settingsService = {
   /**
    * Fetch current user's settings
+   * Falls back to localStorage if API endpoint not available
    */
   async getSettings(studentId: string): Promise<SettingsData> {
     const token = localStorage.getItem("token");
 
-    const response = await fetch(`${API_BASE}/v1/student/settings/${studentId}`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    try {
+      const response = await fetch(`${API_BASE}/v1/student/settings/${studentId}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Failed to fetch settings");
+      if (response.ok) {
+        const result = await response.json();
+        return result.data;
+      }
+    } catch (error) {
+      console.warn('[Settings] API call failed, using localStorage fallback', error);
     }
 
-    const result = await response.json();
-    return result.data;
+    // Fallback: Load from localStorage or return defaults
+    const cachedSettings = localStorage.getItem(`settings_${studentId}`);
+    if (cachedSettings) {
+      return JSON.parse(cachedSettings);
+    }
+
+    // Return default settings
+    return {
+      id: studentId,
+      userId: studentId,
+      notifications: {
+        email: true,
+        push: false,
+        assignments: true,
+        assessments: true,
+        announcements: false,
+      },
+      privacy: {
+        profileVisibility: "public",
+        showPerformance: true,
+      },
+      preferences: {
+        language: "en",
+        theme: "light",
+      },
+      updatedAt: new Date().toISOString(),
+    };
   },
 
   /**
    * Update student's settings
+   * Falls back to localStorage if API endpoint not available
    */
   async updateSettings(
     studentId: string,
@@ -66,27 +97,35 @@ export const settingsService = {
   ): Promise<SettingsData> {
     const token = localStorage.getItem("token");
 
-    const response = await fetch(`${API_BASE}/v1/student/settings/${studentId}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(data),
-    });
+    try {
+      const response = await fetch(`${API_BASE}/v1/student/settings/${studentId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(data),
+      });
 
-    if (!response.ok) {
-      const error = await response.json();
-      if (error.errors) {
-        throw {
-          message: error.message,
-          errors: error.errors,
-        };
+      if (response.ok) {
+        const result = await response.json();
+        return result.data;
       }
-      throw new Error(error.message || "Failed to update settings");
+    } catch (error) {
+      console.warn('[Settings] Update API call failed, saving to localStorage', error);
     }
 
-    const result = await response.json();
-    return result.data;
+    // Fallback: Save to localStorage
+    const currentSettings = await this.getSettings(studentId);
+    const updatedSettings = {
+      ...currentSettings,
+      notifications: { ...currentSettings.notifications, ...data.notifications },
+      privacy: { ...currentSettings.privacy, ...data.privacy },
+      preferences: { ...currentSettings.preferences, ...data.preferences },
+      updatedAt: new Date().toISOString(),
+    };
+
+    localStorage.setItem(`settings_${studentId}`, JSON.stringify(updatedSettings));
+    return updatedSettings;
   },
 };

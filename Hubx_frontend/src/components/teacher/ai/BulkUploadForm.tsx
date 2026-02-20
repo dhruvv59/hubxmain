@@ -4,6 +4,7 @@ import React, { useCallback, useState } from "react";
 import { Download, FileUp, Loader2 } from "lucide-react";
 import { useDropzone } from "react-dropzone";
 import { cn } from "@/lib/utils";
+import * as XLSX from "xlsx";
 
 interface BulkUploadFormProps {
     onUpload: (file: File) => void;
@@ -37,6 +38,46 @@ export function BulkUploadForm({ onUpload, onCancel, isUploading }: BulkUploadFo
         }
     };
 
+    const handleDownloadTemplate = () => {
+        // Create template data with example rows
+        const templateData = [
+            {
+                Question: "Example: What is the capital of India?",
+                Solution: "New Delhi",
+                Marks: 1,
+                Difficulty: "easy"
+            },
+            {
+                Question: "Example: Explain the process of photosynthesis.",
+                Solution: "Photosynthesis is the process by which plants use sunlight to synthesize foods from CO2 and water.",
+                Marks: 3,
+                Difficulty: "medium"
+            },
+            {
+                Question: "Example: Describe the impact of industrialization on society.",
+                Solution: "Industrialization led to economic growth, urbanization, and social changes...",
+                Marks: 5,
+                Difficulty: "hard"
+            }
+        ];
+
+        // Create workbook and worksheet
+        const ws = XLSX.utils.json_to_sheet(templateData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Questions");
+
+        // Set column widths for better readability
+        ws['!cols'] = [
+            { wch: 50 }, // Question
+            { wch: 40 }, // Solution
+            { wch: 8 },  // Marks
+            { wch: 12 }  // Difficulty
+        ];
+
+        // Download the file
+        XLSX.writeFile(wb, "Question_Bank_Template.xlsx");
+    };
+
     return (
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden min-h-[500px] flex flex-col">
             <div className="p-8 border-b border-gray-100 bg-white">
@@ -54,7 +95,10 @@ export function BulkUploadForm({ onUpload, onCancel, isUploading }: BulkUploadFo
                         <p className="text-xs font-medium text-gray-500">Supported formats: .xlsx, .xls, .csv</p>
                     </div>
 
-                    <button className="flex items-center gap-2 text-xs font-bold text-[#5b5bd6] hover:underline mb-8">
+                    <button
+                        onClick={handleDownloadTemplate}
+                        className="flex items-center gap-2 text-xs font-bold text-[#5b5bd6] hover:underline mb-8 transition-colors"
+                    >
                         <Download className="w-4 h-4" />
                         Download Template
                     </button>

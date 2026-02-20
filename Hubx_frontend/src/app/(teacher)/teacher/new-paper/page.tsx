@@ -122,6 +122,7 @@ export default function NewPaperPage() {
         setIsSubmitting(true);
         try {
             const paperId = await saveDraft(config);
+            // Go to the options page showing all three methods (manual, bulk, bank)
             router.push(`/teacher/new-paper/create?draftId=${paperId}`);
         } catch (error: any) {
             console.error("Failed to save draft", error);

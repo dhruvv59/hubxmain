@@ -112,12 +112,18 @@ export function GeneratePaperForm({ config, onChange, onAddQuestion, isSubmittin
                         onChange={(selectedId) => {
                             const selectedStd = standards.find(s => s.id === selectedId);
                             if (selectedStd) {
+                                // Display logic: use name if numeric-only, otherwise use the name directly
+                                const isNumericOnly = selectedStd.name && /^\d+$/.test(selectedStd.name);
+                                const displayLabel = isNumericOnly
+                                    ? `Standard ${selectedStd.name}`
+                                    : (selectedStd.name || `Standard ${selectedStd.standard}`);
+
                                 // Update both ID and display value
                                 onChange({
                                     ...config,
                                     standardId: selectedStd.id,
                                     standardValue: selectedStd.standard,
-                                    standard: `Standard ${selectedStd.standard}`,
+                                    standard: displayLabel,
                                     // Clear dependent fields
                                     subjectId: "",
                                     subject: "",

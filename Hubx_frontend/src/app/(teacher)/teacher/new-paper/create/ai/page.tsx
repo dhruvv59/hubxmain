@@ -50,15 +50,22 @@ function AiGeneratorPageContent() {
         fetchDraft();
     }, [draftId, router]);
 
-    const handleGenerate = async (count: number, instructions: string) => {
+    const handleGenerate = async (count: number, instructions: string, difficulty: string) => {
         if (!draftId || !config) return;
         setIsGenerating(true);
         try {
+            // Map difficulty levels: Intermediate -> Medium
+            const difficultyMap: Record<string, "Easy" | "Medium" | "Hard"> = {
+                "Easy": "Easy",
+                "Intermediate": "Medium",
+                "Advanced": "Hard"
+            };
+
             // Call real AI API
             const generatedQuestions = await aiService.generateQuestions(draftId, {
                 subject: config.subject || "",
                 chapters: (config.chapters || []).map(c => c.id),
-                difficulty: config.difficulty as "Easy" | "Medium" | "Hard",
+                difficulty: difficultyMap[difficulty] || "Medium",
                 count,
                 instructions,
                 standard: config.standard,

@@ -11,6 +11,7 @@ import {
     FileQuestion,   // Help/Question
     Sparkles,       // AI
     Compass,        // Excursion
+    MessageSquare,  // Chat
     Rocket,
     X
 } from "lucide-react";
@@ -21,6 +22,7 @@ const navigation = [
     { name: "Papers", href: "/teacher/published-papers", icon: Files },
     { name: "Question Bank", href: "/teacher/question-bank", icon: FileQuestion },
     { name: "AI Features", href: "/teacher/x-factor", icon: Sparkles },
+    { name: "Chat", href: "/teacher/chat", icon: MessageSquare },
     { name: "Excursion", href: "/teacher/excursion", icon: Compass },
 ];
 

@@ -267,7 +267,9 @@ export class PaperService {
       where: { id: paperId },
       include: {
         questions: { orderBy: { order: "asc" } },
-        subject: true,
+        subject: {
+          include: { standard: true }
+        },
         chapters: { include: { chapter: true } },
       },
     })

@@ -125,7 +125,7 @@ export const socketService = {
      * Send a message
      */
     sendMessage: (paperId: string, content: string): void => {
-        socketService.emit("send_message", { paperId, content });
+        socketService.emit("send_message", { paperId, message: content });
     },
 
     /**

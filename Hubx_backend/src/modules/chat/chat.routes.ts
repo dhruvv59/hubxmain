@@ -13,6 +13,9 @@ router.get("/rooms", chatController.getChatRooms.bind(chatController))
 // Get or create chat room for a paper
 router.get("/rooms/:paperId", chatController.getChatRoom.bind(chatController))
 
+// Mark all messages in room as read
+router.put("/rooms/:paperId/mark-read", chatController.markRoomMessagesAsRead.bind(chatController))
+
 // Get messages for a paper
 router.get("/messages/:paperId", chatController.getMessages.bind(chatController))
 

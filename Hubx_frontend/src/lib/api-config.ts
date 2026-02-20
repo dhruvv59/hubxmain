@@ -15,6 +15,7 @@ export const AUTH_ENDPOINTS = {
     profile: () => `${API_BASE_URL}/auth/profile`,
     refreshToken: () => `${API_BASE_URL}/auth/refresh-token`,
     logout: () => `${API_BASE_URL}/auth/logout`,
+    changePassword: () => `${API_BASE_URL}/auth/change-password`,
 } as const;
 
 /**

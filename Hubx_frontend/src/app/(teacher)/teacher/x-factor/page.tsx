@@ -117,7 +117,7 @@ export default function GeneratePaperPage() {
         setIsSubmitting(true);
         try {
             const paperId = await saveDraft(config);
-            // Navigate to create page with real paperId
+            // Go to the options page showing all available methods
             router.push(`/teacher/x-factor/create?draftId=${paperId}`);
         } catch (error: any) {
             console.error("Failed to save draft", error);
