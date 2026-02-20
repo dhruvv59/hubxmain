@@ -1,13 +1,14 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from "react";
+import React, { useState, useEffect, Suspense, useRef } from "react";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { PaperSummaryCard } from "@/components/teacher/ai/PaperSummaryCard";
-import { ManualQuestionForm } from "@/components/teacher/ai/ManualQuestionForm";
+import { ManualQuestionForm, ManualQuestionFormRef } from "@/components/teacher/ai/ManualQuestionForm";
 import { AddedQuestionsList } from "@/components/teacher/ai/AddedQuestionsList";
 import { PublishConfirmModal } from "@/components/teacher/ai/PublishConfirmModal";
 import { PublishSuccessModal } from "@/components/teacher/ai/PublishSuccessModal";
+import { AppToast, type ToastVariant } from "@/components/ui/AppToast";
 import { getDraft, addQuestionToDraft, removeQuestionFromDraft } from "@/services/draft-service";
 import { PaperConfig, Question } from "@/types/generate-paper";
 import { http } from "@/lib/http-client";
@@ -18,7 +19,6 @@ function ManualPageContent() {
     const searchParams = useSearchParams();
     const draftId = searchParams.get("draftId");
     const showDoneFromBank = searchParams.get("showDone") === "true";
-    const formRef = React.useRef<any>(null);
 
     const [config, setConfig] = useState<PaperConfig | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -27,11 +27,18 @@ function ManualPageContent() {
     const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
     const [isPublishing, setIsPublishing] = useState(false);
     const [showDoneButton, setShowDoneButton] = useState(false);
+    const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(null);
+    const formRef = useRef<ManualQuestionFormRef>(null);
+    const [toast, setToast] = useState<{ message: string; variant: ToastVariant; isVisible: boolean }>({
+        message: "", variant: "success", isVisible: false,
+    });
+    const showToast = (message: string, variant: ToastVariant = "success") =>
+        setToast({ message, variant, isVisible: true });
 
     useEffect(() => {
         const fetchDraft = async () => {
             if (!draftId) {
-                router.push("/teacher/ai-assessments");
+                router.push("/teacher/new-paper");
                 return;
             }
             try {
@@ -42,7 +49,7 @@ function ManualPageContent() {
                 if (showDoneFromBank) {
                     setShowDoneButton(true);
                     // Clean URL by removing the showDone parameter
-                    router.replace(`/teacher/ai-assessments/create/manual?draftId=${draftId}`);
+                    router.replace(`/teacher/new-paper/create/manual?draftId=${draftId}`);
                 }
             } catch (error) {
                 console.error(error);
@@ -57,19 +64,41 @@ function ManualPageContent() {
         if (!draftId) return;
         setIsSubmitting(true);
         try {
-            await addQuestionToDraft(draftId, question);
+            if (selectedQuestion) {
+                // Update existing question - merge with selected question's id
+                const updatedQuestion = { ...question, id: selectedQuestion.id };
+                await addQuestionToDraft(draftId, updatedQuestion as Question & { questionImage?: File; solutionImage?: File });
 
-            // Reload config to update summary with new question count
-            const updated = await getDraft(draftId);
-            if (updated) setConfig(updated);
+                // Reload config to show updated questions
+                const updated = await getDraft(draftId);
+                if (updated) setConfig(updated);
 
-            // Show Done button instead of clearing the form
-            setShowDoneButton(true);
+                // Clear form and selection
+                if (formRef.current) {
+                    formRef.current.resetForm();
+                }
+                setSelectedQuestion(null);
 
-            alert("Question added successfully!"); // Placeholder for notification
+                showToast("Question updated successfully!", "success");
+            } else {
+                // Add new question
+                await addQuestionToDraft(draftId, question as Question & { questionImage?: File; solutionImage?: File });
+
+                // Reload config to update summary with new question count
+                const updated = await getDraft(draftId);
+                if (updated) setConfig(updated);
+
+                // Clear form and selection
+                if (formRef.current) {
+                    formRef.current.resetForm();
+                }
+                setSelectedQuestion(null);
+
+                showToast("Question added successfully!", "success");
+            }
         } catch (error) {
             console.error(error);
-            alert("Failed to add question. Please try again.");
+            showToast("Failed to save question. Please try again.", "error");
         } finally {
             setIsSubmitting(false);
         }
@@ -93,23 +122,28 @@ function ManualPageContent() {
         }
     };
 
+    const handleOpenBank = () => {
+        // Navigate to question bank with draftId
+        if (draftId) {
+            router.push(`/teacher/question-bank?draftId=${draftId}`);
+        }
+    };
+
     const handleConfirmPublish = async () => {
         if (!draftId) {
             console.error("No draft ID found");
-            alert("Error: No draft found. Please try again.");
+            showToast("No draft found. Please try again.", "error");
             return;
         }
 
         setIsPublishing(true);
         try {
-            // Call real API: PATCH /teacher/papers/:paperId/publish
             await http.patch(TEACHER_ENDPOINTS.publishPaper(draftId), {});
             setIsPublishModalOpen(false);
             setIsSuccessModalOpen(true);
         } catch (error: any) {
             console.error("Publish failed:", error);
-            const errorMsg = error?.message || "Failed to publish paper. Please try again.";
-            alert(errorMsg);
+            showToast(error?.message || "Failed to publish paper. Please try again.", "error");
         } finally {
             setIsPublishing(false);
         }
@@ -126,9 +160,9 @@ function ManualPageContent() {
     if (!config) return null;
 
     return (
-        <div className="max-w-[1300px] mx-auto pb-20">
+        <div className="max-w-[1300px] mx-auto pb-20 px-4 sm:px-6 lg:px-8">
             {/* Header */}
-            <div className="flex items-center justify-between mb-8">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
                 <div className="flex flex-col">
                     <div className="flex items-center gap-3 mb-2">
                         <button onClick={() => router.back()} className="text-gray-500 hover:text-gray-800 transition-colors">
@@ -138,10 +172,10 @@ function ManualPageContent() {
                     </div>
                     <p className="text-gray-500 text-sm ml-9 font-medium">Discover and access quality papers created by expert teachers</p>
                 </div>
-                <div className="flex items-center gap-3">
-                    <button className="h-10 px-6 rounded-lg border border-gray-300 text-gray-600 text-xs font-bold hover:bg-gray-50 transition-colors">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
+                    {/* <button className="h-10 px-6 rounded-lg border border-gray-300 text-gray-600 text-xs font-bold hover:bg-gray-50 transition-colors">
                         Save Question Paper
-                    </button>
+                    </button> */}
                     <button
                         onClick={() => setIsPublishModalOpen(true)}
                         className="h-10 px-6 rounded-lg bg-[#10b981] hover:bg-[#059669] text-white text-xs font-bold transition-colors shadow-sm"
@@ -151,7 +185,7 @@ function ManualPageContent() {
                 </div>
             </div>
 
-            <div className="flex flex-col lg:flex-row gap-8 items-start">
+            <div className="flex flex-col lg:flex-row gap-4 lg:gap-8 items-start">
 
                 {/* Sidebar Summary */}
                 <div className="w-full lg:w-[320px] shrink-0">
@@ -160,34 +194,30 @@ function ManualPageContent() {
 
                 {/* Main Content */}
                 <div className="flex-1 w-full">
-                    {/* Dynamic Title */}
-                    <div className="bg-white rounded-t-2xl border border-gray-200 border-b-0 p-6">
-                        <h2 className="text-lg font-bold text-[#5b5bd6]">
-                            {config.title}
-                        </h2>
-                    </div>
-
-                    {/* Question Form */}
+                    {/* Manual Question Form */}
                     <ManualQuestionForm
                         ref={formRef}
                         questionNumber={(config.questions?.length || 0) + 1}
                         onAdd={handleAddQuestion}
-                        onCancel={() => router.back()}
-                        onOpenBank={() => router.push(`/teacher/question-bank?draftId=${draftId}`)}
-                        onDone={handleDone}
+                        onCancel={() => {
+                            if (formRef.current) {
+                                formRef.current.resetForm();
+                            }
+                            setSelectedQuestion(null);
+                        }}
+                        onOpenBank={handleOpenBank}
                         isSubmitting={isSubmitting}
                         showDoneButton={showDoneButton}
+                        onDone={handleDone}
+                        initialQuestion={selectedQuestion || undefined}
                     />
 
-                    {/* Added Questions List */}
-                    <div className="mt-8">
-                        {/* Dynamic import or direct component usage */}
-                        {/* We need to import AddedQuestionsList at top */}
-                        <AddedQuestionsList
-                            questions={config.questions || []}
-                            onRemove={handleRemoveQuestion}
-                        />
-                    </div>
+                    {/* Added Questions List with Details */}
+                    <AddedQuestionsList
+                        questions={config.questions || []}
+                        onRemove={handleRemoveQuestion}
+                        onSelectEdit={(question) => setSelectedQuestion(question)}
+                    />
                 </div>
             </div>
 
@@ -202,6 +232,8 @@ function ManualPageContent() {
                 isOpen={isSuccessModalOpen}
                 onClose={() => setIsSuccessModalOpen(false)}
             />
+            <AppToast message={toast.message} variant={toast.variant} isVisible={toast.isVisible}
+                onClose={() => setToast(prev => ({ ...prev, isVisible: false }))} />
         </div>
     );
 }

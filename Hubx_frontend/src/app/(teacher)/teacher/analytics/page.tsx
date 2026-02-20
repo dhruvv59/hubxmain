@@ -1,8 +1,10 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import Link from "next/link";
 import { teacherAnalyticsService, TeacherAnalyticsData } from "@/services/teacher-analytics";
-import { Loader2, TrendingUp, Users, BookOpen, DollarSign, BarChart2 } from "lucide-react";
+import { Loader2, TrendingUp, Users, BookOpen, DollarSign, BarChart2, ChevronRight } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { ErrorBoundary, ErrorFallback } from "@/components/common/ErrorBoundary";
 
 function AnalyticsContent() {
@@ -128,6 +130,59 @@ function AnalyticsContent() {
                     </div>
                 </div>
             </div>
+
+            {/* Top Performing Papers */}
+            {data.topPerformingPapers && data.topPerformingPapers.length > 0 && (
+                <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                    <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                        <TrendingUp className="w-5 h-5 text-amber-500" />
+                        Top Performing Papers
+                    </h3>
+                    <div className="space-y-3">
+                        {data.topPerformingPapers.slice(0, 5).map((paper: any, index: number) => (
+                            <Link
+                                key={paper.id}
+                                href={`/teacher/papers/${paper.id}`}
+                                className="group flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                            >
+                                {/* Rank Badge */}
+                                <div className="flex-shrink-0 h-8 w-8 rounded-full bg-gradient-to-br from-amber-100 to-orange-100 flex items-center justify-center">
+                                    <span className={cn(
+                                        "text-xs font-bold",
+                                        index === 0 ? "text-amber-700" : "text-orange-700"
+                                    )}>
+                                        #{index + 1}
+                                    </span>
+                                </div>
+
+                                {/* Paper Info */}
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-semibold text-gray-800 truncate group-hover:text-amber-600 transition-colors">
+                                        {paper.title}
+                                    </p>
+                                    <p className="text-xs text-gray-500">
+                                        {paper.attempts} {paper.attempts === 1 ? 'attempt' : 'attempts'}
+                                    </p>
+                                </div>
+
+                                {/* Score Badge */}
+                                <div className={cn(
+                                    "flex-shrink-0 px-2.5 py-1 rounded-full text-xs font-bold",
+                                    paper.averageScore >= 80 ? "bg-green-100 text-green-700" :
+                                    paper.averageScore >= 60 ? "bg-blue-100 text-blue-700" :
+                                    paper.averageScore >= 40 ? "bg-orange-100 text-orange-700" :
+                                    "bg-red-100 text-red-700"
+                                )}>
+                                    {Math.round(paper.averageScore)}%
+                                </div>
+
+                                {/* Arrow Icon */}
+                                <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-gray-400 flex-shrink-0" />
+                            </Link>
+                        ))}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

@@ -8,59 +8,82 @@ interface StatCardProps {
 }
 
 export function StatCard({ stat }: StatCardProps) {
-    const { title, value, subValue, lastMonthValue, theme } = stat;
+    const { title, value, subValue, lastMonthValue, theme, trend } = stat;
 
-    // Theme configurations
+    // Theme configurations - Pixel-perfect design
     const themes = {
         green: {
-            border: "border-[#4ade80]", // green-400
-            text: "text-[#22c55e]",     // green-500
-            divider: "bg-gradient-to-r from-[#4ade80] to-transparent",
-            arrow: "text-[#22c55e]"
+            border: "border-l-4 border-l-[#0ea5e9]", // cyan-500
+            bg: "bg-gradient-to-br from-[#f0fafb] to-white",
+            text: "text-[#0ea5e9]",
+            divider: "bg-gradient-to-r from-[#0ea5e9] to-transparent",
+            arrowUp: "text-[#10b981]",
+            arrowDown: "text-[#ef4444]"
         },
         orange: {
-            border: "border-[#fb923c]", // orange-400
-            text: "text-[#f97316]",     // orange-500
-            divider: "bg-gradient-to-r from-[#fb923c] to-transparent",
-            arrow: "text-[#22c55e]" // Arrow is usually green for 'up' regardless of card theme
+            border: "border-l-4 border-l-[#f97316]", // orange-500
+            bg: "bg-gradient-to-br from-[#fffbf0] to-white",
+            text: "text-[#f97316]",
+            divider: "bg-gradient-to-r from-[#f97316] to-transparent",
+            arrowUp: "text-[#10b981]",
+            arrowDown: "text-[#ef4444]"
         },
         purple: {
-            border: "border-[#d8b4fe]", // purple-300
-            text: "text-[#c084fc]",     // purple-400
-            divider: "bg-gradient-to-r from-[#d8b4fe] to-transparent",
-            arrow: "text-[#22c55e]"
+            border: "border-l-4 border-l-[#a855f7]", // purple-500
+            bg: "bg-gradient-to-br from-[#faf5ff] to-white",
+            text: "text-[#a855f7]",
+            divider: "bg-gradient-to-r from-[#a855f7] to-transparent",
+            arrowUp: "text-[#10b981]",
+            arrowDown: "text-[#ef4444]"
         },
         yellow: {
-            border: "border-[#facc15]", // yellow-400
-            text: "text-[#fbbf24]",     // amber-400
-            divider: "bg-gradient-to-r from-[#facc15] to-transparent",
-            arrow: "text-[#22c55e]"
+            border: "border-l-4 border-l-[#eab308]", // yellow-500
+            bg: "bg-gradient-to-br from-[#fffef0] to-white",
+            text: "text-[#eab308]",
+            divider: "bg-gradient-to-r from-[#eab308] to-transparent",
+            arrowUp: "text-[#10b981]",
+            arrowDown: "text-[#ef4444]"
         }
     };
 
     const currentTheme = themes[theme];
+    const arrowColor = trend === 'up' ? currentTheme.arrowUp : currentTheme.arrowDown;
 
     return (
-        <div className={cn("bg-white p-4 xl:p-6 rounded-2xl border-[1.5px] shadow-sm h-full flex flex-col justify-between hover:shadow-md transition-shadow", currentTheme.border)}>
-            <div>
-                <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 truncate">{title}</h3>
-                <div className={cn("text-2xl sm:text-3xl xl:text-[2.6rem] leading-tight font-black mb-1 truncate", currentTheme.text)}>{value}</div>
+        <div className={cn(
+            "h-full flex flex-col justify-between",
+            "p-5 rounded-2xl border border-gray-100 border-r-0 border-t-0 border-b-0",
+            "shadow-sm hover:shadow-md transition-shadow duration-200",
+            "bg-white",
+            currentTheme.border
+        )}>
+            <div className="flex flex-col">
+                <h3 className="text-[11px] font-bold text-gray-600 uppercase tracking-widest mb-3 leading-none">{title}</h3>
+                <div className={cn("text-3xl sm:text-4xl xl:text-[2.75rem] font-black leading-tight mb-2 tracking-tight", currentTheme.text)}>
+                    {value}
+                </div>
 
-                <div className="flex items-center gap-1 text-sm font-bold text-gray-700 mb-6">
-                    <span className={cn("flex items-center", currentTheme.arrow)}>
-                        <div className="w-0 h-0 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-b-[6px] border-b-[#22c55e] mr-1.5 "></div>
-                        {subValue}
-                    </span>
+                <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
+                        <div className={cn(
+                            "w-0 h-0",
+                            trend === 'up'
+                                ? "border-l-[3.5px] border-l-transparent border-r-[3.5px] border-r-transparent border-b-[5px]"
+                                : "border-l-[3.5px] border-l-transparent border-r-[3.5px] border-r-transparent border-t-[5px]",
+                            arrowColor
+                        )}></div>
+                        <span className="text-sm font-bold text-gray-700">{subValue}</span>
+                    </div>
                 </div>
             </div>
 
             {lastMonthValue && (
-                <div className="relative pt-4">
+                <div className="relative pt-4 mt-3">
                     {/* Colored Divider Line */}
-                    <div className={cn("absolute top-0 left-0 w-full h-[1.5px]", currentTheme.divider)}></div>
+                    <div className={cn("absolute top-0 left-0 right-0 h-[1px]", currentTheme.divider)}></div>
 
-                    <p className="text-[10px] text-gray-400 uppercase font-bold mb-1 tracking-wider">LAST MONTH</p>
-                    <p className="text-lg sm:text-xl font-black text-gray-800 italic">{lastMonthValue}</p>
+                    <p className="text-[10px] text-gray-500 uppercase font-bold mb-1.5 tracking-wider">LAST MONTH</p>
+                    <p className="text-lg font-black text-gray-800 tracking-tight">{lastMonthValue}</p>
                 </div>
             )}
         </div>

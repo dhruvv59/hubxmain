@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef } from 'react';
-import { User, Settings, HelpCircle, LogOut, Users, BookOpen, FileText, BarChart3, Library, ClipboardList } from 'lucide-react';
+import { User, Settings, HelpCircle, LogOut, Users, BookOpen, FileText, BarChart3, Library, ClipboardList, Book } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
@@ -63,22 +63,28 @@ export function TeacherProfileDropdown({ isOpen, onClose, user }: TeacherProfile
             description: 'View and edit your profile'
         },
         {
-            icon: Users,
-            label: 'My Classes',
-            href: '/teacher/classes',
-            description: 'Manage your classes and students'
+            icon: Book,
+            label: 'Curriculum',
+            href: '/teacher/content',
+            description: 'Manage curriculum and learning materials'
         },
-        {
-            icon: BookOpen,
-            label: 'Student Management',
-            href: '/teacher/students',
-            description: 'Track student progress'
-        },
+        // {
+        //     icon: Users,
+        //     label: 'My Classes',
+        //     href: '/teacher/classes',
+        //     description: 'Manage your classes and students'
+        // },
+        // {
+        //     icon: BookOpen,
+        //     label: 'Student Management',
+        //     href: '/teacher/students',
+        //     description: 'Track student progress'
+        // },
         {
             icon: BarChart3,
-            label: 'Performance Reports',
-            href: '/teacher/reports',
-            description: 'View analytics and insights'
+            label: 'Analytics',
+            href: '/teacher/analytics',
+            description: 'View detailed analytics and statistics'
         },
         {
             icon: Library,
@@ -89,7 +95,7 @@ export function TeacherProfileDropdown({ isOpen, onClose, user }: TeacherProfile
         {
             icon: ClipboardList,
             label: 'Paper Management',
-            href: '/teacher/public-papers',
+            href: '/teacher/published-papers',
             description: 'Create and manage papers'
         },
     ];

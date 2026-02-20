@@ -29,7 +29,7 @@ function BulkPageContent() {
     useEffect(() => {
         const fetchDraft = async () => {
             if (!draftId) {
-                router.push("/teacher/ai-assessments");
+                router.push("/teacher/x-factor");
                 return;
             }
             try {

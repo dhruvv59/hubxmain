@@ -6,9 +6,11 @@
 import { http } from '@/lib/http-client';
 import { TEACHER_QUESTION_BANK_ENDPOINTS } from '@/lib/api-config';
 import type { Question } from "@/types/generate-paper";
+import type { QuestionBankQuestion } from "@/types/question-bank";
 
 export interface QuestionBankFilter {
     subject?: string;
+    chapterIds?: string[];
     difficulty?: string[];
     rating?: string;
     addedTime?: string;
@@ -83,6 +85,8 @@ function transformBackendQuestion(backendQ: BackendQuestionBank): Question {
         content: backendQ.questionText,
         solution: backendQ.solutionText || '',
         marks: backendQ.marks,
+        questionImage: backendQ.questionImage,
+        solutionImage: backendQ.solutionImage,
     };
 
     // Handle MCQ: Convert options string array to MCQOption objects
@@ -117,9 +121,11 @@ export async function getBankQuestions(filters: QuestionBankFilter = {}): Promis
 
         if (filters.page) params.append('page', String(filters.page));
         if (filters.limit) params.append('limit', String(filters.limit));
-        // NOTE: Subject filter disabled - frontend sends subject NAME but backend expects ID
-        // TODO: Fetch actual subject IDs from backend and map them before sending
-        // if (filters.subject) params.append('subjectId', filters.subject);
+        // Subject filter - now backend expects ID (properly implemented)
+        if (filters.subject) params.append('subjectId', filters.subject);
+        if (filters.chapterIds && filters.chapterIds.length > 0) {
+            params.append('chapterIds', filters.chapterIds.join(','));
+        }
         if (filters.search) params.append('search', filters.search);
 
         // Handle difficulty filter (array)
@@ -161,6 +167,45 @@ export async function getBankQuestion(questionId: string): Promise<Question> {
         return transformBackendQuestion(response.data);
     } catch (error) {
         console.error('[QuestionBankService] Failed to fetch question:', error);
+        throw error;
+    }
+}
+
+/**
+ * Get a question in edit form format (QuestionBankQuestion)
+ */
+export async function getBankQuestionForEdit(questionId: string): Promise<QuestionBankQuestion> {
+    try {
+        const response = await http.get<{ success: boolean; message: string; data: BackendQuestionBank }>(
+            TEACHER_QUESTION_BANK_ENDPOINTS.get(questionId)
+        );
+
+        const b = response.data;
+        const editQuestion: QuestionBankQuestion = {
+            id: b.id,
+            type: b.type,
+            difficulty: b.difficulty,
+            text: b.questionText,
+            solutionText: b.solutionText || "",
+            marks: b.marks,
+            subjectId: b.subject?.id,
+            chapterIds: b.chapters?.map((c: { id: string }) => c.id) || [],
+            questionImage: b.questionImage ? (b.questionImage as string) : null,
+            solutionImage: b.solutionImage ? (b.solutionImage as string) : null,
+        };
+
+        if (b.type === "MCQ" && b.options) {
+            editQuestion.options = b.options;
+            editQuestion.correctOption = b.correctOption ?? 0;
+        }
+        if (b.type === "FILL_IN_THE_BLANKS" && b.correctAnswers) {
+            editQuestion.correctAnswers = b.correctAnswers;
+            editQuestion.caseSensitive = b.caseSensitive ?? false;
+        }
+
+        return editQuestion;
+    } catch (error) {
+        console.error('[QuestionBankService] Failed to fetch question for edit:', error);
         throw error;
     }
 }

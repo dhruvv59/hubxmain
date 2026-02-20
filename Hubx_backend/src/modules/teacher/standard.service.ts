@@ -38,13 +38,16 @@ export class StandardService {
       include: { subjects: true },
     })
     // Transform to match frontend expected format: { id, standard: number }
-    return standards.map(std => ({
-      id: std.id,
-      standard: parseInt(std.name, 10), // Convert name "10" to number 10
-      name: std.name,
-      description: std.description,
-      subjects: std.subjects,
-    }))
+    return standards.map(std => {
+      const parsedStandard = parseInt(std.name, 10);
+      return {
+        id: std.id,
+        standard: isNaN(parsedStandard) ? 0 : parsedStandard, // Use 0 for non-numeric names like "Guni"
+        name: std.name,
+        description: std.description,
+        subjects: std.subjects,
+      };
+    })
   }
 
   async getStandard(standardId: string, teacherId: string) {
@@ -56,9 +59,10 @@ export class StandardService {
       throw new AppError(404, "Standard not found")
     }
     // Transform to match frontend expected format: { id, standard: number }
+    const parsedStandard = parseInt(standard.name, 10);
     return {
       id: standard.id,
-      standard: parseInt(standard.name, 10),
+      standard: isNaN(parsedStandard) ? 0 : parsedStandard, // Use 0 for non-numeric names like "Guni"
       name: standard.name,
       description: standard.description,
       subjects: standard.subjects,

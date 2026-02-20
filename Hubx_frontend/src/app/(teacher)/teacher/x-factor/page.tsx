@@ -19,7 +19,7 @@ const INITIAL_CONFIG: PaperConfig = {
     isPublic: true,
     schoolOnly: false,
     duration: 60,
-    price: 450,
+    price: 199,
     // Initialize IDs as empty
     standardId: "",
     subjectId: ""
@@ -38,10 +38,18 @@ export default function GeneratePaperPage() {
     useEffect(() => {
         const fetchStandards = async () => {
             const data = await getStandards();
-            setStandards(data);
+            // Include standards that have:
+            // 1. Valid numeric standard (10, 11, 12, etc)
+            // 2. OR a valid name (Guni, BCA Sem 3, etc - even if standard is NaN)
+            const validStandards = data.filter(std => {
+                const hasValidStandard = std.standard !== null && std.standard !== undefined && std.standard !== 0 && !isNaN(std.standard);
+                const hasValidName = std.name && std.name.trim().length > 0;
+                return hasValidStandard || hasValidName;
+            });
+            setStandards(validStandards);
 
             // Optional: Auto-select first standard if none selected
-            if (data.length > 0 && !config.standardId) {
+            if (validStandards.length > 0 && !config.standardId) {
                 // We don't auto-select to force user choice, but could if desired
             }
         };
@@ -110,7 +118,7 @@ export default function GeneratePaperPage() {
         try {
             const paperId = await saveDraft(config);
             // Navigate to create page with real paperId
-            router.push(`/teacher/ai-assessments/create?draftId=${paperId}`);
+            router.push(`/teacher/x-factor/create?draftId=${paperId}`);
         } catch (error: any) {
             console.error("Failed to save draft", error);
             alert(error.message || "Failed to create paper");
@@ -146,9 +154,28 @@ export default function GeneratePaperPage() {
                 </div>
 
                 {/* Sidebar Summary */}
-                <div className="w-full lg:w-[350px] shrink-0">
+                <div className="w-full lg:w-[350px] shrink-0 order-2 lg:order-none">
                     <PaperSummaryCard config={config} />
                 </div>
+            </div>
+
+            {/* Add Question Button - Mobile Only (Below Summary) */}
+            <div className="flex justify-center lg:hidden mt-6 mb-20">
+                <button
+                    onClick={handleAddQuestion}
+                    disabled={isSubmitting}
+                    className="w-full sm:w-[280px] h-14 bg-[#5b5bd6] hover:bg-[#4f46e5] active:bg-[#4340c9] text-white font-bold rounded-lg shadow-md transition-all text-base flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                    {isSubmitting ? (
+                        <>
+                            {/* Loader icon */}
+                            <div className="w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                            Processing...
+                        </>
+                    ) : (
+                        "Add Question"
+                    )}
+                </button>
             </div>
         </div>
     );

@@ -3,32 +3,128 @@
 import React from "react";
 import { cn } from "@/lib/utils";
 import { X } from "lucide-react";
+import { type Subject, type Standard, type Chapter } from "@/services/teacher-content";
 
 interface QuestionBankFiltersProps {
     filters: any;
     onFilterChange: (key: string, value: any) => void;
+    onChapterToggle?: (chapterId: string) => void;
+    standards?: Standard[];
+    subjects?: Subject[];
+    chapters?: Chapter[];
     isOpen?: boolean;
     onClose?: () => void;
+    isLoadingContent?: boolean;
 }
 
-export function QuestionBankFilters({ filters, onFilterChange, isOpen, onClose }: QuestionBankFiltersProps) {
+export function QuestionBankFilters({ filters, onFilterChange, onChapterToggle, standards = [], subjects = [], chapters = [], isOpen, onClose, isLoadingContent }: QuestionBankFiltersProps) {
     const FilterContent = () => (
         <div className="space-y-6">
+            {/* Standards */}
+            <div className="pl-1">
+                <h3 className="text-sm font-bold text-gray-900 mb-4">Standards</h3>
+                <div className="space-y-3">
+                    {isLoadingContent ? (
+                        <p className="text-xs text-gray-500">Loading standards...</p>
+                    ) : (standards?.length ?? 0) === 0 ? (
+                        <p className="text-xs text-gray-500">No standards available</p>
+                    ) : (
+                        (standards ?? []).map((standard) => (
+                            <label key={standard.id} className="flex items-center gap-3 cursor-pointer group">
+                                <div className={cn(
+                                    "w-5 h-5 rounded-full border flex items-center justify-center transition-colors",
+                                    filters.standardId === standard.id ? "border-[#5b5bd6]" : "border-gray-300 group-hover:border-[#5b5bd6]"
+                                )}>
+                                    {filters.standardId === standard.id && <div className="w-2.5 h-2.5 rounded-full bg-[#5b5bd6]" />}
+                                </div>
+                                <span className={cn("text-xs font-bold", filters.standardId === standard.id ? "text-[#5b5bd6]" : "text-gray-600")}>
+                                    {standard.name}
+                                </span>
+                                <input
+                                    type="radio"
+                                    name="standard"
+                                    className="hidden"
+                                    checked={filters.standardId === standard.id}
+                                    onChange={() => onFilterChange("standardId", standard.id)}
+                                />
+                            </label>
+                        ))
+                    )}
+                </div>
+            </div>
+
             {/* Subjects */}
             <div className="pl-1">
                 <h3 className="text-sm font-bold text-gray-900 mb-4">Subjects</h3>
                 <div className="space-y-3">
-                    <label className="flex items-center gap-3 cursor-pointer group">
-                        <div className={cn(
-                            "w-5 h-5 rounded-full border flex items-center justify-center transition-colors",
-                            filters.subject === "Science" ? "border-[#5b5bd6]" : "border-gray-300 group-hover:border-[#5b5bd6]"
-                        )}>
-                            {filters.subject === "Science" && <div className="w-2.5 h-2.5 rounded-full bg-[#5b5bd6]" />}
+                    {isLoadingContent ? (
+                        <p className="text-xs text-gray-500">Loading subjects...</p>
+                    ) : (
+                        <div className="space-y-3">
+                            <label className="flex items-center gap-3 cursor-pointer group">
+                                <div className={cn(
+                                    "w-5 h-5 rounded-full border flex items-center justify-center transition-colors",
+                                    !filters.subjectId ? "border-[#5b5bd6]" : "border-gray-300 group-hover:border-[#5b5bd6]"
+                                )}>
+                                    {!filters.subjectId && <div className="w-2.5 h-2.5 rounded-full bg-[#5b5bd6]" />}
+                                </div>
+                                <span className={cn("text-xs font-bold", !filters.subjectId ? "text-[#5b5bd6]" : "text-gray-600")}>
+                                    All Subjects
+                                </span>
+                                <input
+                                    type="radio"
+                                    name="subject"
+                                    className="hidden"
+                                    checked={!filters.subjectId}
+                                    onChange={() => onFilterChange("subjectId", "")}
+                                />
+                            </label>
+                            {(subjects ?? []).map((subject) => (
+                                <label key={subject.id} className="flex items-center gap-3 cursor-pointer group">
+                                    <div className={cn(
+                                        "w-5 h-5 rounded-full border flex items-center justify-center transition-colors",
+                                        filters.subjectId === subject.id ? "border-[#5b5bd6]" : "border-gray-300 group-hover:border-[#5b5bd6]"
+                                    )}>
+                                        {filters.subjectId === subject.id && <div className="w-2.5 h-2.5 rounded-full bg-[#5b5bd6]" />}
+                                    </div>
+                                    <span className={cn("text-xs font-bold", filters.subjectId === subject.id ? "text-[#5b5bd6]" : "text-gray-600")}>
+                                        {subject.name}
+                                    </span>
+                                    <input
+                                        type="radio"
+                                        name="subject"
+                                        className="hidden"
+                                        checked={filters.subjectId === subject.id}
+                                        onChange={() => onFilterChange("subjectId", subject.id)}
+                                    />
+                                </label>
+                            ))}
                         </div>
-                        <span className={cn("text-xs font-bold", filters.subject === "Science" ? "text-[#5b5bd6]" : "text-gray-600")}>Science</span>
-                    </label>
+                    )}
                 </div>
             </div>
+
+            {/* Chapters */}
+            {(chapters?.length ?? 0) > 0 && onChapterToggle && (
+                <div className="pl-1">
+                    <h3 className="text-sm font-bold text-gray-900 mb-4">Chapters</h3>
+                    <div className="space-y-2 max-h-40 overflow-y-auto">
+                        {(chapters ?? []).map((chapter) => (
+                            <label key={chapter.id} className="flex items-center gap-3 cursor-pointer group">
+                                <input
+                                    type="checkbox"
+                                    checked={(filters.chapterIds || []).includes(chapter.id)}
+                                    onChange={() => onChapterToggle(chapter.id)}
+                                    className="w-4 h-4 rounded border-gray-300 text-[#5b5bd6] focus:ring-[#5b5bd6]"
+                                />
+                                <span className={cn("text-xs font-medium", (filters.chapterIds || []).includes(chapter.id) ? "text-[#5b5bd6]" : "text-gray-600")}>
+                                    {chapter.name}
+                                </span>
+                            </label>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {/* Difficulty Level */}
             <div>
@@ -58,7 +154,7 @@ export function QuestionBankFilters({ filters, onFilterChange, isOpen, onClose }
             </div>
 
             {/* Rating */}
-            <div>
+            {/* <div>
                 <h3 className="text-sm font-bold text-gray-900 mb-4">Rating</h3>
                 <div className="space-y-3">
                     <label className="flex items-center gap-3 cursor-pointer group">
@@ -96,10 +192,10 @@ export function QuestionBankFilters({ filters, onFilterChange, isOpen, onClose }
                         />
                     </label>
                 </div>
-            </div>
+            </div> */}
 
             {/* Added Time */}
-            <div>
+            {/* <div>
                 <h3 className="text-sm font-bold text-gray-900 mb-4">Added Time</h3>
                 <div className="space-y-3">
                     {["Latest", "Oldest"].map((time) => (
@@ -123,7 +219,7 @@ export function QuestionBankFilters({ filters, onFilterChange, isOpen, onClose }
                         </label>
                     ))}
                 </div>
-            </div>
+            </div> */}
         </div>
     );
 

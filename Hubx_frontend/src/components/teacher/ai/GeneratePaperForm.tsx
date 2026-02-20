@@ -5,6 +5,7 @@ import { PaperConfig, Chapter } from "@/types/generate-paper";
 import { Check, ChevronDown, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Standard, Subject } from "@/services/teacher-dashboard";
+import { SearchableSelect } from "@/components/ui/SearchableSelect";
 
 interface GeneratePaperFormProps {
     config: PaperConfig;
@@ -20,12 +21,11 @@ export function GeneratePaperForm({ config, onChange, onAddQuestion, isSubmittin
         // Special handling for isPublic toggle
         if (field === "isPublic") {
             if (value === true) {
-                // When turning PUBLIC ON: turn off free access, set default price
+                // When turning PUBLIC ON: set default price if not set
                 onChange({
                     ...config,
                     isPublic: true,
-                    schoolOnly: false, // Auto-disable free access
-                    price: config.price || 450 // Set default price if not set
+                    price: config.price || 199 // Set default price if not set
                 });
             } else {
                 // When turning PUBLIC OFF: clear price
@@ -38,17 +38,8 @@ export function GeneratePaperForm({ config, onChange, onAddQuestion, isSubmittin
         }
         // Special handling for schoolOnly (free access) toggle
         else if (field === "schoolOnly") {
-            if (value === true && config.isPublic) {
-                // If trying to enable free access while public is ON, disable public first
-                onChange({
-                    ...config,
-                    isPublic: false,
-                    schoolOnly: true,
-                    price: 0
-                });
-            } else {
-                onChange({ ...config, [field]: value });
-            }
+            // Allow toggling independently - both can be true
+            onChange({ ...config, [field]: value });
         }
         else {
             onChange({ ...config, [field]: value });
@@ -94,93 +85,118 @@ export function GeneratePaperForm({ config, onChange, onAddQuestion, isSubmittin
                 </div>
                 <div>
                     <label className="block text-xs font-medium text-gray-500 mb-2">Select Standard</label>
-                    <div className="relative">
-                        <select
-                            value={config.standardId || ""}
-                            onChange={(e) => {
-                                const selectedStd = standards.find(s => s.id === e.target.value);
-                                if (selectedStd) {
-                                    // Update both ID and display value
-                                    onChange({
-                                        ...config,
-                                        standardId: selectedStd.id,
-                                        standardValue: selectedStd.standard,
-                                        standard: `Standard ${selectedStd.standard}`,
-                                        // Clear dependent fields
-                                        subjectId: "",
-                                        subject: "",
-                                        chapters: []
-                                    });
-                                }
-                            }}
-                            disabled={isSubmitting}
-                            className="w-full h-11 px-4 rounded-lg border border-gray-200 text-sm font-bold text-gray-900 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 appearance-none bg-white cursor-pointer disabled:bg-gray-50"
-                        >
-                            <option value="" disabled>Select Standard</option>
-                            {standards.map(std => (
-                                <option key={std.id} value={std.id}>Standard {std.standard}</option>
-                            ))}
-                        </select>
-                        <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                    </div>
+                    <SearchableSelect
+                        options={standards
+                            .filter(std => {
+                                // Include standards that have:
+                                // 1. Valid numeric standard (10, 11, 12, etc)
+                                // 2. OR a valid name (Guni, BCA Sem 3, etc - even if standard is NaN)
+                                const hasValidStandard = std.standard !== null && std.standard !== undefined && std.standard !== 0 && !isNaN(std.standard);
+                                const hasValidName = std.name && std.name.trim().length > 0;
+                                return hasValidStandard || hasValidName;
+                            })
+                            .map(std => {
+                                // Check if name is purely numeric or has text
+                                const isNumericOnly = std.name && /^\d+$/.test(std.name);
+                                // If name is numeric-only, display as "Standard 10", otherwise use the name as-is
+                                const displayLabel = isNumericOnly
+                                    ? `Standard ${std.name}`
+                                    : (std.name || `Standard ${std.standard}`);
+
+                                return {
+                                    id: std.id,
+                                    label: displayLabel
+                                };
+                            })}
+                        value={config.standardId || ""}
+                        onChange={(selectedId) => {
+                            const selectedStd = standards.find(s => s.id === selectedId);
+                            if (selectedStd) {
+                                // Update both ID and display value
+                                onChange({
+                                    ...config,
+                                    standardId: selectedStd.id,
+                                    standardValue: selectedStd.standard,
+                                    standard: `Standard ${selectedStd.standard}`,
+                                    // Clear dependent fields
+                                    subjectId: "",
+                                    subject: "",
+                                    chapters: []
+                                });
+                            }
+                        }}
+                        onCustomInput={(customValue) => {
+                            // Handle custom standard input
+                            onChange({
+                                ...config,
+                                standardId: `custom-${Date.now()}`,
+                                standard: customValue,
+                                // Clear dependent fields
+                                subjectId: "",
+                                subject: "",
+                                chapters: []
+                            });
+                        }}
+                        placeholder="Select Standard"
+                        disabled={isSubmitting}
+                        searchPlaceholder="Search standards or type a custom one..."
+                        allowCustomInput={true}
+                    />
                 </div>
             </div>
 
-            {/* Row 2: Subject & Difficulty */}
+            {/* Row 2: Subject & Free Access for School Students */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                 <div>
                     <label className="block text-xs font-medium text-gray-500 mb-2">Select Subject</label>
-                    <div className="relative">
-                        <select
-                            value={config.subjectId || ""}
-                            onChange={(e) => {
-                                const selectedSub = subjects.find(s => s.id === e.target.value);
-                                if (selectedSub) {
-                                    onChange({
-                                        ...config,
-                                        subjectId: selectedSub.id,
-                                        subject: selectedSub.name,
-                                        // Clear chapters
-                                        chapters: []
-                                    });
-                                }
-                            }}
-                            disabled={isSubmitting || !config.standardId}
-                            className="w-full h-11 px-4 rounded-lg border border-gray-200 text-sm font-bold text-gray-900 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 appearance-none bg-white cursor-pointer disabled:bg-gray-50"
-                        >
-                            <option value="" disabled>Select Subject</option>
-                            {subjects.map(sub => (
-                                <option key={sub.id} value={sub.id}>{sub.name}</option>
-                            ))}
-                        </select>
-                        <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                    </div>
+                    <SearchableSelect
+                        options={subjects
+                            .filter(sub => sub.name && sub.name.trim() && !sub.name.toLowerCase().includes('null'))
+                            .map(sub => ({
+                                id: sub.id,
+                                label: sub.name
+                            }))}
+                        value={config.subjectId || ""}
+                        onChange={(selectedId) => {
+                            const selectedSub = subjects.find(s => s.id === selectedId);
+                            if (selectedSub) {
+                                onChange({
+                                    ...config,
+                                    subjectId: selectedSub.id,
+                                    subject: selectedSub.name,
+                                    // Clear chapters
+                                    chapters: []
+                                });
+                            }
+                        }}
+                        placeholder="Select Subject"
+                        disabled={isSubmitting || !config.standardId}
+                        searchPlaceholder="Search subjects..."
+                    />
                 </div>
+
+                {/* Free Access for School Students */}
                 <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-2">Select Difficulty Level</label>
-                    <div className="flex border border-gray-200 rounded-lg overflow-hidden h-11">
-                        {["Easy", "Intermediate", "Advanced"].map((level) => (
-                            <button
-                                key={level}
-                                onClick={() => handleChange("difficulty", level)}
-                                disabled={isSubmitting}
-                                className={cn(
-                                    "flex-1 text-xs font-bold transition-colors border-r border-gray-100 last:border-r-0 hover:bg-gray-50 disabled:bg-gray-50",
-                                    config.difficulty === level
-                                        ? "bg-[#ede9fe] text-[#7c3aed]" // lighter purple bg, strong purple text
-                                        : "bg-white text-gray-700"
-                                )}
-                            >
-                                {level}
-                            </button>
-                        ))}
+                    <label className="block text-xs font-medium text-gray-500 mb-2">Free Access for School Students</label>
+
+                    <div className="flex items-center justify-center h-11 px-4 rounded-lg border border-gray-200 bg-gray-50 transition-colors pointer-events-none">
+                        <span className="text-sm font-bold text-gray-900">Free Paper For Student</span>
+                        <div
+                            className={cn("w-10 h-6 rounded-full p-1 cursor-pointer transition-colors relative ml-auto pointer-events-auto", config.schoolOnly ? "bg-[#5b5bd6]" : "bg-gray-200")}
+                            onClick={() => !isSubmitting && handleChange("schoolOnly", !config.schoolOnly)}
+                        >
+                            <div className={cn("w-4 h-4 bg-white rounded-full shadow-sm transition-transform", config.schoolOnly ? "translate-x-4" : "translate-x-0")} />
+                        </div>
                     </div>
+                    <p className="text-xs text-gray-500 mt-2 leading-relaxed">
+                        Students from your school will receive a free access code via email. Others can still purchase.
+                    </p>
                 </div>
             </div>
 
             {/* Row 3: Chapters Selection */}
             <div className="mb-8">
-                <label className="block text-xs font-medium text-gray-500 mb-3">Select Science Chapters</label>
+                <label className="block text-xs font-medium text-gray-500 mb-3">Select Chapters</label>
                 <div className="border border-gray-200 rounded-xl p-5">
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-y-4 gap-x-6">
                         {/* All Checkbox */}
@@ -226,94 +242,90 @@ export function GeneratePaperForm({ config, onChange, onAddQuestion, isSubmittin
                 </div>
             </div>
 
-            {/* Row 4: Paper Type Toggles - All 3 in one row */}
-            <div className="mb-6">
-                <label className="block text-xs font-medium text-gray-500 mb-2">Select Paper Type</label>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {/* Time Bound Test */}
-                    <div className="flex items-center justify-between h-11 px-4 rounded-lg border border-gray-200 hover:border-indigo-200 transition-colors">
-                        <span className="text-sm font-bold text-gray-900">Time Bound Test</span>
-                        <div
-                            className={cn("w-10 h-6 rounded-full p-1 cursor-pointer transition-colors relative", config.isTimeBound ? "bg-[#5b5bd6]" : "bg-gray-200")}
-                            onClick={() => !isSubmitting && handleChange("isTimeBound", !config.isTimeBound)}
-                        >
-                            <div className={cn("w-4 h-4 bg-white rounded-full shadow-sm transition-transform", config.isTimeBound ? "translate-x-4" : "translate-x-0")} />
+            {/* Row 4: Paper Type Toggles with Details */}
+            <div className="mb-8">
+                {/* <label className="block text-xs font-medium text-gray-500 mb-3">Select Paper Type</label> */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Time Bound Test Section */}
+                    <div className="space-y-3">
+                        <div className="flex items-center justify-between h-11 px-4 rounded-lg border border-gray-200 hover:border-indigo-200 transition-colors">
+                            <span className="text-sm font-bold text-gray-900">Time Bound Test</span>
+                            <div
+                                className={cn("w-10 h-6 rounded-full p-1 cursor-pointer transition-colors relative", config.isTimeBound ? "bg-[#5b5bd6]" : "bg-gray-200")}
+                                onClick={() => !isSubmitting && handleChange("isTimeBound", !config.isTimeBound)}
+                            >
+                                <div className={cn("w-4 h-4 bg-white rounded-full shadow-sm transition-transform", config.isTimeBound ? "translate-x-4" : "translate-x-0")} />
+                            </div>
+                        </div>
+                        <div className={cn("transition-all", !config.isTimeBound && "opacity-50 pointer-events-none")}>
+                            <label className={cn("block text-xs font-medium mb-2", config.isTimeBound ? "text-gray-500" : "text-gray-400")}>{config.isTimeBound ? "Duration (Mins)" : "Duration (Mins) - Enable Time Bound Test"}</label>
+                            <div className="relative">
+                                <select
+                                    value={config.duration}
+                                    onChange={(e) => handleChange("duration", Number(e.target.value))}
+                                    disabled={isSubmitting || !config.isTimeBound}
+                                    className={cn("w-full h-11 px-4 rounded-lg border text-sm font-bold appearance-none bg-white cursor-pointer focus:outline-none",
+                                        config.isTimeBound
+                                            ? "border-gray-200 text-gray-900 focus:border-indigo-500"
+                                            : "border-gray-100 text-gray-400 bg-gray-50 cursor-not-allowed"
+                                    )}
+                                >
+                                    <option value={30}>30</option>
+                                    <option value={60}>60</option>
+                                    <option value={90}>90</option>
+                                    <option value={120}>120</option>
+                                </select>
+                                <ChevronDown className={cn("absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none", config.isTimeBound ? "text-gray-400" : "text-gray-300")} />
+                            </div>
                         </div>
                     </div>
 
-                    {/* Public Paper */}
-                    <div className="flex items-center justify-between h-11 px-4 rounded-lg border border-gray-200 hover:border-indigo-200 transition-colors">
-                        <span className="text-sm font-bold text-gray-900">Public Paper</span>
-                        <div
-                            className={cn("w-10 h-6 rounded-full p-1 cursor-pointer transition-colors relative", config.isPublic ? "bg-[#5b5bd6]" : "bg-gray-200")}
-                            onClick={() => !isSubmitting && handleChange("isPublic", !config.isPublic)}
-                        >
-                            <div className={cn("w-4 h-4 bg-white rounded-full shadow-sm transition-transform", config.isPublic ? "translate-x-4" : "translate-x-0")} />
+                    {/* Public Paper Section */}
+                    <div className="space-y-3">
+                        <div className="flex items-center justify-center h-11 px-4 rounded-lg border border-gray-200 transition-colors pointer-events-none">
+                            <span className="text-sm font-bold text-gray-900">Public Paper</span>
+                            <div
+                                className={cn("w-10 h-6 rounded-full p-1 cursor-pointer transition-colors relative ml-auto pointer-events-auto", config.isPublic ? "bg-[#5b5bd6]" : "bg-gray-200")}
+                                onClick={() => !isSubmitting && handleChange("isPublic", !config.isPublic)}
+                            >
+                                <div className={cn("w-4 h-4 bg-white rounded-full shadow-sm transition-transform", config.isPublic ? "translate-x-4" : "translate-x-0")} />
+                            </div>
                         </div>
-                    </div>
-
-                    {/* Free Access for School Students - ALWAYS VISIBLE */}
-                    <div className="flex items-center justify-between h-11 px-4 rounded-lg border border-gray-200 hover:border-indigo-200 transition-colors">
-                        <span className="text-sm font-bold text-gray-900">Free Access for School Students</span>
-                        <div
-                            className={cn("w-10 h-6 rounded-full p-1 cursor-pointer transition-colors relative", config.schoolOnly ? "bg-[#5b5bd6]" : "bg-gray-200")}
-                            onClick={() => !isSubmitting && handleChange("schoolOnly", !config.schoolOnly)}
-                        >
-                            <div className={cn("w-4 h-4 bg-white rounded-full shadow-sm transition-transform", config.schoolOnly ? "translate-x-4" : "translate-x-0")} />
+                        <div className={cn("transition-all", !config.isPublic && "opacity-50 pointer-events-none")}>
+                            <label className={cn("block text-xs font-medium mb-2", config.isPublic ? "text-gray-500" : "text-gray-400")}>{config.isPublic ? "Public Paper Price (INR)" : "Public Paper Price (INR) - Enable Public Paper"}</label>
+                            <div className="relative">
+                                <span className={cn("absolute left-4 top-1/2 -translate-y-1/2 font-bold text-sm", config.isPublic ? "text-gray-500" : "text-gray-300")}>₹</span>
+                                <input
+                                    type="text"
+                                    inputMode="numeric"
+                                    pattern="[0-9]*"
+                                    value={config.price || ""}
+                                    onChange={(e) => {
+                                        const val = e.target.value.replace(/[^0-9]/g, "");
+                                        if (config.isPublic) {
+                                            handleChange("price", val ? Number(val) : 0);
+                                        }
+                                    }}
+                                    disabled={isSubmitting || !config.isPublic}
+                                    className={cn("w-full h-11 pl-8 pr-4 rounded-lg border text-sm font-bold focus:outline-none",
+                                        config.isPublic
+                                            ? "border-gray-200 text-gray-900 focus:border-indigo-500 bg-white"
+                                            : "border-gray-100 text-gray-400 bg-gray-50 cursor-not-allowed"
+                                    )}
+                                    placeholder="0"
+                                />
+                            </div>
                         </div>
-                    </div>
-                </div>
-
-                {/* Description below all toggles - full width */}
-                {config.schoolOnly && (
-                    <p className="text-xs text-gray-500 px-2 mt-3">
-                        Students from your school will receive a free access code via email. Others can still purchase.
-                    </p>
-                )}
-            </div>
-
-            {/* Row 5: Duration & Price */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-2">Duration (Mins)</label>
-                    <div className="relative">
-                        <select
-                            value={config.duration}
-                            onChange={(e) => handleChange("duration", Number(e.target.value))}
-                            disabled={isSubmitting}
-                            className="w-full h-11 px-4 rounded-lg border border-gray-200 text-sm font-bold text-gray-900 focus:outline-none focus:border-indigo-500 appearance-none bg-white cursor-pointer disabled:bg-gray-50"
-                        >
-                            <option value={30}>30</option>
-                            <option value={60}>60</option>
-                            <option value={90}>90</option>
-                            <option value={120}>120</option>
-                        </select>
-                        <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                    </div>
-                </div>
-
-                {/* Price Field - ALWAYS IN DOM, HIDE WHEN PUBLIC IS OFF */}
-                <div className={cn("transition-all", config.isPublic ? "opacity-100" : "opacity-0 pointer-events-none")}>
-                    <label className="block text-xs font-medium text-gray-500 mb-2">Public Paper Price (INR)</label>
-                    <div className="relative">
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-sm">₹</span>
-                        <input
-                            type="number"
-                            value={config.price}
-                            onChange={(e) => config.isPublic && handleChange("price", Number(e.target.value))}
-                            disabled={isSubmitting || !config.isPublic}
-                            className="w-full h-11 pl-8 pr-4 rounded-lg border border-gray-200 text-sm font-bold text-gray-900 focus:outline-none focus:border-indigo-500 disabled:bg-gray-50"
-                        />
                     </div>
                 </div>
             </div>
 
-            {/* Bottom Button - Wired to onAddQuestion */}
-            <div className="flex justify-center">
+            {/* Bottom Button - Wired to onAddQuestion (Desktop Only) */}
+            <div className="hidden lg:flex justify-center mt-6">
                 <button
                     onClick={onAddQuestion}
                     disabled={isSubmitting}
-                    className="w-full sm:w-[250px] h-12 bg-[#5b5bd6] hover:bg-[#4f46e5] text-white font-bold rounded-lg shadow-sm transition-colors text-sm flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed"
+                    className="w-full sm:w-[280px] h-14 bg-[#5b5bd6] hover:bg-[#4f46e5] active:bg-[#4340c9] text-white font-bold rounded-lg shadow-md transition-all text-base flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                     {isSubmitting ? (
                         <>

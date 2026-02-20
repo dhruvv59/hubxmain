@@ -1,6 +1,5 @@
 "use client";
 
-import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -12,23 +11,17 @@ import {
     FileQuestion,   // Help/Question
     Sparkles,       // AI
     Compass,        // Excursion
-    Book,           // Curriculum
-    BarChart2,      // Analytics
-    Bell,           // Notifications
     Rocket,
     X
 } from "lucide-react";
 
 const navigation = [
     { name: "Dashboard", href: "/teacher/dashboard", icon: Gauge },
-    { name: "Private Papers", href: "/teacher/paper-assessments", icon: ClipboardCheck },
-    { name: "Papers", href: "/teacher/public-papers", icon: Files },
+    { name: "Private Papers", href: "/teacher/paper", icon: ClipboardCheck },
+    { name: "Papers", href: "/teacher/published-papers", icon: Files },
     { name: "Question Bank", href: "/teacher/question-bank", icon: FileQuestion },
-    { name: "AI Features", href: "/teacher/ai-assessments", icon: Sparkles },
-    { name: "Curriculum", href: "/teacher/content", icon: Book }, // Added Curriculum link
-    { name: "Analytics", href: "/teacher/analytics", icon: BarChart2 },
+    { name: "AI Features", href: "/teacher/x-factor", icon: Sparkles },
     { name: "Excursion", href: "/teacher/excursion", icon: Compass },
-    { name: "Notifications", href: "/teacher/notifications", icon: Bell },
 ];
 
 interface TeacherSidebarProps {
@@ -115,29 +108,36 @@ export function TeacherSidebar({ className, onClose, isMobile }: TeacherSidebarP
                 })}
             </div>
 
-            {/* Bottom Action - Rocket Gradient Button */}
-            <div className={cn("mt-auto mb-4", isMobile && "w-full px-2")}>
-                {isMobile ? (
-                    <button className="w-full flex items-center gap-3 p-3 rounded-xl border border-gray-100 hover:bg-gray-50 group">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#3b82f6] to-[#6366f1] flex items-center justify-center shadow-sm">
-                            <Rocket className="w-4 h-4 text-white fill-white" />
-                        </div>
-                        <span className="text-sm font-semibold text-gray-700">Pro Features</span>
-                    </button>
-                ) : (
-                    <button
-                        className="relative w-12 h-12 rounded-full flex items-center justify-center group"
-                        suppressHydrationWarning={true}
-                    >
-                        {/* Orange Border Ring */}
-                        <div className="absolute inset-0 rounded-full border-[3px] border-[#fb923c] opacity-100" />
+            {/* Bottom Action - Pro Features */}
+            <div className={cn("mt-auto flex items-center gap-3", isMobile ? "w-full px-2 mb-4" : "justify-center w-full mb-4 flex-col")}>
+                {/* Rocket Button - Pro Features */}
+                <button
+                    className={cn(
+                        "relative flex items-center justify-center rounded-full transition-all",
+                        isMobile
+                            ? "flex-1 h-10"
+                            : "w-10 h-10 group"
+                    )}
+                    suppressHydrationWarning={true}
+                >
+                    {isMobile ? (
+                        <>
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#3b82f6] to-[#6366f1] flex items-center justify-center shadow-sm">
+                                <Rocket className="w-4 h-4 text-white fill-white" />
+                            </div>
+                        </>
+                    ) : (
+                        <>
+                            {/* Orange Border Ring */}
+                            <div className="absolute inset-0 rounded-full border-[3px] border-[#fb923c] opacity-100" />
 
-                        {/* Inner Gradient Circle */}
-                        <div className="absolute inset-[3px] rounded-full bg-gradient-to-tr from-[#3b82f6] to-[#6366f1] flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform duration-200">
-                            <Rocket className="w-5 h-5 text-white fill-white" />
-                        </div>
-                    </button>
-                )}
+                            {/* Inner Gradient Circle */}
+                            <div className="absolute inset-[3px] rounded-full bg-gradient-to-tr from-[#3b82f6] to-[#6366f1] flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform duration-200">
+                                <Rocket className="w-5 h-5 text-white fill-white" />
+                            </div>
+                        </>
+                    )}
+                </button>
             </div>
         </div>
     );

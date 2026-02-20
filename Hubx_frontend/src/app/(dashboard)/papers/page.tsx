@@ -379,7 +379,7 @@ export default function PublicPapersPage() {
                         <ChevronLeft className="h-6 w-6" />
                     </button>
                     <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
-                        Public Papers <span className="hidden sm:inline">({99})</span>
+                        Published Papers <span className="hidden sm:inline">({99})</span>
                     </h1>
                 </div>
                 <p className="text-xs sm:text-sm text-gray-500 font-medium ml-10 sm:ml-11">

@@ -17,6 +17,12 @@ export interface TeacherAnalyticsData {
         description: string;
         timestamp: string;
     }[];
+    topPerformingPapers: {
+        id: string;
+        title: string;
+        attempts: number;
+        averageScore: number;
+    }[];
 }
 
 export const teacherAnalyticsService = {

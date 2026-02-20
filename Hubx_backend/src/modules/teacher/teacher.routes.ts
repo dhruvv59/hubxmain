@@ -37,7 +37,7 @@ router.delete("/standards/:standardId/subjects/:subjectId/chapters/:chapterId", 
 // Paper routes
 router.post("/papers", teacherController.createPaper)
 router.get("/papers", teacherController.getPapers)
-router.get("/public-papers", teacherController.getPublicPapers)
+router.get("/published-papers", teacherController.getPublicPapers)
 router.get("/papers/:paperId", teacherController.getPaperById)
 router.put("/papers/:paperId", teacherController.updatePaper)
 router.patch("/papers/:paperId/publish", teacherController.publishPaper)

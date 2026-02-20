@@ -13,6 +13,7 @@ import { NotificationDropdown } from "./NotificationDropdown";
 import { ProfileDropdown, UserProfile } from "./ProfileDropdown";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useAuth } from "@/hooks/useAuth";
+import { ApiError } from "@/lib/http-client";
 
 import { getStreak } from "@/services/dashboard";
 
@@ -24,7 +25,7 @@ export function Header({ onMenuClick }: HeaderProps) {
     const [isNotificationOpen, setIsNotificationOpen] = useState(false);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [streak, setStreak] = useState(0);
-    const { user, isLoading } = useAuth();
+    const { user, isLoading, logout } = useAuth();
 
     // Fetch streak on mount
     React.useEffect(() => {
@@ -50,6 +51,7 @@ export function Header({ onMenuClick }: HeaderProps) {
         refresh,
         isRefreshing
     } = useNotifications({
+        enabled: !!user,
         refreshInterval: 60000, // Auto-refresh every minute
         enableRealtime: false,  // Set to true when WebSocket is ready
         onNewNotification: (notification) => {
@@ -63,8 +65,11 @@ export function Header({ onMenuClick }: HeaderProps) {
             }
         },
         onError: (err) => {
-            console.error('[Header] Notification error:', err);
-            // Optional: Show toast notification
+            if (err instanceof ApiError && err.statusCode === 401) {
+                logout();
+            } else {
+                console.error('[Header] Notification error:', err);
+            }
         }
     });
 

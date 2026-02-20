@@ -25,7 +25,7 @@ export default function TakeExamPage() {
     const loadPapers = async () => {
       try {
         const token = localStorage.getItem("hubx_access_token");
-        const response = await fetch(`${API_BASE_URL}/student/public-papers`, {
+        const response = await fetch(`${API_BASE_URL}/student/published-papers`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 

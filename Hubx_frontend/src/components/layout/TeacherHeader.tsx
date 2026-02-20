@@ -9,61 +9,43 @@
 
 import React, { useState } from "react";
 import { Search, Bell, Menu } from "lucide-react";
-import { NotificationDropdown } from "./NotificationDropdown";
+import { useRouter } from "next/navigation";
 import { TeacherProfileDropdown, TeacherProfile } from "./TeacherProfileDropdown";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useAuth } from "@/hooks/useAuth";
+import { ApiError } from "@/lib/http-client";
 
 interface TeacherHeaderProps {
     onMenuClick?: () => void;
 }
 
 export function TeacherHeader({ onMenuClick }: TeacherHeaderProps) {
-    const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+    const router = useRouter();
     const [isProfileOpen, setIsProfileOpen] = useState(false);
-    const { user, isLoading } = useAuth();
+    const { user, isLoading, logout } = useAuth();
 
     /**
      * Notification Management
-     * Using the custom hook for real-time notification updates
+     * Using the custom hook for unread count badge.
+     * Only fetch when user is authenticated; on 401, logout and redirect.
      */
-    const {
-        notifications,
-        unreadCount,
-        markAsRead,
-        markAllAsRead,
-        deleteNotification,
-        isLoading: isNotificationsLoading,
-        error,
-        hasMore,
-        loadMore,
-        refresh,
-    } = useNotifications({
-        refreshInterval: 60000, // Auto-refresh every minute
-        enableRealtime: false,  // Set to true when WebSocket is ready
-        onNewNotification: (notification) => {
-            // Optional: Show browser notification
-            if ('Notification' in window && Notification.permission === 'granted') {
-                new Notification(notification.title, {
-                    body: notification.message,
-                    icon: notification.avatar || '/logo.png',
-                    badge: '/logo.png',
-                });
+    const { unreadCount } = useNotifications({
+        enabled: !!user,
+        refreshInterval: 60000,
+        enableRealtime: false,
+        onError: (err) => {
+            if (err instanceof ApiError && err.statusCode === 401) {
+                logout();
             }
         },
-        onError: (err) => {
-            console.error('[TeacherHeader] Notification error:', err);
-        }
     });
 
-    const handleNotificationToggle = () => {
-        setIsNotificationOpen(!isNotificationOpen);
-        if (isProfileOpen) setIsProfileOpen(false);
+    const handleNotificationClick = () => {
+        router.push('/teacher/notifications');
     };
 
     const handleProfileToggle = () => {
         setIsProfileOpen(!isProfileOpen);
-        if (isNotificationOpen) setIsNotificationOpen(false);
     };
 
     // Transform user data to TeacherProfile format
@@ -129,51 +111,27 @@ export function TeacherHeader({ onMenuClick }: TeacherHeaderProps) {
                     <Search className="h-5 w-5" />
                 </button>
 
-                {/* Notification Button with Dropdown */}
-                <div className="relative">
-                    <button
-                        onClick={handleNotificationToggle}
-                        className={`
-                            relative p-2 rounded-full transition-all duration-200
-                            ${isNotificationOpen
-                                ? 'bg-indigo-50 text-indigo-600'
-                                : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
-                            }
-                        `}
-                        aria-label={`Notifications ${unreadCount > 0 ? `(${unreadCount} unread)` : ''}`}
-                        aria-expanded={isNotificationOpen}
-                        suppressHydrationWarning={true}
-                    >
-                        <Bell className="h-6 w-6" />
+                {/* Notification Button */}
+                <button
+                    onClick={handleNotificationClick}
+                    className="relative p-2 rounded-full transition-all duration-200 text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+                    aria-label={`Notifications ${unreadCount > 0 ? `(${unreadCount} unread)` : ''}`}
+                    suppressHydrationWarning={true}
+                >
+                    <Bell className="h-6 w-6" />
 
-                        {/* Unread Badge */}
-                        {unreadCount > 0 && (
-                            <span className="absolute top-1.5 right-2 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-bold ring-2 ring-white animate-in zoom-in duration-200">
-                                {unreadCount > 9 ? '9+' : unreadCount}
-                            </span>
-                        )}
+                    {/* Unread Badge */}
+                    {unreadCount > 0 && (
+                        <span className="absolute top-1.5 right-2 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-bold ring-2 ring-white animate-in zoom-in duration-200">
+                            {unreadCount > 9 ? '9+' : unreadCount}
+                        </span>
+                    )}
 
-                        {/* Pulse animation for new notifications */}
-                        {unreadCount > 0 && (
-                            <span className="absolute top-1.5 right-2 h-[18px] w-[18px] rounded-full bg-red-400 animate-ping opacity-75" />
-                        )}
-                    </button>
-
-                    <NotificationDropdown
-                        isOpen={isNotificationOpen}
-                        onClose={() => setIsNotificationOpen(false)}
-                        notifications={notifications}
-                        onMarkAsRead={markAsRead}
-                        onMarkAllAsRead={markAllAsRead}
-                        onDelete={deleteNotification}
-                        unreadCount={unreadCount}
-                        isLoading={isNotificationsLoading}
-                        error={error}
-                        hasMore={hasMore}
-                        onLoadMore={loadMore}
-                        onRefresh={refresh}
-                    />
-                </div>
+                    {/* Pulse animation for new notifications */}
+                    {unreadCount > 0 && (
+                        <span className="absolute top-1.5 right-2 h-[18px] w-[18px] rounded-full bg-red-400 animate-ping opacity-75" />
+                    )}
+                </button>
 
                 {/* Profile */}
                 <div className="relative">

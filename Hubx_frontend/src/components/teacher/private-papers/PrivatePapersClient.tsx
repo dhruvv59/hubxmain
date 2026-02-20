@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from "react";
+import React, { useState, useEffect } from "react";
 import { Search, ArrowLeft, Filter, Loader2, X, SlidersHorizontal } from "lucide-react";
 import { useRouter } from "next/navigation";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -8,6 +8,7 @@ import { PrivatePapersFilters } from "@/components/teacher/private-papers/Privat
 import { PrivatePaperCard } from "@/components/teacher/private-papers/PrivatePaperCard";
 import { PrivatePaper, PrivatePaperFilters as FiltersType } from "@/types/private-paper";
 import { getPrivatePapers } from "@/services/private-paper-service";
+import { PRIVATE_PAPER_DEFAULT_FILTERS, PRIVATE_PAPER_SORT_OPTIONS } from "@/lib/filter-constants";
 
 // Simple debounce hook implementation if not present
 function useDebounceValue<T>(value: T, delay: number): T {
@@ -35,15 +36,7 @@ export function PrivatePapersClient({ initialPapers, initialTotal }: PrivatePape
     const router = useRouter();
 
     // Filter State
-    const [filters, setFilters] = useState<FiltersType>({
-        subject: "All",
-        std: "All",
-        difficulty: "All",
-        search: "",
-        sortBy: "Most Recent",
-        page: 1,
-        limit: 9
-    });
+    const [filters, setFilters] = useState<FiltersType>(PRIVATE_PAPER_DEFAULT_FILTERS);
 
     const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
 
@@ -89,37 +82,38 @@ export function PrivatePapersClient({ initialPapers, initialTotal }: PrivatePape
     };
 
     const handlePageChange = (newPage: number) => {
-        if (newPage >= 1 && newPage <= Math.ceil(totalPapers / (filters.limit || 9))) {
+        if (newPage >= 1 && newPage <= Math.ceil(totalPapers / (filters.limit || 10))) {
             setFilters(prev => ({ ...prev, page: newPage }));
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
     };
 
-    const totalPages = Math.ceil(totalPapers / (filters.limit || 9));
+    const totalPages = Math.ceil(totalPapers / (filters.limit || 10));
 
     return (
-        <div className="max-w-[1300px] mx-auto pb-20 pt-6 sm:pt-10 px-4 sm:px-6">
+        <div className="max-w-[1300px] mx-auto pb-20 pt-2 sm:pt-4 px-4 sm:px-6">
             {/* Page Header */}
-            <div className="mb-6 sm:mb-8 flex flex-col gap-4">
-                <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 sm:gap-3 mb-2">
-                            <button onClick={() => router.back()} className="text-gray-500 hover:text-gray-800 transition-colors shrink-0" suppressHydrationWarning>
-                                <ArrowLeft className="w-5 h-5 sm:w-6 sm:h-6" />
-                            </button>
-                            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">Private Papers ({totalPapers})</h1>
-                        </div>
-                        <p className="text-gray-500 text-xs sm:text-sm ml-7 sm:ml-9 font-medium">Discover and access quality papers created by expert teachers</p>
+            <div className="mb-6 sm:mb-8 flex flex-col gap-3 sm:gap-4">
+                {/* Title Row with Button */}
+                <div className="flex items-center justify-between gap-2 sm:gap-4">
+                    <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                        <button onClick={() => router.back()} className="text-gray-500 hover:text-gray-800 transition-colors shrink-0" suppressHydrationWarning>
+                            <ArrowLeft className="w-5 h-5 sm:w-6 sm:h-6" />
+                        </button>
+                        <h1 className="text-lg sm:text-2xl font-bold text-gray-900 truncate">Papers ({totalPapers})</h1>
                     </div>
+                    <button
+                        onClick={() => router.push("/teacher/new-paper")}
+                        className="px-3 sm:px-6 py-2 sm:py-2.5 bg-[#5b5bd6] hover:bg-[#4f46e5] text-white font-bold rounded-lg sm:rounded-xl shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-1 sm:gap-2 shrink-0 whitespace-nowrap text-sm sm:text-base"
+                    >
+                        <span className="text-lg sm:text-xl leading-none">+</span>
+                        <span className="hidden sm:inline">Create New Paper</span>
+                        <span className="sm:hidden">New Paper</span>
+                    </button>
                 </div>
 
-                <button
-                    onClick={() => router.push("/teacher/ai-assessments")}
-                    className="w-full sm:w-auto px-6 py-2.5 bg-[#5b5bd6] hover:bg-[#4f46e5] text-white font-bold rounded-xl shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-2"
-                >
-                    <span className="text-xl leading-none">+</span>
-                    Create New Paper
-                </button>
+                {/* Description */}
+                <p className="text-gray-500 text-xs sm:text-sm font-medium">Discover and access quality papers created by expert teachers</p>
             </div>
 
             <div className="flex flex-col lg:flex-row gap-8 items-start">
@@ -166,9 +160,9 @@ export function PrivatePapersClient({ initialPapers, initialTotal }: PrivatePape
                                     className="h-10 px-3 rounded-lg border border-gray-200 text-sm font-bold text-[#5b5bd6] focus:outline-none bg-white cursor-pointer"
                                     suppressHydrationWarning
                                 >
-                                    <option>Most Recent</option>
-                                    <option>Most Popular</option>
-                                    <option>Highest Rated</option>
+                                    {PRIVATE_PAPER_SORT_OPTIONS.map((option) => (
+                                        <option key={option}>{option}</option>
+                                    ))}
                                 </select>
                             </div>
                         </div>
@@ -208,63 +202,92 @@ export function PrivatePapersClient({ initialPapers, initialTotal }: PrivatePape
                             </div>
 
                             {/* Pagination */}
-                            {totalPages > 1 && (
-                                <div className="flex items-center justify-center gap-2 mt-8">
-                                    <button
-                                        onClick={() => handlePageChange((filters.page || 1) - 1)}
-                                        disabled={(filters.page || 1) === 1}
-                                        className="px-3 py-1 text-xs font-bold text-gray-500 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                                    >
-                                        Prev
-                                    </button>
+                            {totalPages > 1 && (() => {
+                                const currentPage = filters.page || 1;
+                                
+                                // Smart pagination: Generate page numbers to display
+                                const getPageNumbers = (): (number | string)[] => {
+                                    const pages: (number | string)[] = [];
+                                    const maxVisible = 5;
 
-                                    {/* Page Numbers */}
-                                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                                        // Complex logic to show window of pages could go here, 
-                                        // keeping it simple for < 5 pages or showing first 5 for now 
-                                        // to match the "pixel perfect" aesthetic without over-engineering logic blindly.
-                                        // A Sliding Window is better:
-                                        let pageNum = i + 1;
-                                        const currentPage = filters.page || 1;
-
-                                        if (totalPages > 5) {
-                                            // Center around current page
-                                            if (currentPage > 3) {
-                                                pageNum = currentPage - 2 + i;
-                                            }
-                                            // Cap at totalPages
-                                            if (pageNum > totalPages) return null;
+                                    if (totalPages <= maxVisible) {
+                                        // Show all pages if total is less than max
+                                        for (let i = 1; i <= totalPages; i++) {
+                                            pages.push(i);
                                         }
+                                    } else {
+                                        // Smart pagination with ellipsis
+                                        if (currentPage <= 3) {
+                                            // Near start: show first 5 pages, then ellipsis, then last page
+                                            for (let i = 1; i <= 5; i++) pages.push(i);
+                                            pages.push('...');
+                                            pages.push(totalPages);
+                                        } else if (currentPage >= totalPages - 2) {
+                                            // Near end: show first page, ellipsis, then last 5 pages
+                                            pages.push(1);
+                                            pages.push('...');
+                                            for (let i = totalPages - 4; i <= totalPages; i++) pages.push(i);
+                                        } else {
+                                            // Middle: show first page, ellipsis, current-1, current, current+1, ellipsis, last page
+                                            pages.push(1);
+                                            pages.push('...');
+                                            for (let i = currentPage - 1; i <= currentPage + 1; i++) pages.push(i);
+                                            pages.push('...');
+                                            pages.push(totalPages);
+                                        }
+                                    }
 
-                                        if (!pageNum) return null;
+                                    return pages;
+                                };
 
-                                        return (
-                                            <button
-                                                key={pageNum}
-                                                onClick={() => handlePageChange(pageNum)}
-                                                className={`w-8 h-8 rounded-full text-xs font-bold flex items-center justify-center transition-colors ${currentPage === pageNum
-                                                    ? "bg-[#eeeaff] text-[#5b5bd6]"
-                                                    : "hover:bg-gray-50 text-gray-500"
+                                const pageNumbers = getPageNumbers();
+
+                                return (
+                                    <div className="flex items-center justify-center gap-2 mt-8">
+                                        <button
+                                            onClick={() => handlePageChange(currentPage - 1)}
+                                            disabled={currentPage === 1}
+                                            className="px-3 py-1 text-xs font-bold text-gray-500 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                                        >
+                                            Prev
+                                        </button>
+
+                                        {/* Page Numbers */}
+                                        {pageNumbers.map((page, index) => {
+                                            if (page === '...') {
+                                                return (
+                                                    <span key={`ellipsis-${index}`} className="text-gray-400 text-xs px-1">
+                                                        ...
+                                                    </span>
+                                                );
+                                            }
+
+                                            const pageNum = page as number;
+                                            return (
+                                                <button
+                                                    key={pageNum}
+                                                    onClick={() => handlePageChange(pageNum)}
+                                                    className={`w-8 h-8 rounded-full text-xs font-bold flex items-center justify-center transition-colors ${
+                                                        currentPage === pageNum
+                                                            ? "bg-[#eeeaff] text-[#5b5bd6]"
+                                                            : "hover:bg-gray-50 text-gray-500"
                                                     }`}
-                                            >
-                                                {pageNum}
-                                            </button>
-                                        );
-                                    })}
+                                                >
+                                                    {pageNum}
+                                                </button>
+                                            );
+                                        })}
 
-                                    {totalPages > 5 && (filters.page || 1) < totalPages - 2 && (
-                                        <span className="text-gray-400 text-xs">...</span>
-                                    )}
-
-                                    <button
-                                        onClick={() => handlePageChange((filters.page || 1) + 1)}
-                                        disabled={(filters.page || 1) === totalPages}
-                                        className="px-3 py-1 text-xs font-bold text-[#5b5bd6] hover:text-[#4f46e5] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                                    >
-                                        Next
-                                    </button>
-                                </div>
-                            )}
+                                        <button
+                                            onClick={() => handlePageChange(currentPage + 1)}
+                                            disabled={currentPage === totalPages}
+                                            className="px-3 py-1 text-xs font-bold text-[#5b5bd6] hover:text-[#4f46e5] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                                        >
+                                            Next
+                                        </button>
+                                    </div>
+                                );
+                            })()}
                         </>
                     ) : (
                         <div className="min-h-[400px] flex flex-col items-center justify-center text-center p-8 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
@@ -276,15 +299,7 @@ export function PrivatePapersClient({ initialPapers, initialTotal }: PrivatePape
                                 Try adjusting your filters or search query to find what youre looking for.
                             </p>
                             <button
-                                onClick={() => setFilters({
-                                    subject: "All",
-                                    std: "All",
-                                    difficulty: "All",
-                                    search: "",
-                                    sortBy: "Most Recent",
-                                    page: 1,
-                                    limit: 9
-                                })}
+                                onClick={() => setFilters(PRIVATE_PAPER_DEFAULT_FILTERS)}
                                 className="mt-4 px-6 py-2 bg-white border border-gray-200 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-colors"
                             >
                                 Clear Filters

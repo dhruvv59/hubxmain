@@ -15,7 +15,7 @@ import { DASHBOARD_ENDPOINTS, ANALYTICS_ENDPOINTS } from "@/lib/api-config";
  * These match the actual backend response structures from:
  * - GET /api/student/dashboard
  * - GET /api/student/exam-history
- * - GET /api/student/public-papers
+ * - GET /api/student/published-papers
  */
 
 interface BackendDashboardResponse {
@@ -205,7 +205,13 @@ export async function getStudentProfile(): Promise<{ name: string; avatar: strin
             avatar: (user as any).avatar || ""
         };
     } catch (error) {
-        console.error('[Dashboard] Failed to fetch student profile:', error);
+        // Gracefully handle any auth errors (401, 404, network, etc.)
+        // Return safe default to prevent dashboard from crashing
+        if (error instanceof Error) {
+            console.warn('[Dashboard] Failed to fetch student profile:', error.message);
+        } else {
+            console.warn('[Dashboard] Failed to fetch student profile:', error);
+        }
         return { name: "Student", avatar: "" };
     }
 }

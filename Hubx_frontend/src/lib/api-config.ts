@@ -22,7 +22,7 @@ export const AUTH_ENDPOINTS = {
  */
 export const DASHBOARD_ENDPOINTS = {
     getDashboard: () => `${API_BASE_URL}/student/dashboard`,
-    getPublicPapers: (page = 1, limit = 10) => `${API_BASE_URL}/student/public-papers?page=${page}&limit=${limit}`,
+    getPublicPapers: (page = 1, limit = 10) => `${API_BASE_URL}/student/published-papers?page=${page}&limit=${limit}`,
     getExamHistory: (page = 1, limit = 10) => `${API_BASE_URL}/student/exam-history?page=${page}&limit=${limit}`,
     getPracticeExams: (page = 1, limit = 10) => `${API_BASE_URL}/student/practice-exams?page=${page}&limit=${limit}`,
     getExamResult: (attemptId: string) => `${API_BASE_URL}/student/exam-result/${attemptId}`,
@@ -60,7 +60,7 @@ export const EXAM_ENDPOINTS = {
  */
 export const TEACHER_ENDPOINTS = {
     getPapers: (page = 1, limit = 10) => `${API_BASE_URL}/teacher/papers?page=${page}&limit=${limit}`,
-    getPublicPapers: (filters?: string) => filters ? `${API_BASE_URL}/teacher/public-papers?${filters}` : `${API_BASE_URL}/teacher/public-papers`,
+    getPublicPapers: (filters?: string) => filters ? `${API_BASE_URL}/teacher/published-papers?${filters}` : `${API_BASE_URL}/teacher/published-papers`,
     getPaperById: (paperId: string) => `${API_BASE_URL}/teacher/papers/${paperId}`,
     createPaper: () => `${API_BASE_URL}/teacher/papers`,
     updatePaper: (paperId: string) => `${API_BASE_URL}/teacher/papers/${paperId}`,

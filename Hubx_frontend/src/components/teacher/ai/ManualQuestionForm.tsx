@@ -15,6 +15,7 @@ interface ManualQuestionFormProps {
     onDone?: () => void;
     isSubmitting?: boolean;
     showDoneButton?: boolean;
+    initialQuestion?: Question;
 }
 
 export interface ManualQuestionFormRef {
@@ -22,11 +23,12 @@ export interface ManualQuestionFormRef {
 }
 
 export const ManualQuestionForm = forwardRef<ManualQuestionFormRef, ManualQuestionFormProps>(
-    function ManualQuestionFormComponent({ questionNumber, onAdd, onCancel, onOpenBank, onDone, isSubmitting, showDoneButton }, ref) {
-        const [type, setType] = useState<QuestionType>("Text");
-        const [difficulty, setDifficulty] = useState<Difficulty>("Intermediate");
-        const [content, setContent] = useState("");
-        const [solution, setSolution] = useState("");
+    function ManualQuestionFormComponent({ questionNumber, onAdd, onCancel, onOpenBank, onDone, isSubmitting, showDoneButton, initialQuestion }, ref) {
+        const [type, setType] = useState<QuestionType>(initialQuestion?.type || "Text");
+        const [difficulty, setDifficulty] = useState<Difficulty>(initialQuestion?.difficulty || "Intermediate");
+        const [marks, setMarks] = useState<number>((initialQuestion as any)?.marks || 1);
+        const [content, setContent] = useState(initialQuestion?.content || "");
+        const [solution, setSolution] = useState(initialQuestion?.solution || "");
         const [showQuestionPreview, setShowQuestionPreview] = useState(false);
         const [showSolutionPreview, setShowSolutionPreview] = useState(false);
 
@@ -46,44 +48,78 @@ export const ManualQuestionForm = forwardRef<ManualQuestionFormRef, ManualQuesti
         const questionImageInputRef = useRef<HTMLInputElement | null>(null);
         const solutionImageInputRef = useRef<HTMLInputElement | null>(null);
 
-        const MATH_SYMBOLS = ["²", "³", "±", "×", "÷", "≤", "≥", "√", "π"];
+        const MATH_SYMBOLS = ["(", ")", "[", "]", "{", "}", "²", "³", "±", "×", "÷", "≤", "≥", "√", "π", "|"];
 
         // MCQ specific state
-        const [options, setOptions] = useState<MCQOption[]>([
-            { id: "opt-1", text: "", isCorrect: false },
-            { id: "opt-2", text: "", isCorrect: false },
-            { id: "opt-3", text: "", isCorrect: false },
-            { id: "opt-4", text: "", isCorrect: false },
-        ]);
+        const [options, setOptions] = useState<MCQOption[]>(
+            initialQuestion?.type === "MCQ" && initialQuestion?.options
+                ? initialQuestion.options
+                : [
+                    { id: "opt-1", text: "", isCorrect: false },
+                    { id: "opt-2", text: "", isCorrect: false },
+                    { id: "opt-3", text: "", isCorrect: false },
+                    { id: "opt-4", text: "", isCorrect: false },
+                ]
+        );
 
         // Fill in the Blanks specific state
-        const [blanks, setBlanks] = useState<FillInTheBlank[]>([
-            { id: "blank-1", position: 0, correctAnswer: "", placeholder: "Answer 1" }
-        ]);
+        const [blanks, setBlanks] = useState<FillInTheBlank[]>(
+            initialQuestion?.type === "Fill in the Blanks" && initialQuestion?.blanks
+                ? initialQuestion.blanks
+                : [{ id: "blank-1", position: 0, correctAnswer: "", placeholder: "Answer 1" }]
+        );
+
+        // Handle when initialQuestion changes (when user clicks to edit a question)
+        useEffect(() => {
+            if (initialQuestion) {
+                setType(initialQuestion.type || "Text");
+                setDifficulty(initialQuestion.difficulty || "Intermediate");
+                setContent(initialQuestion.content || "");
+                setSolution(initialQuestion.solution || "");
+
+                if (initialQuestion.type === "MCQ" && initialQuestion.options) {
+                    setOptions(initialQuestion.options);
+                } else {
+                    setOptions([
+                        { id: "opt-1", text: "", isCorrect: false },
+                        { id: "opt-2", text: "", isCorrect: false },
+                        { id: "opt-3", text: "", isCorrect: false },
+                        { id: "opt-4", text: "", isCorrect: false },
+                    ]);
+                }
+
+                if (initialQuestion.type === "Fill in the Blanks" && initialQuestion.blanks) {
+                    setBlanks(initialQuestion.blanks);
+                } else {
+                    setBlanks([{ id: "blank-1", position: 0, correctAnswer: "", placeholder: "Answer 1" }]);
+                }
+            }
+        }, [initialQuestion]);
 
         // Reset type-specific fields when type changes
         useEffect(() => {
-            if (type === "MCQ") {
-                // Reset MCQ options
+            if (type === "MCQ" && !initialQuestion) {
+                // Reset MCQ options only if not editing
                 setOptions([
                     { id: "opt-1", text: "", isCorrect: false },
                     { id: "opt-2", text: "", isCorrect: false },
                     { id: "opt-3", text: "", isCorrect: false },
                     { id: "opt-4", text: "", isCorrect: false },
                 ]);
-            } else if (type === "Fill in the Blanks") {
-                // Reset blanks
+            } else if (type === "Fill in the Blanks" && !initialQuestion) {
+                // Reset blanks only if not editing
                 setBlanks([
                     { id: "blank-1", position: 0, correctAnswer: "", placeholder: "Answer 1" }
                 ]);
             }
-        }, [type]);
+        }, [type, initialQuestion]);
 
         // Expose reset function to parent component
         useImperativeHandle(ref, () => ({
             resetForm: () => {
                 setType("Text");
                 setDifficulty("Intermediate");
+                setMarks(1);
                 setContent("");
                 setSolution("");
                 setShowQuestionPreview(false);
@@ -334,8 +370,10 @@ export const ManualQuestionForm = forwardRef<ManualQuestionFormRef, ManualQuesti
         };
 
         const validateForm = (): boolean => {
+            // Question content is required
             if (!content.trim()) return false;
 
+            // Answers are REQUIRED
             if (type === "MCQ") {
                 // Count non-empty options
                 const nonEmptyOptions = options.filter(opt => opt.text.trim());
@@ -357,20 +395,21 @@ export const ManualQuestionForm = forwardRef<ManualQuestionFormRef, ManualQuesti
         };
 
         const handleAdd = () => {
-            const questionData: Question & { questionImage?: File; solutionImage?: File } = {
+            const questionData: Question & { questionImage?: File; solutionImage?: File; marks?: number } = {
                 id: `q-${Date.now()}`,
                 type,
                 difficulty,
                 content,
-                solution
+                solution,
+                marks
             };
 
             // Add image files if they exist
             if (questionImage) {
-                questionData.questionImage = questionImage;
+                (questionData as any).questionImage = questionImage;
             }
             if (solutionImage) {
-                questionData.solutionImage = solutionImage;
+                (questionData as any).solutionImage = solutionImage;
             }
 
             // Add type-specific data
@@ -386,10 +425,10 @@ export const ManualQuestionForm = forwardRef<ManualQuestionFormRef, ManualQuesti
         return (
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
                 {/* Header Toolbar */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between px-8 py-5 border-b border-gray-100 gap-4">
-                    <div className="flex items-center gap-6">
-                        <span className="text-sm font-bold text-gray-900">Question {questionNumber}</span>
-                        <div className="flex items-center gap-4">
+                <div className="flex flex-col md:flex-row md:items-center justify-between px-4 sm:px-6 lg:px-8 py-5 border-b border-gray-100 gap-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
+                        <span className="text-sm font-bold text-gray-900 whitespace-nowrap">Question {questionNumber}</span>
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-4">
                             <label className="flex items-center gap-2 cursor-pointer">
                                 <input
                                     type="radio"
@@ -398,7 +437,7 @@ export const ManualQuestionForm = forwardRef<ManualQuestionFormRef, ManualQuesti
                                     onChange={() => handleTypeChange("Text")}
                                     className="w-4 h-4 text-[#5b5bd6] border-gray-300 focus:ring-[#5b5bd6]"
                                 />
-                                <span className={cn("text-xs font-bold", type === "Text" ? "text-gray-900" : "text-gray-500")}>Text Question</span>
+                                <span className={cn("text-xs font-bold", type === "Text" ? "text-gray-900" : "text-gray-500")}>Text</span>
                             </label>
                             <label className="flex items-center gap-2 cursor-pointer">
                                 <input
@@ -418,14 +457,14 @@ export const ManualQuestionForm = forwardRef<ManualQuestionFormRef, ManualQuesti
                                     onChange={() => handleTypeChange("Fill in the Blanks")}
                                     className="w-4 h-4 text-[#5b5bd6] border-gray-300 focus:ring-[#5b5bd6]"
                                 />
-                                <span className={cn("text-xs font-bold", type === "Fill in the Blanks" ? "text-gray-900" : "text-gray-500")}>Fill in the Blanks</span>
+                                <span className={cn("text-xs font-bold", type === "Fill in the Blanks" ? "text-gray-900" : "text-gray-500")}>FIB</span>
                             </label>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
-                        <span className="text-xs font-bold text-gray-500">Difficulty Level</span>
-                        <div className="flex items-center gap-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                        <span className="text-xs font-bold text-gray-500 whitespace-nowrap">Difficulty:</span>
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-4">
                             {(["Easy", "Intermediate", "Advanced"] as Difficulty[]).map((level) => (
                                 <label key={level} className="flex items-center gap-2 cursor-pointer">
                                     <input
@@ -440,15 +479,27 @@ export const ManualQuestionForm = forwardRef<ManualQuestionFormRef, ManualQuesti
                             ))}
                         </div>
                     </div>
+
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-gray-500 whitespace-nowrap">Marks:</span>
+                        <input
+                            type="number"
+                            min={1}
+                            max={100}
+                            value={marks}
+                            onChange={(e) => setMarks(Math.max(1, parseInt(e.target.value) || 1))}
+                            className="w-16 px-2 py-1.5 border border-gray-200 rounded-lg text-xs font-bold text-gray-900 focus:outline-none focus:border-[#5b5bd6] text-center"
+                        />
+                    </div>
                 </div>
 
                 {/* Form Content */}
-                <div className="p-8 bg-[#fdfcff]/50">
-                    <h3 className="text-sm font-bold text-gray-900 mb-4">Add Question Manually</h3>
+                <div className="p-3 sm:p-6 lg:p-8 bg-white rounded-xl border border-gray-200 shadow-sm">
+                    <h3 className="text-lg font-bold text-gray-900 mb-4 sm:mb-6">Add Question Manually</h3>
 
                     {/* Question Section */}
-                    <div className="mb-8">
-                        <label className="block text-xs font-bold text-gray-500 mb-2">
+                    <div className="mb-6 sm:mb-8">
+                        <label className="block text-xs font-bold text-gray-600 mb-2 sm:mb-3 uppercase tracking-wide">
                             Question
                             {type === "Fill in the Blanks" && (
                                 <span className="ml-2 text-[#5b5bd6] font-normal">
@@ -457,14 +508,14 @@ export const ManualQuestionForm = forwardRef<ManualQuestionFormRef, ManualQuesti
                             )}
                         </label>
                         {/* Simple math symbol palette for question */}
-                        <div className="flex flex-wrap items-center gap-2 mb-2">
-                            <span className="text-[11px] font-semibold text-gray-500">Math symbols:</span>
+                        <div className="flex flex-wrap items-center gap-1.5 mb-2">
+                            <span className="text-[11px] font-semibold text-gray-500 w-full sm:w-auto">Math symbols:</span>
                             {MATH_SYMBOLS.map((symbol) => (
                                 <button
                                     key={symbol}
                                     type="button"
                                     onClick={() => insertSymbol("question", symbol)}
-                                    className="px-2 py-1 rounded border border-gray-200 bg-white text-xs font-semibold text-gray-800 hover:bg-indigo-50 hover:border-indigo-200 transition-colors"
+                                    className="px-1.5 py-0.5 sm:px-2 sm:py-1 rounded border border-gray-200 bg-white text-xs font-semibold text-gray-800 hover:bg-indigo-50 hover:border-indigo-200 transition-colors flex-shrink-0"
                                 >
                                     {symbol}
                                 </button>
@@ -474,29 +525,22 @@ export const ManualQuestionForm = forwardRef<ManualQuestionFormRef, ManualQuesti
                             ref={questionRef}
                             value={content}
                             onChange={(e) => setContent(e.target.value)}
-                            className="w-full h-32 px-4 py-3 rounded-lg border border-gray-200 text-sm font-medium text-gray-900 focus:outline-none focus:border-indigo-500 resize-none bg-white placeholder:text-gray-400"
+                            className="w-full h-24 sm:h-32 px-4 py-3 rounded-lg border border-gray-200 text-sm font-medium text-gray-900 focus:outline-none focus:border-indigo-500 resize-none bg-white placeholder:text-gray-400"
                             placeholder={
                                 type === "Text" ? "Distinguish between boiling and evaporation." :
                                     type === "MCQ" ? "What is the capital of France?" :
                                         "The capital of France is _____ and it is located on the _____ river."
                             }
                         />
-                        <div className="flex items-center justify-between mt-3">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:gap-3 gap-2 mt-3">
                             <button
                                 type="button"
-                                className="text-xs font-bold text-[#5b5bd6] hover:underline"
-                                onClick={() => setShowQuestionPreview(prev => !prev)}
+                                onClick={() => questionImageInputRef.current?.click()}
+                                className="flex items-center justify-center gap-1.5 text-xs font-bold text-[#5b5bd6] hover:bg-indigo-50 px-2 sm:px-3 py-1.5 rounded-lg transition-colors flex-1 sm:flex-initial order-1 sm:order-1"
                             >
-                                {showQuestionPreview ? "Hide Question Preview" : "View Question (Math Preview)"}
-                            </button>
-                            <div className="flex items-center gap-4">
-                                <button
-                                    type="button"
-                                    onClick={() => questionImageInputRef.current?.click()}
-                                    className="flex items-center gap-1.5 text-xs font-bold text-[#5b5bd6] hover:text-[#4f46e5]"
-                                >
-                                    <Paperclip className="w-3.5 h-3.5" />
-                                    {questionImage ? "Change Image" : "Attach Image for question"}
+                                    <Paperclip className="w-3.5 h-3.5 flex-shrink-0" />
+                                    <span className="hidden sm:inline">{questionImage ? "Change Image" : "Attach Image"}</span>
+                                    <span className="sm:hidden">{questionImage ? "Change" : "Attach"}</span>
                                 </button>
                                 <input
                                     ref={questionImageInputRef}
@@ -505,14 +549,28 @@ export const ManualQuestionForm = forwardRef<ManualQuestionFormRef, ManualQuesti
                                     onChange={handleQuestionImageSelect}
                                     className="hidden"
                                 />
-                                <button
-                                    onClick={onOpenBank}
-                                    className="flex items-center gap-1.5 text-xs font-bold text-[#5b5bd6] hover:text-[#4f46e5]"
-                                >
-                                    <HelpCircle className="w-3.5 h-3.5" />
-                                    Add from Question Bank
-                                </button>
-                            </div>
+                            <button
+                                onClick={onOpenBank}
+                                className="flex items-center justify-center gap-1.5 text-xs font-bold text-[#5b5bd6] hover:bg-indigo-50 px-2 sm:px-3 py-1.5 rounded-lg transition-colors flex-1 sm:flex-initial"
+                            >
+                                <HelpCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                                <span className="hidden sm:inline">Add from Bank</span>
+                                <span className="sm:hidden">Add</span>
+                            </button>
+                            <input
+                                ref={questionImageInputRef}
+                                type="file"
+                                accept="image/*,.pdf,.odt,.ods,.odp,.odg"
+                                onChange={handleQuestionImageSelect}
+                                className="hidden"
+                            />
+                            <button
+                                type="button"
+                                className="text-xs font-bold text-[#5b5bd6] hover:bg-indigo-50 px-3 py-1.5 rounded-lg transition-colors text-center flex-1 sm:flex-initial order-2 sm:order-2"
+                                onClick={() => setShowQuestionPreview(prev => !prev)}
+                            >
+                                {showQuestionPreview ? "Hide Preview" : "View Question (Maths)"}
+                            </button>
                         </div>
                         {questionImagePreview && (
                             <div className="mt-3">
@@ -557,7 +615,7 @@ export const ManualQuestionForm = forwardRef<ManualQuestionFormRef, ManualQuesti
                                     ) : (
                                         <>
                                             <Wand2 className="w-3.5 h-3.5" />
-                                            Extract Text with AI (OCR)
+                                            Extract Text From Image And PDF
                                         </>
                                     )}
                                 </button>
@@ -580,9 +638,9 @@ export const ManualQuestionForm = forwardRef<ManualQuestionFormRef, ManualQuesti
 
                     {/* MCQ Options Section */}
                     {type === "MCQ" && (
-                        <div className="mb-8">
+                        <div className="mb-6 sm:mb-8">
                             <div className="flex items-center justify-between mb-4">
-                                <label className="block text-xs font-bold text-gray-500">Options</label>
+                                <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide">Options</label>
                                 <button
                                     onClick={handleAddOption}
                                     className="flex items-center gap-1.5 text-xs font-bold text-[#5b5bd6] hover:text-[#4f46e5]"
@@ -629,9 +687,9 @@ export const ManualQuestionForm = forwardRef<ManualQuestionFormRef, ManualQuesti
 
                     {/* Fill in the Blanks Section */}
                     {type === "Fill in the Blanks" && (
-                        <div className="mb-8">
+                        <div className="mb-6 sm:mb-8">
                             <div className="flex items-center justify-between mb-4">
-                                <label className="block text-xs font-bold text-gray-500">Correct Answers for Blanks</label>
+                                <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide">Correct Answers for Blanks</label>
                                 <button
                                     onClick={handleAddBlank}
                                     className="flex items-center gap-1.5 text-xs font-bold text-[#5b5bd6] hover:text-[#4f46e5]"
@@ -672,19 +730,19 @@ export const ManualQuestionForm = forwardRef<ManualQuestionFormRef, ManualQuesti
                     )}
 
                     {/* Solution Section */}
-                    <div className="mb-8">
-                        <label className="block text-xs font-bold text-gray-500 mb-2">
+                    <div className="mb-6 sm:mb-8">
+                        <label className="block text-xs font-bold text-gray-600 mb-2 sm:mb-3 uppercase tracking-wide">
                             Solution {type !== "Text" && <span className="font-normal">(Optional for {type})</span>}
                         </label>
                         {/* Simple math symbol palette for solution */}
-                        <div className="flex flex-wrap items-center gap-2 mb-2">
-                            <span className="text-[11px] font-semibold text-gray-500">Math symbols:</span>
+                        <div className="flex flex-wrap items-center gap-1.5 mb-2">
+                            <span className="text-[11px] font-semibold text-gray-500 w-full sm:w-auto">Math symbols:</span>
                             {MATH_SYMBOLS.map((symbol) => (
                                 <button
                                     key={symbol}
                                     type="button"
                                     onClick={() => insertSymbol("solution", symbol)}
-                                    className="px-2 py-1 rounded border border-gray-200 bg-white text-xs font-semibold text-gray-800 hover:bg-indigo-50 hover:border-indigo-200 transition-colors"
+                                    className="px-1.5 py-0.5 sm:px-2 sm:py-1 rounded border border-gray-200 bg-white text-xs font-semibold text-gray-800 hover:bg-indigo-50 hover:border-indigo-200 transition-colors flex-shrink-0"
                                 >
                                     {symbol}
                                 </button>
@@ -694,28 +752,22 @@ export const ManualQuestionForm = forwardRef<ManualQuestionFormRef, ManualQuesti
                             ref={solutionRef}
                             value={solution}
                             onChange={(e) => setSolution(e.target.value)}
-                            className="w-full h-32 px-4 py-3 rounded-lg border border-gray-200 text-sm font-medium text-gray-900 focus:outline-none focus:border-indigo-500 resize-none bg-white placeholder:text-gray-400"
+                            className="w-full h-24 sm:h-32 px-4 py-3 rounded-lg border border-gray-200 text-sm font-medium text-gray-900 focus:outline-none focus:border-indigo-500 resize-none bg-white placeholder:text-gray-400"
                             placeholder={
                                 type === "Text" ? "Occurs throughout the liquid. Occurs only at the surface..." :
                                     type === "MCQ" ? "Explanation: Paris is the capital and largest city of France..." :
                                         "Explanation: Paris is the capital of France, situated on the Seine river..."
                             }
                         />
-                        <div className="flex items-center justify-between mt-3">
-                            <button
-                                type="button"
-                                className="text-xs font-bold text-[#5b5bd6] hover:underline"
-                                onClick={() => setShowSolutionPreview(prev => !prev)}
-                            >
-                                {showSolutionPreview ? "Hide Solution Preview" : "View Solution (Math Preview)"}
-                            </button>
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:gap-3 gap-2 mt-3">
                             <button
                                 type="button"
                                 onClick={() => solutionImageInputRef.current?.click()}
-                                className="flex items-center gap-1.5 text-xs font-bold text-[#5b5bd6] hover:text-[#4f46e5]"
+                                className="flex items-center justify-center gap-1.5 text-xs font-bold text-[#5b5bd6] hover:bg-indigo-50 px-2 sm:px-3 py-1.5 rounded-lg transition-colors flex-1 sm:flex-initial order-1 sm:order-1"
                             >
-                                <Paperclip className="w-3.5 h-3.5" />
-                                {solutionImage ? "Change Image" : "Attach Image for solution"}
+                                <Paperclip className="w-3.5 h-3.5 flex-shrink-0" />
+                                <span className="hidden sm:inline">{solutionImage ? "Change Image" : "Attach Image"}</span>
+                                <span className="sm:hidden">{solutionImage ? "Change" : "Attach"}</span>
                             </button>
                             <input
                                 ref={solutionImageInputRef}
@@ -724,7 +776,22 @@ export const ManualQuestionForm = forwardRef<ManualQuestionFormRef, ManualQuesti
                                 onChange={handleSolutionImageSelect}
                                 className="hidden"
                             />
+                            <button
+                                type="button"
+                                className="text-xs font-bold text-[#5b5bd6] hover:bg-indigo-50 px-3 py-1.5 rounded-lg transition-colors text-center flex-1 sm:flex-initial order-2 sm:order-2"
+                                onClick={() => setShowSolutionPreview(prev => !prev)}
+                            >
+                                {showSolutionPreview ? "Hide Preview" : "View Solution (Maths)"}
+                            </button>
                         </div>
+                        {showSolutionPreview && (
+                            <div className="mt-3">
+                                <p className="text-[11px] text-gray-500 mb-1">
+                                    Write LaTeX for maths (e.g. <code className="bg-gray-100 px-1 py-0.5 rounded">\frac{"{a}"}{"{b}"}</code>, <code className="bg-gray-100 px-1 py-0.5 rounded">x^2</code>, <code className="bg-gray-100 px-1 py-0.5 rounded">\sqrt{"{x}"}</code>)
+                                </p>
+                                {renderMath(solution)}
+                            </div>
+                        )}
                         {solutionImagePreview && (
                             <div className="mt-3">
                                 <div className="relative inline-block">
@@ -768,7 +835,7 @@ export const ManualQuestionForm = forwardRef<ManualQuestionFormRef, ManualQuesti
                                     ) : (
                                         <>
                                             <Wand2 className="w-3.5 h-3.5" />
-                                            Extract Text with AI (OCR)
+                                            Extract Text From Image And PDF
                                         </>
                                     )}
                                 </button>
@@ -782,11 +849,11 @@ export const ManualQuestionForm = forwardRef<ManualQuestionFormRef, ManualQuesti
                     </div>
 
                     {/* Footer Buttons */}
-                    <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3 pt-4 border-t border-gray-100">
                         <button
                             onClick={onCancel}
                             disabled={isSubmitting}
-                            className="h-10 px-8 rounded-lg border border-[#5b5bd6] text-[#5b5bd6] text-xs font-bold hover:bg-indigo-50 transition-colors disabled:opacity-50"
+                            className="h-10 px-6 sm:px-8 rounded-lg border border-[#5b5bd6] text-[#5b5bd6] text-xs font-bold hover:bg-indigo-50 transition-colors disabled:opacity-50 flex items-center justify-center sm:justify-start"
                         >
                             Cancel
                         </button>
@@ -794,7 +861,7 @@ export const ManualQuestionForm = forwardRef<ManualQuestionFormRef, ManualQuesti
                             <button
                                 onClick={onDone}
                                 disabled={isSubmitting}
-                                className="h-10 px-8 rounded-lg bg-green-600 text-white text-xs font-bold hover:bg-green-700 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                className="h-10 px-6 sm:px-8 rounded-lg bg-green-600 text-white text-xs font-bold hover:bg-green-700 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 flex-shrink-0"
                             >
                                 {isSubmitting && <Loader2 className="w-3 h-3 animate-spin" />}
                                 <Check className="w-4 h-4" />
@@ -804,11 +871,11 @@ export const ManualQuestionForm = forwardRef<ManualQuestionFormRef, ManualQuesti
                             <button
                                 onClick={handleAdd}
                                 disabled={!validateForm() || isSubmitting}
-                                className="h-10 px-8 rounded-lg bg-[#5b5bd6] text-white text-xs font-bold hover:bg-[#4f46e5] transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                className="h-10 px-6 sm:px-8 rounded-lg bg-[#5b5bd6] text-white text-xs font-bold hover:bg-[#4f46e5] transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 flex-shrink-0"
                                 title={!validateForm() ? "Please fill all required fields" : ""}
                             >
                                 {isSubmitting && <Loader2 className="w-3 h-3 animate-spin" />}
-                                Add Question
+                                {initialQuestion ? "Update Question" : "Add Question"}
                             </button>
                         )}
                     </div>

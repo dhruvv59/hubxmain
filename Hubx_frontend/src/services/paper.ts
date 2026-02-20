@@ -4,7 +4,7 @@ import { DASHBOARD_ENDPOINTS } from "@/lib/api-config";
 
 /**
  * Backend Response Types
- * Matches GET /api/student/public-papers
+ * Matches GET /api/student/published-papers
  */
 interface BackendPublicPapersResponse {
     success: boolean;

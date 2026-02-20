@@ -131,7 +131,7 @@ export default function TeacherDashboard() {
             {/* Banners */}
             <Banners />
 
-            {/* Bottom Grid: Charts & Notifications */}
+            {/* Charts and Notifications */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
                 {/* Left Column: Charts */}
                 <div className="lg:col-span-2 space-y-5">

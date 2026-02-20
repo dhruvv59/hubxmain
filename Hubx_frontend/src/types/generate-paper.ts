@@ -31,6 +31,9 @@ export interface Question {
     options?: MCQOption[]; // Required only for MCQ type
     // Fill in the Blanks specific fields
     blanks?: FillInTheBlank[]; // Required only for Fill in the Blanks type
+    // Image URLs (from question bank)
+    questionImage?: string;
+    solutionImage?: string;
 }
 
 export interface PaperConfig {

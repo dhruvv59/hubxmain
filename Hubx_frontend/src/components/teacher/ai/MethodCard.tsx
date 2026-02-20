@@ -1,11 +1,11 @@
 "use client";
 
 import React from "react";
-import { Plus, Upload, Sparkles } from "lucide-react";
+import { Plus, Upload, Sparkles, Library } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface MethodCardProps {
-    type: "manual" | "bulk" | "ai";
+    type: "manual" | "bulk" | "ai" | "bank";
     onClick?: () => void;
 }
 
@@ -37,6 +37,15 @@ export function MethodCard({ type, onClick }: MethodCardProps) {
             borderColor: "border-[#e9d5ff] hover:border-[#bd5eee]",
             bgHover: "hover:bg-[#fdf4ff]",
             iconBg: "bg-white border-[#e9d5ff] text-[#d946ef]"
+        },
+        bank: {
+            title: "ADD FROM QUESTION BANK",
+            description: "Select questions from your saved question bank",
+            icon: Library,
+            color: "text-[#0891b2]", // Cyan
+            borderColor: "border-[#a5f3fc] hover:border-[#0891b2]",
+            bgHover: "hover:bg-[#ecf8ff]",
+            iconBg: "bg-white border-[#a5f3fc] text-[#0891b2]"
         }
     };
 
@@ -46,7 +55,7 @@ export function MethodCard({ type, onClick }: MethodCardProps) {
         <button
             onClick={onClick}
             className={cn(
-                "group relative w-full aspect-[4/3] rounded-[24px] border-[1.5px] bg-white p-8 flex flex-col items-center justify-center transition-all duration-300",
+                "group relative w-full aspect-[4/3] min-h-[280px] rounded-[24px] border-[1.5px] bg-white p-8 flex flex-col items-center justify-center transition-all duration-300",
                 borderColor,
                 bgHover,
                 "shadow-sm hover:shadow-md"

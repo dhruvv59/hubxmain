@@ -9,13 +9,22 @@ export const saveDraft = async (config: PaperConfig): Promise<string> => {
     try {
         // Extract standard number if not provided directly
         let standardNum = config.standardValue;
+        let customStandard: string | undefined = undefined;
+
         if (!standardNum && config.standard) {
             const match = config.standard.match(/\d+/);
-            if (match) standardNum = parseInt(match[0]);
+            if (match) {
+                // Has a number - use it as standard number
+                standardNum = parseInt(match[0]);
+            } else {
+                // No number found - this is a custom standard like "IIT Bombay"
+                customStandard = config.standard;
+                standardNum = 0; // Send 0 to indicate custom standard
+            }
         }
 
         // Map frontend config to backend payload
-        const payload = {
+        const payload: any = {
             title: config.title,
             standard: standardNum,
             subjectId: config.subjectId,
@@ -23,10 +32,16 @@ export const saveDraft = async (config: PaperConfig): Promise<string> => {
             type: config.isTimeBound ? "TIME_BOUND" : "NO_LIMIT", // Backend expects these
             duration: config.duration,
             isPublic: config.isPublic,
+            isFreeAccess: config.schoolOnly, // Map schoolOnly to backend's isFreeAccess
             price: config.price,
             chapterIds: config.chapters.filter(c => c.selected).map(c => c.id),
             description: "Created via AI Assessment"
         };
+
+        // Add custom standard if provided
+        if (customStandard) {
+            payload.customStandard = customStandard;
+        }
 
         console.log("Saving Draft Payload:", payload);
 
@@ -50,10 +65,16 @@ export const getDraft = async (draftId: string): Promise<PaperConfig | null> => 
         if (!paper) return null;
 
         // Map backend Paper to frontend PaperConfig
+        // Handle both custom and standard number standards
+        const standardDisplay = paper.customStandard
+            ? paper.customStandard
+            : (paper.standard ? `Standard ${paper.standard}` : "Not selected");
+
         return {
             title: paper.title,
-            standard: `Standard ${paper.standard}`,
-            standardValue: paper.standard,
+            standard: standardDisplay,
+            standardValue: paper.standard || undefined,
+            standardId: paper.subject?.standardId,
             subject: paper.subject?.name || "Unknown",
             subjectId: paper.subjectId,
             difficulty: mapDifficulty(paper.difficulty),
@@ -64,7 +85,7 @@ export const getDraft = async (draftId: string): Promise<PaperConfig | null> => 
             })) || [],
             isTimeBound: paper.type === "TIME_BOUND",
             isPublic: paper.isPublic,
-            schoolOnly: false, // Not currently supported by backend
+            schoolOnly: paper.isFreeAccess || false, // Map backend's isFreeAccess to schoolOnly
             duration: paper.duration || 60,
             price: paper.price || 0,
             questions: paper.questions?.map((q: any) => {
@@ -86,6 +107,8 @@ export const getDraft = async (draftId: string): Promise<PaperConfig | null> => 
                     content: q.questionText,
                     solution: q.solutionText || "",
                     marks: q.marks,
+                    questionImage: q.questionImage || undefined,
+                    solutionImage: q.solutionImage || undefined,
                 };
 
                 // Handle MCQ: convert string array to MCQOption objects
@@ -232,6 +255,34 @@ export const removeQuestionFromDraft = async (draftId: string, questionId: strin
     } catch (error) {
         console.error("Failed to remove question:", error);
         throw error;
+    }
+};
+
+/**
+ * Publishes a draft paper (changes status from DRAFT to PUBLISHED)
+ */
+export const publishPaper = async (paperId: string): Promise<void> => {
+    try {
+        await http.post<any>(TEACHER_ENDPOINTS.publishPaper(paperId), {});
+        console.log("[Draft Service] Paper published successfully:", paperId);
+    } catch (error) {
+        console.error("[Draft Service] Failed to publish paper:", error);
+        throw new Error("Failed to publish paper. Please try again.");
+    }
+};
+
+/**
+ * Unpublishes a paper (changes status from PUBLISHED to DRAFT)
+ */
+export const unpublishPaper = async (paperId: string): Promise<void> => {
+    try {
+        // For now, we'll use the same endpoint. Backend should handle it
+        // In future, might need a separate unpublish endpoint
+        await http.post<any>(`${TEACHER_ENDPOINTS.publishPaper(paperId)}/unpublish`, {});
+        console.log("[Draft Service] Paper unpublished successfully:", paperId);
+    } catch (error) {
+        console.error("[Draft Service] Failed to unpublish paper:", error);
+        throw new Error("Failed to unpublish paper. Please try again.");
     }
 };
 

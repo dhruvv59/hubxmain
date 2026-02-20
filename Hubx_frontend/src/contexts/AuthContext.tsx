@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { getCurrentUser, logout as logoutService, type CurrentUser } from '@/services/auth';
-import { getAccessToken } from '@/lib/http-client';
+import { getAccessToken, ApiError } from '@/lib/http-client';
 
 interface AuthContextType {
   user: CurrentUser | null;
@@ -38,9 +38,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const userData = await getCurrentUser();
       setUser(userData);
     } catch (error) {
-      console.error('[AuthContext] Failed to load user:', error);
-      // Token might be expired, clear it
-      await logoutService();
+      // Handle different types of errors gracefully
+      if (error instanceof ApiError) {
+        if (error.statusCode === 401 || error.statusCode === 404) {
+          // Token expired, invalid, or endpoint not found
+          console.warn('[AuthContext] Authentication failed:', error.message);
+        } else {
+          console.error('[AuthContext] Unexpected API error:', error.message);
+        }
+      } else {
+        console.error('[AuthContext] Failed to load user:', error);
+      }
+
+      // Always clear tokens on auth failure
+      try {
+        await logoutService();
+      } catch (logoutError) {
+        console.debug('[AuthContext] Logout cleanup failed (non-critical):', logoutError);
+      }
     } finally {
       setIsLoading(false);
     }

@@ -211,7 +211,16 @@ export class QuestionBankController {
     const teacherId = req.user!.userId
 
     // Extract questions data from body
-    const { questions } = req.body
+    let { questions } = req.body
+
+    // Parse questions if it comes as a JSON string (from FormData)
+    if (typeof questions === 'string') {
+      try {
+        questions = JSON.parse(questions)
+      } catch (error: any) {
+        return sendError(res, 400, `Failed to parse questions JSON: ${error.message}`)
+      }
+    }
 
     if (!questions || !Array.isArray(questions) || questions.length === 0) {
       return sendError(res, 400, "At least one question is required in 'questions' array")
@@ -241,8 +250,15 @@ export class QuestionBankController {
       }
     })
 
-    // Get uploaded files
-    const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined
+    // Get uploaded files - upload.any() returns array, convert to object keyed by fieldname
+    const rawFiles = req.files as Express.Multer.File[] | undefined
+    const files: { [fieldname: string]: Express.Multer.File[] } = {}
+    if (Array.isArray(rawFiles)) {
+      for (const f of rawFiles) {
+        if (!files[f.fieldname]) files[f.fieldname] = []
+        files[f.fieldname].push(f)
+      }
+    }
 
     const result = await questionBankService.createBankQuestionsInBatch(
       teacherId,

@@ -8,6 +8,7 @@ import { AiGeneratorForm } from "@/components/teacher/ai/AiGeneratorForm";
 import { AddedQuestionsList } from "@/components/teacher/ai/AddedQuestionsList";
 import { PublishConfirmModal } from "@/components/teacher/ai/PublishConfirmModal";
 import { PublishSuccessModal } from "@/components/teacher/ai/PublishSuccessModal";
+import { AppToast, type ToastVariant } from "@/components/ui/AppToast";
 import { getDraft, addQuestionToDraft, removeQuestionFromDraft } from "@/services/draft-service";
 import { PaperConfig, Question } from "@/types/generate-paper";
 import { http } from "@/lib/http-client";
@@ -25,11 +26,16 @@ function AiGeneratorPageContent() {
     const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
     const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
     const [isPublishing, setIsPublishing] = useState(false);
+    const [toast, setToast] = useState<{ message: string; variant: ToastVariant; isVisible: boolean }>({
+        message: "", variant: "success", isVisible: false,
+    });
+    const showToast = (message: string, variant: ToastVariant = "success") =>
+        setToast({ message, variant, isVisible: true });
 
     useEffect(() => {
         const fetchDraft = async () => {
             if (!draftId) {
-                router.push("/teacher/ai-assessments");
+                router.push("/teacher/new-paper");
                 return;
             }
             try {
@@ -59,7 +65,7 @@ function AiGeneratorPageContent() {
             });
 
             if (!generatedQuestions || generatedQuestions.length === 0) {
-                alert("No questions were generated. Please try again.");
+                showToast("No questions were generated. Please try again.", "warning");
                 return;
             }
 
@@ -90,18 +96,18 @@ function AiGeneratorPageContent() {
                     }));
                 }
 
-                await addQuestionToDraft(draftId, questionData);
+                await addQuestionToDraft(draftId, questionData as Question & { questionImage?: File; solutionImage?: File });
             }
 
             const updated = await getDraft(draftId);
             if (updated) setConfig(updated);
 
-            alert(`✓ AI successfully generated ${generatedQuestions.length} questions!`);
+            showToast(`AI successfully generated ${generatedQuestions.length} questions!`, "success");
 
         } catch (error: any) {
             console.error("AI Generation failed:", error);
             const errorMsg = error?.message || "Failed to generate questions. Please check your request and try again.";
-            alert(`❌ ${errorMsg}`);
+            showToast(errorMsg, "error");
         } finally {
             setIsGenerating(false);
         }
@@ -121,20 +127,18 @@ function AiGeneratorPageContent() {
     const handleConfirmPublish = async () => {
         if (!draftId) {
             console.error("No draft ID found");
-            alert("Error: No draft found. Please try again.");
+            showToast("No draft found. Please try again.", "error");
             return;
         }
 
         setIsPublishing(true);
         try {
-            // Call real API: PATCH /teacher/papers/:paperId/publish
             await http.patch(TEACHER_ENDPOINTS.publishPaper(draftId), {});
             setIsPublishModalOpen(false);
             setIsSuccessModalOpen(true);
         } catch (error: any) {
             console.error("Publish failed:", error);
-            const errorMsg = error?.message || "Failed to publish paper. Please try again.";
-            alert(errorMsg);
+            showToast(error?.message || "Failed to publish paper. Please try again.", "error");
         } finally {
             setIsPublishing(false);
         }
@@ -221,6 +225,8 @@ function AiGeneratorPageContent() {
                 isOpen={isSuccessModalOpen}
                 onClose={() => setIsSuccessModalOpen(false)}
             />
+            <AppToast message={toast.message} variant={toast.variant} isVisible={toast.isVisible}
+                onClose={() => setToast(prev => ({ ...prev, isVisible: false }))} />
         </div>
     );
 }

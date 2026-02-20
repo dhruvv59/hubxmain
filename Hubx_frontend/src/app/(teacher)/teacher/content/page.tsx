@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
     Book,
     Layers,
@@ -14,6 +14,9 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { teacherContentService, Standard, Subject, Chapter } from "@/services/teacher-content";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { AppToast } from "@/components/ui/AppToast";
+import { useToast } from "@/hooks/useToast";
 
 export default function ContentPage() {
     const [activeTab, setActiveTab] = useState<"standards" | "subjects" | "chapters">("standards");
@@ -67,6 +70,8 @@ function StandardsManager() {
     const [loading, setLoading] = useState(true);
     const [isCreating, setIsCreating] = useState(false);
     const [form, setForm] = useState<Partial<Standard>>({});
+    const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
+    const { toast, success, error } = useToast();
 
     const loadData = async () => {
         setLoading(true);
@@ -84,7 +89,7 @@ function StandardsManager() {
 
     const handleSave = async () => {
         if (!form.name?.trim()) {
-            alert("Standard name is required");
+            error("Standard name is required");
             return;
         }
 
@@ -92,34 +97,39 @@ function StandardsManager() {
             if (form.id) {
                 // Send name and description for update
                 await teacherContentService.updateStandard(form.id, { name: form.name, description: form.description });
-                alert("Standard updated successfully!");
+                success("Standard updated successfully!");
             } else {
                 // Send name and description for create
                 await teacherContentService.createStandard({ name: form.name, description: form.description });
-                alert("Standard created successfully!");
+                success("Standard created successfully!");
             }
             setIsCreating(false);
             setForm({});
             loadData();
-        } catch (error) {
-            console.error("Failed to save standard", error);
-            alert("Failed to save. Please try again.");
+        } catch (err) {
+            console.error("Failed to save standard", err);
+            error("Failed to save. Please try again.");
         }
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm("Are you sure you want to delete this standard? This action cannot be undone.")) return;
+    const handleDelete = (id: string, name: string) => {
+        setDeleteConfirm({ id, name });
+    };
+
+    const confirmDelete = async () => {
+        if (!deleteConfirm) return;
         try {
-            console.log("Deleting standard:", id);
-            await teacherContentService.deleteStandard(id);
+            console.log("Deleting standard:", deleteConfirm.id);
+            await teacherContentService.deleteStandard(deleteConfirm.id);
             console.log("Standard deleted successfully");
             loadData();
-            alert("Standard deleted successfully!");
-        } catch (error: any) {
-            console.error("Failed to delete standard:", error);
-            const errorMessage = error?.response?.data?.message || error?.message || "Failed to delete standard";
-            alert(`Error: ${errorMessage}`);
+            success("Standard deleted successfully!");
+        } catch (err: any) {
+            console.error("Failed to delete standard:", err);
+            const errorMessage = err?.response?.data?.message || err?.message || "Failed to delete standard";
+            error(`Error: ${errorMessage}`);
         }
+        setDeleteConfirm(null);
     };
 
     return (
@@ -162,7 +172,22 @@ function StandardsManager() {
             {loading ? (
                 <div className="flex justify-center py-10"><Loader2 className="animate-spin text-gray-400" /></div>
             ) : standards.length === 0 ? (
-                <div className="text-center py-10 text-gray-500">No standards found.</div>
+                <div className="flex flex-col items-center justify-center py-16 px-4">
+                    <div className="w-16 h-16 rounded-full bg-indigo-50 flex items-center justify-center mb-4">
+                        <Bookmark className="w-8 h-8 text-indigo-500" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-1">No standards yet</h3>
+                    <p className="text-gray-500 text-sm text-center max-w-sm mb-4">
+                        Add your first standard (e.g. 10th Grade) to organize subjects and chapters.
+                    </p>
+                    <button
+                        onClick={() => { setForm({}); setIsCreating(true); }}
+                        className="flex items-center gap-2 px-4 py-2 bg-[#6366f1] text-white rounded-lg hover:bg-[#4f4fbe] text-sm font-medium"
+                    >
+                        <Plus className="w-4 h-4" />
+                        Add Standard
+                    </button>
+                </div>
             ) : (
                 <div className="grid gap-3">
                     {standards.map(item => (
@@ -175,7 +200,7 @@ function StandardsManager() {
                                 <button onClick={() => { setForm(item); setIsCreating(true); }} className="p-2 text-gray-400 hover:text-[#6366f1] rounded-lg hover:bg-indigo-50">
                                     <Edit className="w-4 h-4" />
                                 </button>
-                                <button onClick={() => handleDelete(item.id)} className="p-2 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50">
+                                <button onClick={() => handleDelete(item.id, item.name)} className="p-2 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50">
                                     <Trash2 className="w-4 h-4" />
                                 </button>
                             </div>
@@ -183,6 +208,26 @@ function StandardsManager() {
                     ))}
                 </div>
             )}
+
+            {/* Delete Confirmation Dialog */}
+            <ConfirmDialog
+                isOpen={deleteConfirm !== null}
+                onClose={() => setDeleteConfirm(null)}
+                onConfirm={confirmDelete}
+                title="Delete Standard"
+                message={`Are you sure you want to delete "${deleteConfirm?.name}"? This action cannot be undone.`}
+                confirmText="Delete"
+                cancelText="Cancel"
+                variant="danger"
+            />
+
+            {/* Toast Notification */}
+            <AppToast
+                message={toast.message}
+                variant={toast.variant}
+                isVisible={toast.isVisible}
+                onClose={() => {}}
+            />
         </div>
     );
 }
@@ -194,34 +239,46 @@ function SubjectsManager() {
     const [isCreating, setIsCreating] = useState(false);
     const [form, setForm] = useState<Partial<Subject>>({});
     const [filterStandard, setFilterStandard] = useState<string>("");
+    const [deleteConfirm, setDeleteConfirm] = useState<{ subject: Subject } | null>(null);
+    const { toast, success, error } = useToast();
 
     // Load standards on component mount
     useEffect(() => {
         teacherContentService.getStandards().then(res => setStandards(res || []));
     }, []);
 
-    // Load subjects when standard is selected
-    useEffect(() => {
+    // Load subjects: when "All Standards" → fetch from all; when one selected → fetch for that only
+    const loadSubjects = useCallback(async () => {
         setLoading(true);
-        if (filterStandard) {
-            teacherContentService.getSubjects(filterStandard)
-                .then(res => setSubjects(res || []))
-                .catch(err => console.error("Failed to load subjects:", err))
-                .finally(() => setLoading(false));
-        } else {
-            setSubjects([]);
+        try {
+            if (filterStandard) {
+                const res = await teacherContentService.getSubjects(filterStandard);
+                setSubjects(res || []);
+            } else if (standards.length > 0) {
+                const results = await Promise.all(standards.map(s => teacherContentService.getSubjects(s.id)));
+                setSubjects(results.flat());
+            } else {
+                setSubjects([]);
+            }
+        } catch (err) {
+            console.error("Failed to load subjects:", err);
+        } finally {
             setLoading(false);
         }
-    }, [filterStandard]);
+    }, [filterStandard, standards]);
+
+    useEffect(() => {
+        loadSubjects();
+    }, [loadSubjects]);
 
     const handleSave = async () => {
         if (!form.standardId) {
-            alert("Please select a standard");
+            error("Please select a standard");
             return;
         }
 
         if (!form.name?.trim()) {
-            alert("Subject name is required");
+            error("Subject name is required");
             return;
         }
 
@@ -229,11 +286,11 @@ function SubjectsManager() {
             if (form.id) {
                 // Only send name for update
                 await teacherContentService.updateSubject(form.standardId, form.id, { name: form.name });
-                alert("Subject updated successfully!");
+                success("Subject updated successfully!");
             } else {
                 // For create, send name and optional code
                 await teacherContentService.createSubject(form.standardId, { name: form.name, code: form.code });
-                alert("Subject created successfully!");
+                success("Subject created successfully!");
             }
             setIsCreating(false);
             setForm({});
@@ -242,29 +299,31 @@ function SubjectsManager() {
                 const res = await teacherContentService.getSubjects(filterStandard);
                 setSubjects(res || []);
             }
-        } catch (error) {
-            console.error("Failed to save subject", error);
-            alert("Failed to save. Please ensure all fields are filled.");
+        } catch (err) {
+            console.error("Failed to save subject", err);
+            error("Failed to save. Please ensure all fields are filled.");
         }
     };
 
-    const handleDelete = async (subject: Subject) => {
-        if (!confirm("Are you sure you want to delete this subject?")) return;
+    const handleDelete = (subject: Subject) => {
+        setDeleteConfirm({ subject });
+    };
+
+    const confirmDelete = async () => {
+        if (!deleteConfirm) return;
+        const { subject } = deleteConfirm;
         try {
             console.log("Deleting subject:", subject.id, "from standard:", subject.standardId);
             await teacherContentService.deleteSubject(subject.standardId, subject.id);
             console.log("Subject deleted successfully");
-            // Reload subjects
-            if (filterStandard) {
-                const res = await teacherContentService.getSubjects(filterStandard);
-                setSubjects(res || []);
-            }
-            alert("Subject deleted successfully!");
-        } catch (error: any) {
-            console.error("Failed to delete subject:", error);
-            const errorMessage = error?.response?.data?.message || error?.message || "Failed to delete subject";
-            alert(`Error: ${errorMessage}`);
+            loadSubjects();
+            success("Subject deleted successfully!");
+        } catch (err: any) {
+            console.error("Failed to delete subject:", err);
+            const errorMessage = err?.response?.data?.message || err?.message || "Failed to delete subject";
+            error(`Error: ${errorMessage}`);
         }
+        setDeleteConfirm(null);
     };
 
     return (
@@ -325,7 +384,33 @@ function SubjectsManager() {
             {loading ? (
                 <div className="flex justify-center py-10"><Loader2 className="animate-spin text-gray-400" /></div>
             ) : subjects.length === 0 ? (
-                <div className="text-center py-10 text-gray-500">No subjects found.</div>
+                <div className="flex flex-col items-center justify-center py-16 px-4">
+                    <div className="w-16 h-16 rounded-full bg-indigo-50 flex items-center justify-center mb-4">
+                        <Book className="w-8 h-8 text-indigo-500" />
+                    </div>
+                    {standards.length === 0 ? (
+                        <>
+                            <h3 className="text-lg font-semibold text-gray-900 mb-1">No standards yet</h3>
+                            <p className="text-gray-500 text-sm text-center max-w-sm mb-4">
+                                Add standards first from the Standards tab, then you can add subjects.
+                            </p>
+                        </>
+                    ) : (
+                        <>
+                            <h3 className="text-lg font-semibold text-gray-900 mb-1">No subjects yet</h3>
+                            <p className="text-gray-500 text-sm text-center max-w-sm mb-4">
+                                {filterStandard ? "This standard has no subjects." : "No subjects in any standard yet."} Add your first subject to get started.
+                            </p>
+                            <button
+                                onClick={() => { setForm({ standardId: filterStandard || undefined }); setIsCreating(true); }}
+                                className="flex items-center gap-2 px-4 py-2 bg-[#6366f1] text-white rounded-lg hover:bg-[#4f4fbe] text-sm font-medium"
+                            >
+                                <Plus className="w-4 h-4" />
+                                Add Subject
+                            </button>
+                        </>
+                    )}
+                </div>
             ) : (
                 <div className="grid md:grid-cols-2 gap-3">
                     {subjects.map(item => {
@@ -352,6 +437,26 @@ function SubjectsManager() {
                     })}
                 </div>
             )}
+
+            {/* Delete Confirmation Dialog */}
+            <ConfirmDialog
+                isOpen={deleteConfirm !== null}
+                onClose={() => setDeleteConfirm(null)}
+                onConfirm={confirmDelete}
+                title="Delete Subject"
+                message={`Are you sure you want to delete "${deleteConfirm?.subject.name}"?`}
+                confirmText="Delete"
+                cancelText="Cancel"
+                variant="danger"
+            />
+
+            {/* Toast Notification */}
+            <AppToast
+                message={toast.message}
+                variant={toast.variant}
+                isVisible={toast.isVisible}
+                onClose={() => {}}
+            />
         </div>
     );
 }
@@ -365,50 +470,73 @@ function ChaptersManager() {
     const [form, setForm] = useState<Partial<Chapter>>({});
     const [filterSubject, setFilterSubject] = useState<string>("");
     const [selectedStandardForSubjects, setSelectedStandardForSubjects] = useState<string>("");
+    const [deleteConfirm, setDeleteConfirm] = useState<{ chapter: Chapter } | null>(null);
+    const { toast, success, error } = useToast();
 
     useEffect(() => {
-        // Load standards first
         teacherContentService.getStandards().then(res => setStandards(res || []));
     }, []);
 
-    // Load subjects when standard is selected
-    useEffect(() => {
+    // Load subjects: when "All Standards" → all subjects; when one standard → subjects for that
+    const loadSubjects = useCallback(async () => {
         if (selectedStandardForSubjects) {
-            teacherContentService.getSubjects(selectedStandardForSubjects)
-                .then(res => setSubjects(res || []))
-                .catch(err => console.error("Failed to load subjects:", err));
+            const res = await teacherContentService.getSubjects(selectedStandardForSubjects);
+            setSubjects(res || []);
+        } else if (standards.length > 0) {
+            const results = await Promise.all(standards.map(s => teacherContentService.getSubjects(s.id)));
+            setSubjects(results.flat());
         } else {
             setSubjects([]);
         }
-    }, [selectedStandardForSubjects]);
+    }, [selectedStandardForSubjects, standards]);
 
-    const loadData = async () => {
+    useEffect(() => {
+        loadSubjects();
+    }, [loadSubjects]);
+
+    // Load chapters: when both empty → all; when standard only → all in that standard; when both → one subject
+    const loadChapters = useCallback(async () => {
         setLoading(true);
         try {
-            // Only fetch chapters if both standard and subject are selected
             if (selectedStandardForSubjects && filterSubject) {
                 const res = await teacherContentService.getChapters(selectedStandardForSubjects, filterSubject);
                 setChapters(res || []);
+            } else if (selectedStandardForSubjects) {
+                const subs = await teacherContentService.getSubjects(selectedStandardForSubjects);
+                const results = await Promise.all(subs.map(s => teacherContentService.getChapters(selectedStandardForSubjects, s.id)));
+                setChapters(results.flat());
+            } else if (standards.length > 0) {
+                const allChapters: Chapter[] = [];
+                for (const std of standards) {
+                    const subs = await teacherContentService.getSubjects(std.id);
+                    for (const sub of subs) {
+                        const chaps = await teacherContentService.getChapters(std.id, sub.id);
+                        allChapters.push(...chaps);
+                    }
+                }
+                setChapters(allChapters);
             } else {
                 setChapters([]);
             }
-        } catch (error) {
-            console.error("Failed to load chapters", error);
+        } catch (err) {
+            console.error("Failed to load chapters", err);
         } finally {
             setLoading(false);
         }
-    };
+    }, [selectedStandardForSubjects, filterSubject, standards]);
 
-    useEffect(() => { loadData(); }, [selectedStandardForSubjects, filterSubject]);
+    useEffect(() => {
+        loadChapters();
+    }, [loadChapters]);
 
     const handleSave = async () => {
         if (!form.subjectId || !form.standardId) {
-            alert("Please select both standard and subject");
+            error("Please select both standard and subject");
             return;
         }
 
         if (!form.name?.trim()) {
-            alert("Chapter name is required");
+            error("Chapter name is required");
             return;
         }
 
@@ -416,11 +544,11 @@ function ChaptersManager() {
             if (form.id) {
                 // Send name, description, and sequence for update
                 await teacherContentService.updateChapter(form.standardId, form.subjectId, form.id, { name: form.name, description: form.description, sequence: form.sequence });
-                alert("Chapter updated successfully!");
+                success("Chapter updated successfully!");
             } else {
                 // Send name, description, and sequence for create
                 await teacherContentService.createChapter(form.standardId, form.subjectId, { name: form.name, description: form.description, sequence: form.sequence });
-                alert("Chapter created successfully!");
+                success("Chapter created successfully!");
             }
             setIsCreating(false);
             setForm({});
@@ -429,30 +557,30 @@ function ChaptersManager() {
                 const res = await teacherContentService.getChapters(selectedStandardForSubjects, filterSubject);
                 setChapters(res || []);
             }
-        } catch (error) {
-            console.error("Failed to save chapter", error);
-            alert("Failed to save. Please check inputs.");
+        } catch (err) {
+            console.error("Failed to save chapter", err);
+            error("Failed to save. Please check inputs.");
         }
     };
 
-    const handleDelete = async (chapter: Chapter) => {
-        if (!confirm("Are you sure you want to delete this chapter?")) return;
+    const handleDelete = (chapter: Chapter) => {
+        setDeleteConfirm({ chapter });
+    };
+
+    const confirmDelete = async () => {
+        if (!deleteConfirm) return;
+        const { chapter } = deleteConfirm;
         try {
-            console.log("Deleting chapter:", chapter.id, "from subject:", chapter.subjectId, "standard:", selectedStandardForSubjects);
-            // Use selectedStandardForSubjects from state since chapter object doesn't have it
-            await teacherContentService.deleteChapter(selectedStandardForSubjects, chapter.subjectId, chapter.id);
-            console.log("Chapter deleted successfully");
-            // Reload chapters
-            if (selectedStandardForSubjects && filterSubject) {
-                const res = await teacherContentService.getChapters(selectedStandardForSubjects, filterSubject);
-                setChapters(res || []);
-            }
-            alert("Chapter deleted successfully!");
-        } catch (error: any) {
-            console.error("Failed to delete chapter:", error);
-            const errorMessage = error?.response?.data?.message || error?.message || "Failed to delete chapter";
-            alert(`Error: ${errorMessage}`);
+            const stdId = chapter.standardId || selectedStandardForSubjects;
+            await teacherContentService.deleteChapter(stdId, chapter.subjectId, chapter.id);
+            loadChapters();
+            success("Chapter deleted successfully!");
+        } catch (err: any) {
+            console.error("Failed to delete chapter:", err);
+            const errorMessage = err?.response?.data?.message || err?.message || "Failed to delete chapter";
+            error(`Error: ${errorMessage}`);
         }
+        setDeleteConfirm(null);
     };
 
     return (
@@ -516,7 +644,9 @@ function ChaptersManager() {
                             disabled={!form.standardId && !selectedStandardForSubjects}
                         >
                             <option value="">Select Subject</option>
-                            {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                            {subjects
+                                .filter(s => s.standardId === (form.standardId || selectedStandardForSubjects))
+                                .map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                         </select>
                         <input
                             placeholder="Chapter Name"
@@ -548,17 +678,60 @@ function ChaptersManager() {
             {loading ? (
                 <div className="flex justify-center py-10"><Loader2 className="animate-spin text-gray-400" /></div>
             ) : chapters.length === 0 ? (
-                <div className="text-center py-10 text-gray-500">No chapters found.</div>
+                <div className="flex flex-col items-center justify-center py-16 px-4">
+                    <div className="w-16 h-16 rounded-full bg-indigo-50 flex items-center justify-center mb-4">
+                        <Layers className="w-8 h-8 text-indigo-500" />
+                    </div>
+                    {standards.length === 0 ? (
+                        <>
+                            <h3 className="text-lg font-semibold text-gray-900 mb-1">No standards yet</h3>
+                            <p className="text-gray-500 text-sm text-center max-w-sm mb-4">
+                                Add standards and subjects first, then you can add chapters.
+                            </p>
+                        </>
+                    ) : subjects.length === 0 ? (
+                        <>
+                            <h3 className="text-lg font-semibold text-gray-900 mb-1">No subjects yet</h3>
+                            <p className="text-gray-500 text-sm text-center max-w-sm mb-4">
+                                Add subjects in the Subjects tab first, then you can add chapters.
+                            </p>
+                        </>
+                    ) : (
+                        <>
+                            <h3 className="text-lg font-semibold text-gray-900 mb-1">No chapters yet</h3>
+                            <p className="text-gray-500 text-sm text-center max-w-sm mb-4">
+                                {selectedStandardForSubjects || filterSubject
+                                    ? "No chapters in this selection."
+                                    : "No chapters in any subject yet."} Add your first chapter to get started.
+                            </p>
+                            <button
+                                onClick={() => {
+                                    setForm({
+                                        standardId: selectedStandardForSubjects || undefined,
+                                        subjectId: filterSubject || undefined
+                                    });
+                                    setIsCreating(true);
+                                }}
+                                className="flex items-center gap-2 px-4 py-2 bg-[#6366f1] text-white rounded-lg hover:bg-[#4f4fbe] text-sm font-medium"
+                            >
+                                <Plus className="w-4 h-4" />
+                                Add Chapter
+                            </button>
+                        </>
+                    )}
+                </div>
             ) : (
                 <div className="grid gap-3">
                     {chapters.map(item => {
                         const subName = subjects.find(s => s.id === item.subjectId)?.name || 'Unknown Subject';
+                        const stdName = standards.find(s => s.id === item.standardId)?.name || 'Unknown Standard';
                         return (
                             <div key={item.id} className="flex items-center justify-between p-4 bg-white border border-gray-100 rounded-xl hover:border-gray-300 transition-all shadow-sm">
                                 <div>
-                                    <div className="flex items-center gap-2 mb-1">
+                                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                        <span className="text-xs font-bold bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded">{stdName}</span>
                                         <span className="text-xs font-bold bg-orange-100 text-orange-700 px-2 py-0.5 rounded">{subName}</span>
-                                        {item.sequence && <span className="text-xs text-gray-400">Seq: {item.sequence}</span>}
+                                        {item.sequence != null && <span className="text-xs text-gray-400">Seq: {item.sequence}</span>}
                                     </div>
                                     <h4 className="font-bold text-gray-900">{item.name}</h4>
                                     <p className="text-sm text-gray-500">{item.description}</p>
@@ -576,6 +749,26 @@ function ChaptersManager() {
                     })}
                 </div>
             )}
+
+            {/* Delete Confirmation Dialog */}
+            <ConfirmDialog
+                isOpen={deleteConfirm !== null}
+                onClose={() => setDeleteConfirm(null)}
+                onConfirm={confirmDelete}
+                title="Delete Chapter"
+                message={`Are you sure you want to delete "${deleteConfirm?.chapter.name}"?`}
+                confirmText="Delete"
+                cancelText="Cancel"
+                variant="danger"
+            />
+
+            {/* Toast Notification */}
+            <AppToast
+                message={toast.message}
+                variant={toast.variant}
+                isVisible={toast.isVisible}
+                onClose={() => {}}
+            />
         </div>
     );
 }

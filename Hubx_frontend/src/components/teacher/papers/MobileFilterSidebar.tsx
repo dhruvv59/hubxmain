@@ -12,7 +12,6 @@ interface MobileFilterSidebarProps {
         subject: string;
         standard: string;
         difficulty: string;
-        rating: string;
     };
     onFilterChange: (key: string, value: string) => void;
     availableSubjects?: string[];
@@ -87,12 +86,6 @@ export function MobileFilterSidebar({ isOpen, onClose, filters, onFilterChange, 
                                 options={["All", "Beginner", "Intermediate", "Advanced"]}
                                 selected={filters.difficulty}
                                 onChange={(val) => onFilterChange("difficulty", val)}
-                            />
-                            <FilterSection
-                                title="Rating"
-                                options={["All", "4 ★ & above", "Most Popular"]}
-                                selected={filters.rating}
-                                onChange={(val) => onFilterChange("rating", val)}
                             />
                         </div>
                     </div>

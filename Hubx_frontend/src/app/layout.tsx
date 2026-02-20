@@ -8,6 +8,10 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Lernen Hub",
   description: "Enterprise AI Assessment Platform",
+  icons: {
+    icon: "/icon.svg",
+    icon: "/icon.svg",
+  },
 };
 
 export default function RootLayout({

@@ -287,7 +287,7 @@ async function main() {
     });
 
     console.log(
-      "\n🚀 Ready for testing! Visit: http://localhost:3000/teacher/public-papers\n"
+      "\n🚀 Ready for testing! Visit: http://localhost:3000/teacher/published-papers\n"
     );
   } catch (error) {
     console.error("❌ Error:", error);

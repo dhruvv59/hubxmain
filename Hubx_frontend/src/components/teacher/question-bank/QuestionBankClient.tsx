@@ -8,6 +8,7 @@ import { QuestionBankList } from "@/components/teacher/question-bank/QuestionBan
 import { SuccessToast } from "@/components/ui/SuccessToast";
 import { addQuestionToDraft } from "@/services/draft-service";
 import { getBankQuestions } from "@/services/question-bank-service";
+import { teacherContentService, type Subject, type Standard, type Chapter } from "@/services/teacher-content";
 import { PaperConfig, Question } from "@/types/generate-paper";
 
 interface QuestionBankClientProps {
@@ -27,9 +28,17 @@ export function QuestionBankClient({ initialConfig, initialQuestions }: Question
     const [showToast, setShowToast] = useState(false);
     const [toastMessage, setToastMessage] = useState("");
 
+    // Content State - User's Standards, Subjects, Chapters
+    const [standards, setStandards] = useState<Standard[]>([]);
+    const [subjects, setSubjects] = useState<Subject[]>([]);
+    const [chapters, setChapters] = useState<Chapter[]>([]);
+    const [isLoadingContent, setIsLoadingContent] = useState(false);
+
     // Filters State
     const [filters, setFilters] = useState({
-        subject: "Science",
+        standardId: "",
+        subjectId: "",
+        chapterIds: [] as string[],
         difficulty: "Intermediate",
         rating: "4star",
         addedTime: "Latest",
@@ -37,10 +46,96 @@ export function QuestionBankClient({ initialConfig, initialQuestions }: Question
     });
     const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
 
-    // Selection State
+    // Selection State - persisted so selection survives navigation (back/forward)
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
-    // Initial Load & Filter Change
+    // Restore selection from sessionStorage when draftId is available
+    useEffect(() => {
+        if (!draftId || typeof window === "undefined") return;
+        try {
+            const key = `hubx_bank_selected_${draftId}`;
+            const stored = sessionStorage.getItem(key);
+            if (stored) setSelectedIds(JSON.parse(stored));
+        } catch {
+            // Ignore parse errors
+        }
+    }, [draftId]);
+
+    // Persist selection when it changes
+    useEffect(() => {
+        if (!draftId || typeof window === "undefined") return;
+        try {
+            sessionStorage.setItem(`hubx_bank_selected_${draftId}`, JSON.stringify(selectedIds));
+        } catch {
+            // Ignore storage errors
+        }
+    }, [selectedIds, draftId]);
+
+    // Initial Load - Fetch User's Standards
+    useEffect(() => {
+        const fetchUserContent = async () => {
+            setIsLoadingContent(true);
+            try {
+                // Fetch all standards for the user
+                const fetchedStandards = await teacherContentService.getStandards();
+                setStandards(fetchedStandards);
+
+                // Set first standard as default and fetch its subjects
+                if (fetchedStandards.length > 0 && !filters.standardId) {
+                    const firstStandardId = fetchedStandards[0].id;
+                    setFilters(prev => ({ ...prev, standardId: firstStandardId }));
+
+                    try {
+                        const stdSubjects = await teacherContentService.getSubjects(firstStandardId);
+                        setSubjects(stdSubjects);
+                        // Default to "All Subjects" (empty) so newly created questions (no subject) show up
+                        // User can filter by specific subject if needed
+                    } catch (error) {
+                        console.error(`Failed to fetch subjects for standard ${firstStandardId}:`, error);
+                    }
+                }
+            } catch (error) {
+                console.error("Failed to fetch user standards:", error);
+            } finally {
+                setIsLoadingContent(false);
+            }
+        };
+
+        fetchUserContent();
+    }, []);
+
+    // When standard changes, fetch its subjects
+    useEffect(() => {
+        if (filters.standardId) {
+            const fetchSubjects = async () => {
+                try {
+                    const stdSubjects = await teacherContentService.getSubjects(filters.standardId);
+                    setSubjects(stdSubjects);
+
+                    // Default to "All Subjects" and clear chapters when standard changes
+                    setFilters(prev => ({ ...prev, subjectId: "", chapterIds: [] }));
+                    setChapters([]);
+                } catch (error) {
+                    console.error(`Failed to fetch subjects for standard ${filters.standardId}:`, error);
+                }
+            };
+
+            fetchSubjects();
+        }
+    }, [filters.standardId]);
+
+    // Fetch chapters when subject changes
+    useEffect(() => {
+        if (filters.subjectId && filters.standardId) {
+            teacherContentService.getChapters(filters.standardId, filters.subjectId)
+                .then(setChapters)
+                .catch(() => setChapters([]));
+        } else {
+            setChapters([]);
+        }
+    }, [filters.subjectId, filters.standardId]);
+
+    // Fetch Questions when filters change
     useEffect(() => {
         const fetchData = async () => {
             setIsLoading(true);
@@ -53,7 +148,8 @@ export function QuestionBankClient({ initialConfig, initialQuestions }: Question
 
                 // Fetch Questions
                 const bankQuestions = await getBankQuestions({
-                    subject: filters.subject,
+                    subject: filters.subjectId ? filters.subjectId : undefined,
+                    chapterIds: filters.chapterIds?.length ? filters.chapterIds : undefined,
                     difficulty: filters.difficulty === "All" ? [] : [filters.difficulty],
                     search: filters.search
                 });
@@ -65,18 +161,39 @@ export function QuestionBankClient({ initialConfig, initialQuestions }: Question
             }
         };
 
-        fetchData();
+        // Fetch when: subjectId is set (including "" for All Subjects), OR we have standards but no subjects
+        if (filters.subjectId !== undefined || (standards.length > 0 && subjects.length === 0)) {
+            fetchData();
+        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [filters, draftId]); // Removed isFirstMount logic to allow initial fetch on mount
+    }, [filters.subjectId, filters.standardId, filters.chapterIds, filters.difficulty, filters.search, draftId, standards.length, subjects.length]);
 
     const handleFilterChange = (key: string, value: any) => {
         setFilters(prev => ({ ...prev, [key]: value }));
+    };
+
+    const handleChapterToggle = (chapterId: string) => {
+        setFilters(prev => {
+            const current = prev.chapterIds || [];
+            const updated = current.includes(chapterId)
+                ? current.filter(id => id !== chapterId)
+                : [...current, chapterId];
+            return { ...prev, chapterIds: updated };
+        });
     };
 
     const handleToggleSelect = (id: string) => {
         setSelectedIds(prev =>
             prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
         );
+    };
+
+    const handleEditQuestion = (id: string) => {
+        router.push(`/teacher/question-bank/${id}/edit`);
+    };
+
+    const handleQuestionDeleted = (id: string) => {
+        setQuestions(prev => prev.filter(q => q.id !== id));
     };
 
     const handleAddQuestions = async () => {
@@ -92,15 +209,16 @@ export function QuestionBankClient({ initialConfig, initialQuestions }: Question
             await new Promise(resolve => setTimeout(resolve, 500));
 
             for (const q of selectedQuestions) {
-                await addQuestionToDraft(draftId, q);
+                await addQuestionToDraft(draftId, q as Question & { questionImage?: File; solutionImage?: File });
             }
 
             setToastMessage(`Added ${selectedQuestions.length} questions to draft!`);
             setShowToast(true);
+            setSelectedIds([]); // Clear selection (also clears sessionStorage via persist effect)
 
             // Redirect back to manual creation page with showDone flag
             setTimeout(() => {
-                router.push(`/teacher/ai-assessments/create/manual?draftId=${draftId}&showDone=true`);
+                router.push(`/teacher/x-factor/create/manual?draftId=${draftId}&showDone=true`);
             }, 1000);
         } catch (error) {
             console.error(error);
@@ -152,8 +270,13 @@ export function QuestionBankClient({ initialConfig, initialQuestions }: Question
                 <QuestionBankFilters
                     filters={filters}
                     onFilterChange={handleFilterChange}
+                    onChapterToggle={handleChapterToggle}
+                    standards={standards}
+                    subjects={subjects}
+                    chapters={chapters}
                     isOpen={isMobileFilterOpen}
                     onClose={() => setIsMobileFilterOpen(false)}
+                    isLoadingContent={isLoadingContent}
                 />
 
                 <div className="flex-1 w-full space-y-6">
@@ -189,6 +312,9 @@ export function QuestionBankClient({ initialConfig, initialQuestions }: Question
                             onToggleSelect={handleToggleSelect}
                             onAddQuestions={handleAddQuestions}
                             isAdding={isAdding}
+                            showAddBar={!!draftId}
+                            onEdit={handleEditQuestion}
+                            onDelete={handleQuestionDeleted}
                         />
                     )}
                 </div>

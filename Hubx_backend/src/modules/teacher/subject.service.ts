@@ -105,7 +105,8 @@ export class SubjectService {
         subjectId,
       },
     })
-    return chapter
+    // Add standardId to response for frontend use
+    return { ...chapter, standardId }
   }
 
   async getChapters(subjectId: string, standardId: string, teacherId: string) {
@@ -123,7 +124,11 @@ export class SubjectService {
     const chapters = await prisma.chapter.findMany({
       where: { subjectId },
     })
-    return chapters
+    // Add standardId to each chapter for frontend use
+    return chapters.map(ch => ({
+      ...ch,
+      standardId: standardId,
+    }))
   }
 
   async updateChapter(chapterId: string, subjectId: string, standardId: string, teacherId: string, name: string, description?: string, sequence?: number) {
@@ -145,7 +150,8 @@ export class SubjectService {
       where: { id: chapterId },
       data: { name, description, sequence },
     })
-    return updatedChapter
+    // Add standardId to response for frontend use
+    return { ...updatedChapter, standardId }
   }
 
   async deleteChapter(chapterId: string, subjectId: string, standardId: string, teacherId: string) {

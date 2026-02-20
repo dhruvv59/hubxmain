@@ -15,8 +15,8 @@ export function PublishSuccessModal({ isOpen, onClose }: PublishSuccessModalProp
     const router = useRouter();
 
     const handleViewPapers = () => {
-        // Navigate to public papers list
-        router.push("/teacher/public-papers");
+        // Navigate to published papers list
+        router.push("/teacher/published-papers");
     };
 
     return (
@@ -45,7 +45,7 @@ export function PublishSuccessModal({ isOpen, onClose }: PublishSuccessModalProp
                         onClick={handleViewPapers}
                         className="text-[#4338ca] font-bold text-lg underline hover:text-[#3730a3] transition-colors decoration-2 underline-offset-4"
                     >
-                        Public Papers
+                        Published Papers
                     </button>
 
                 </DialogPrimitive.Content>

@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
-import { ChevronRight, Sparkles, ArrowRight } from "lucide-react";
+import React, { useState, useMemo } from "react";
+import { Search } from "lucide-react";
 
 export interface FilterSectionProps {
     title: string;
@@ -11,11 +11,35 @@ export interface FilterSectionProps {
 }
 
 export function FilterSection({ title, options, selected, onChange }: FilterSectionProps) {
+    const [searchTerm, setSearchTerm] = useState("");
+    const showSearch = options.length > 5;
+
+    const filteredOptions = useMemo(() => {
+        if (!searchTerm.trim()) return options;
+        return options.filter(option =>
+            option.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+    }, [options, searchTerm]);
+
     return (
         <div className="mb-8">
             <h3 className="text-sm font-bold text-gray-900 mb-4">{title}</h3>
-            <div className="space-y-3">
-                {options.map((option) => (
+
+            {showSearch && (
+                <div className="relative mb-3">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input
+                        type="text"
+                        placeholder="Search..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                    />
+                </div>
+            )}
+
+            <div className={`space-y-3 ${showSearch && filteredOptions.length > 5 ? 'max-h-48 overflow-y-auto' : ''}`}>
+                {filteredOptions.map((option) => (
                     <label key={option} className="flex items-center cursor-pointer group">
                         <div className="relative flex items-center justify-center w-5 h-5 mr-3">
                             <input
@@ -30,6 +54,9 @@ export function FilterSection({ title, options, selected, onChange }: FilterSect
                         </span>
                     </label>
                 ))}
+                {filteredOptions.length === 0 && (
+                    <p className="text-sm text-gray-400 py-2">No options found</p>
+                )}
             </div>
         </div>
     );
@@ -40,7 +67,6 @@ interface FilterSidebarProps {
         subject: string;
         standard: string;
         difficulty: string;
-        rating: string;
     };
     onFilterChange: (key: string, value: string) => void;
     availableSubjects?: string[];
@@ -56,12 +82,7 @@ export function FilterSidebar({ filters, onFilterChange, availableSubjects = [],
         <div className="w-[280px] flex-shrink-0 pt-2">
             {/* Filter Group */}
             <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm mb-6">
-                <FilterSection
-                    title="Subjects"
-                    options={subjectOptions}
-                    selected={filters.subject}
-                    onChange={(val) => onFilterChange("subject", val)}
-                />
+                
                 <FilterSection
                     title="Standard"
                     options={standardOptions}
@@ -69,33 +90,17 @@ export function FilterSidebar({ filters, onFilterChange, availableSubjects = [],
                     onChange={(val) => onFilterChange("standard", val)}
                 />
                 <FilterSection
+                    title="Subjects"
+                    options={subjectOptions}
+                    selected={filters.subject}
+                    onChange={(val) => onFilterChange("subject", val)}
+                />            
+                <FilterSection
                     title="Difficulty Level"
                     options={["All", "Beginner", "Intermediate", "Advanced"]}
                     selected={filters.difficulty}
                     onChange={(val) => onFilterChange("difficulty", val)}
                 />
-                <FilterSection
-                    title="Rating"
-                    options={["All", "4 ★ & above", "Most Popular"]}
-                    selected={filters.rating}
-                    onChange={(val) => onFilterChange("rating", val)}
-                />
-            </div>
-
-            {/* AI Banner Sidebar */}
-            <div className="h-[120px] bg-white rounded-2xl border border-[#e9d5ff] p-6 flex flex-col justify-between shadow-sm cursor-pointer hover:shadow-md transition-all group relative overflow-hidden">
-                <div className="flex items-start justify-between">
-                    <div>
-                        <h3 className="text-xl font-black italic text-gray-900 leading-none">
-                            AI SMART <br />
-                            <span className="text-[#a855f7]">GENERATOR</span>
-                            <Sparkles className="inline-block w-5 h-5 text-[#a855f7] ml-2 fill-current" />
-                        </h3>
-                    </div>
-                </div>
-                <div className="self-end h-8 w-8 rounded-full border border-gray-300 flex items-center justify-center bg-white z-10 group-hover:border-indigo-400 group-hover:text-indigo-600 transition-colors">
-                    <ArrowRight className="w-4 h-4 text-gray-500 group-hover:text-indigo-600" />
-                </div>
             </div>
         </div>
     );

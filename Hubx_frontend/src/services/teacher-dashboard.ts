@@ -16,6 +16,12 @@ interface BackendTeacherAnalyticsResponse {
         totalPurchases: number;          // Actual paper purchase count
         trendingPapersCount: number;     // Papers with attempts in last 30 days
         averageScore: number;
+        // New fields for trend comparison
+        lastMonthEarnings: number;
+        lastMonthPurchaseCount: number;
+        lastMonthTrendingPapersCount: number;
+        thisMonthPapersCreated: number;
+        lastMonthPapersCreated: number;
         revenueData: Array<{ name: string; value: number }>;
         likeabilityData: Array<{ name: string; value: number }>;
         topPerformingPapers: Array<{
@@ -39,41 +45,55 @@ function transformToTeacherStats(
         ? `₹${(earnings / 1000).toFixed(1)}k`
         : `₹${earnings}`;
 
+    // Format last month earnings
+    const lastMonthEarningsStr = analytics.lastMonthEarnings >= 1000
+        ? `₹${(analytics.lastMonthEarnings / 1000).toFixed(0)}k`
+        : `₹${analytics.lastMonthEarnings}`;
+
+    // Calculate trends (change from last month)
+    const earningsTrend = analytics.totalEarnings - analytics.lastMonthEarnings;
+    const purchasesTrend = analytics.totalPurchases - analytics.lastMonthPurchaseCount;
+    const papersTrend = analytics.thisMonthPapersCreated - analytics.lastMonthPapersCreated;
+    const trendingTrend = analytics.trendingPapersCount - analytics.lastMonthTrendingPapersCount;
+
+    // Format trend as string with + or - prefix
+    const formatTrend = (value: number) => value >= 0 ? `+${value}` : `${value}`;
+
     return [
         {
             id: "earnings",
             title: "TOTAL EARNINGS",
             value: earningsStr,
-            subValue: "",
-            lastMonthValue: "",
-            trend: "up",
+            subValue: formatTrend(earningsTrend),
+            lastMonthValue: lastMonthEarningsStr,
+            trend: earningsTrend >= 0 ? "up" : "down",
             theme: "green"
         },
         {
             id: "purchased",
             title: "TOTAL PURCHASED PAPERS",
             value: analytics.totalPurchases.toString(),
-            subValue: "",
-            lastMonthValue: "",
-            trend: "up",
+            subValue: formatTrend(purchasesTrend),
+            lastMonthValue: analytics.lastMonthPurchaseCount.toString(),
+            trend: purchasesTrend >= 0 ? "up" : "down",
             theme: "orange"
         },
         {
             id: "created",
             title: "PAPERS CREATED",
-            value: analytics.totalPapers.toString(),
-            subValue: "",
-            lastMonthValue: "",
-            trend: "up",
+            value: analytics.thisMonthPapersCreated.toString(),
+            subValue: formatTrend(papersTrend),
+            lastMonthValue: analytics.lastMonthPapersCreated.toString(),
+            trend: papersTrend >= 0 ? "up" : "down",
             theme: "purple"
         },
         {
             id: "trending",
             title: "TRENDING PAPERS",
             value: analytics.trendingPapersCount.toString().padStart(2, '0'),
-            subValue: "",
-            lastMonthValue: "",
-            trend: "up",
+            subValue: formatTrend(trendingTrend),
+            lastMonthValue: analytics.lastMonthTrendingPapersCount.toString().padStart(2, '0'),
+            trend: trendingTrend >= 0 ? "up" : "down",
             theme: "yellow"
         }
     ];
@@ -217,6 +237,8 @@ export async function getTeacherDashboardData(): Promise<TeacherDashboardData> {
 export interface Standard {
     id: string;
     standard: number; // e.g. 9, 10
+    name?: string; // e.g. "10", "Guni", "College Level 1"
+    description?: string;
 }
 
 export interface Subject {

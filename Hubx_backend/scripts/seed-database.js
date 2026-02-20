@@ -1,5 +1,5 @@
-const { PrismaClient } = require("@prisma/client");
-const bcrypt = require("bcryptjs");
+import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
@@ -288,11 +288,18 @@ async function main() {
           teacherId: teacher3.id,
         },
       }),
+      prisma.standard.create({
+        data: {
+          name: "Guni",
+          description: "College-level custom standard",
+          teacherId: teacher1.id,
+        },
+      }),
     ]);
 
     console.log(`✅ Created ${standards.length} standards`);
 
-    const [std9, std10, std11, std12, std8] = standards;
+    const [std9, std10, std11, std12, std8, stdGuni] = standards;
 
     // ============================================
     // 5. CREATE SUBJECTS
@@ -356,11 +363,30 @@ async function main() {
           standardId: std11.id,
         },
       }),
+      // Guni subjects
+      prisma.subject.create({
+        data: {
+          name: "Data Structures",
+          standardId: stdGuni.id,
+        },
+      }),
+      prisma.subject.create({
+        data: {
+          name: "Web Development",
+          standardId: stdGuni.id,
+        },
+      }),
+      prisma.subject.create({
+        data: {
+          name: "Database Design",
+          standardId: stdGuni.id,
+        },
+      }),
     ]);
 
     console.log(`✅ Created ${subjects.length} subjects`);
 
-    const [sci9, math9, eng9, sci10, math10, hist10, phys11, chem11, bio11] = subjects;
+    const [sci9, math9, eng9, sci10, math10, hist10, phys11, chem11, bio11, ds, web, db] = subjects;
 
     // ============================================
     // 6. CREATE CHAPTERS
@@ -441,6 +467,63 @@ async function main() {
         data: {
           name: "Waves and Oscillations",
           subjectId: phys11.id,
+        },
+      }),
+      // Data Structures chapters
+      prisma.chapter.create({
+        data: {
+          name: "Arrays and Lists",
+          subjectId: ds.id,
+        },
+      }),
+      prisma.chapter.create({
+        data: {
+          name: "Trees and Graphs",
+          subjectId: ds.id,
+        },
+      }),
+      prisma.chapter.create({
+        data: {
+          name: "Sorting and Searching",
+          subjectId: ds.id,
+        },
+      }),
+      // Web Development chapters
+      prisma.chapter.create({
+        data: {
+          name: "HTML and CSS Basics",
+          subjectId: web.id,
+        },
+      }),
+      prisma.chapter.create({
+        data: {
+          name: "JavaScript Fundamentals",
+          subjectId: web.id,
+        },
+      }),
+      prisma.chapter.create({
+        data: {
+          name: "React Framework",
+          subjectId: web.id,
+        },
+      }),
+      // Database Design chapters
+      prisma.chapter.create({
+        data: {
+          name: "SQL Basics",
+          subjectId: db.id,
+        },
+      }),
+      prisma.chapter.create({
+        data: {
+          name: "Normalization",
+          subjectId: db.id,
+        },
+      }),
+      prisma.chapter.create({
+        data: {
+          name: "Advanced Queries",
+          subjectId: db.id,
         },
       }),
     ]);

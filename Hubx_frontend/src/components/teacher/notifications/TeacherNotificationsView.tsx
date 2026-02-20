@@ -13,6 +13,7 @@ import { useRouter } from 'next/navigation';
 import { useNotifications } from '@/hooks/useNotifications';
 import { cn } from '@/lib/utils';
 import type { NotificationType } from '@/types/notification';
+import { NOTIFICATION_FILTER_TYPES, getNotificationFilterLabel } from '@/lib/filter-constants';
 
 // Import the notification item component from the dropdown
 import { NotificationDropdown } from '@/components/layout/NotificationDropdown';
@@ -20,6 +21,7 @@ import { NotificationDropdown } from '@/components/layout/NotificationDropdown';
 export function TeacherNotificationsView() {
     const router = useRouter();
     const [selectedFilter, setSelectedFilter] = useState<NotificationType | 'all'>('all');
+    const [isFilterOpen, setIsFilterOpen] = useState(false);
 
     const {
         notifications,
@@ -105,25 +107,67 @@ export function TeacherNotificationsView() {
                     </div>
                 </div>
 
-                {/* Filter Tabs */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
-                    <div className="flex items-center gap-2 flex-wrap">
-                        <Filter className="h-5 w-5 text-gray-400" />
+                {/* Filter Tabs - Responsive */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-3 sm:p-4 mb-6">
+                    {/* Mobile: Dropdown Style */}
+                    <div className="sm:hidden relative">
+                        <button
+                            onClick={() => setIsFilterOpen(!isFilterOpen)}
+                            className="w-full flex items-center justify-between px-3 py-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 transition-colors"
+                        >
+                            <span className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                                <Filter className="h-4 w-4 text-gray-400" />
+                                {getNotificationFilterLabel(selectedFilter)}
+                            </span>
+                            <svg className={cn("h-4 w-4 text-gray-400 transition-transform", isFilterOpen && "rotate-180")} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                            </svg>
+                        </button>
+
+                        {/* Dropdown Menu */}
+                        {isFilterOpen && (
+                            <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+                                {NOTIFICATION_FILTER_TYPES.map((filter) => (
+                                    <button
+                                        key={filter}
+                                        onClick={() => {
+                                            setSelectedFilter(filter);
+                                            setIsFilterOpen(false);
+                                        }}
+                                        className={cn(
+                                            "w-full text-left px-4 py-2.5 text-sm font-medium transition-colors border-b last:border-b-0",
+                                            selectedFilter === filter
+                                                ? "bg-indigo-50 text-indigo-600"
+                                                : "text-gray-700 hover:bg-gray-50"
+                                        )}
+                                    >
+                                        {getNotificationFilterLabel(filter)}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Desktop: Expanded Tabs */}
+                    <div className="hidden sm:flex items-center gap-3 flex-wrap">
+                        <Filter className="h-5 w-5 text-gray-400 shrink-0" />
                         <span className="text-sm font-semibold text-gray-700">Filter:</span>
-                        {(['all', 'assignment', 'test', 'feedback', 'announcement', 'reminder', 'system'] as const).map((filter) => (
-                            <button
-                                key={filter}
-                                onClick={() => setSelectedFilter(filter)}
-                                className={cn(
-                                    "px-4 py-1.5 rounded-full text-sm font-medium transition-all",
-                                    selectedFilter === filter
-                                        ? "bg-indigo-600 text-white shadow-sm"
-                                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                                )}
-                            >
-                                {filter === 'all' ? 'All' : filter.charAt(0).toUpperCase() + filter.slice(1)}
-                            </button>
-                        ))}
+                        <div className="flex gap-2 flex-wrap">
+                            {NOTIFICATION_FILTER_TYPES.map((filter) => (
+                                <button
+                                    key={filter}
+                                    onClick={() => setSelectedFilter(filter)}
+                                    className={cn(
+                                        "px-4 py-1.5 rounded-full text-sm font-medium transition-all",
+                                        selectedFilter === filter
+                                            ? "bg-indigo-600 text-white shadow-sm"
+                                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                                    )}
+                                >
+                                    {getNotificationFilterLabel(filter)}
+                                </button>
+                            ))}
+                        </div>
                     </div>
                 </div>
 

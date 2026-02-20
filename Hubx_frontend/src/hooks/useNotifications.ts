@@ -49,6 +49,9 @@ export interface UseNotificationsOptions {
     /** Enable real-time updates via WebSocket */
     enableRealtime?: boolean;
 
+    /** When false, skips fetching (e.g. when user is not authenticated). Default: true */
+    enabled?: boolean;
+
     /** Callback when new notification arrives */
     onNewNotification?: (notification: Notification) => void;
 
@@ -75,6 +78,7 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
         initialFilters = {},
         refreshInterval = 0,
         enableRealtime = false,
+        enabled = true,
         onNewNotification,
         onError,
     } = options;
@@ -279,25 +283,27 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
     }, []);
 
     /**
-     * Initial fetch on mount
+     * Initial fetch on mount (only when enabled)
      */
     useEffect(() => {
+        if (!enabled) return;
         if (!initialFetchDone.current) {
             initialFetchDone.current = true;
             fetchNotifications(true, true);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []); // Only run once on mount
+    }, [enabled]); // Run when enabled changes
 
     /**
      * Fetch when filters change (but not on initial mount)
      */
     useEffect(() => {
+        if (!enabled) return;
         if (initialFetchDone.current) {
             fetchNotifications(true, true);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [filters]); // Only when filters change
+    }, [enabled, filters]); // When filters or enabled change
 
     /**
      * Setup WebSocket for real-time updates
@@ -365,7 +371,7 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
      * Setup auto-refresh
      */
     useEffect(() => {
-        if (refreshInterval <= 0) return;
+        if (refreshInterval <= 0 || !enabled) return;
 
         refreshTimerRef.current = setInterval(() => {
             fetchNotifications(false, true);
@@ -378,7 +384,7 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
             }
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [refreshInterval]); // Don't include fetchNotifications to avoid recreating interval
+    }, [refreshInterval, enabled]); // Don't include fetchNotifications to avoid recreating interval
 
     /**
      * Cleanup on unmount

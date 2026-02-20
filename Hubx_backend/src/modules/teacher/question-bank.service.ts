@@ -148,8 +148,12 @@ export class QuestionBankService {
       teacherId
     }
 
+    // When subjectId filter: show questions for that subject OR questions with no subject (uncategorized)
     if (filters.subjectId) {
-      where.subjectId = filters.subjectId
+      where.OR = [
+        { subjectId: filters.subjectId },
+        { subjectId: null }
+      ]
     }
 
     if (filters.difficulty) {

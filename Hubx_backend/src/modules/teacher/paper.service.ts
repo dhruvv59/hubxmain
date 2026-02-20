@@ -6,8 +6,10 @@ export class PaperService {
   /**
    * Validate paper access configuration based on isPublic and isFreeAccess flags
    * Rules:
-   * - If isPublic: true → price MUST be set, isFreeAccess MUST be false
-   * - If isPublic: false + isFreeAccess: true → price MUST be null (free paper)
+   * - If isPublic: true → price MUST be set (regardless of isFreeAccess)
+   *   - When isFreeAccess also true: Students from this school get free, others pay
+   *   - When isFreeAccess false: Everyone pays
+   * - If isPublic: false + isFreeAccess: true → price MUST be null (free for school only)
    * - If isPublic: false + isFreeAccess: false → price MUST be null (private draft)
    */
   private validatePaperAccessConfig(
@@ -15,16 +17,10 @@ export class PaperService {
     isFreeAccess: boolean,
     price: number | undefined | null,
   ): void {
-    // Public paper - must have price and cannot be free access
+    // Public paper - must have price (whether free for school or not)
     if (isPublic) {
       if (price === undefined || price === null) {
         throw new AppError(400, ERROR_MESSAGES.PUBLIC_PAPER_REQUIRES_PRICE)
-      }
-      if (isFreeAccess) {
-        throw new AppError(
-          400,
-          "Public papers cannot be marked as free access. Toggle off public paper first.",
-        )
       }
       return
     }
@@ -447,11 +443,8 @@ export class PaperService {
       difficulty?: string
       search?: string
       std?: string
-      rating?: string
     }
   ) {
-    const skip = (page - 1) * limit
-
     // Build where clause for public papers
     const publicPapersWhere: any = {
       isPublic: true,
@@ -460,9 +453,7 @@ export class PaperService {
 
     // Apply filters
     if (filters?.subject) {
-      publicPapersWhere.subject = {
-        name: filters.subject,
-      }
+      publicPapersWhere.subject = { name: filters.subject }
     }
 
     if (filters?.std) {
@@ -473,7 +464,6 @@ export class PaperService {
     }
 
     if (filters?.difficulty) {
-      // Map frontend difficulty to database format
       const difficultyMap: Record<string, string> = {
         "Beginner": "EASY",
         "Intermediate": "INTERMEDIATE",
@@ -487,184 +477,104 @@ export class PaperService {
 
     if (filters?.search) {
       publicPapersWhere.AND = [
-        {
-          OR: [
-            { title: { contains: filters.search } },
-            { description: { contains: filters.search } },
-          ]
-        }
+        { OR: [{ title: { contains: filters.search } }, { description: { contains: filters.search } }] }
       ]
     }
 
-    // Get teacher's own public papers (no pagination needed)
-    const ownPapers = await prisma.paper.findMany({
-      where: {
-        ...publicPapersWhere,
-        teacherId,
-      },
-      include: {
-        subject: true,
-        teacher: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-          },
-        },
-        questions: {
-          select: { id: true },
-        },
-      },
-      orderBy: { createdAt: "desc" },
-    })
-
-    // Get other teachers' public papers
-    // If filtering by rating, we need ALL papers to calculate ratings first
-    // Otherwise, use pagination (skip/take)
-    const shouldGetAllPapers = filters?.rating ? true : false
-
-    const otherPapers = await prisma.paper.findMany({
-      where: {
-        ...publicPapersWhere,
-        teacherId: { not: teacherId },
-      },
-      include: {
-        subject: true,
-        teacher: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-          },
-        },
-        questions: {
-          select: { id: true },
-        },
-      },
-      ...(shouldGetAllPapers ? {} : { skip, take: limit }),
-      orderBy: { createdAt: "desc" },
-    })
-
-    const totalOtherPapers = !shouldGetAllPapers ? otherPapers.length :
-      await prisma.paper.count({
-        where: {
-          ...publicPapersWhere,
-          teacherId: { not: teacherId },
-        },
-      })
-
-    // Calculate ratings for all papers
-    const ownPapersWithRatings = await Promise.all(
-      ownPapers.map(async (paper) => {
-        const { averagePercentage, rating } = await this.getPaperRating(paper.id)
-        return {
-          id: paper.id,
-          title: paper.title,
-          description: paper.description,
-          standard: paper.standard,
-          difficulty: paper.difficulty,
-          type: paper.type,
-          duration: paper.duration,
-          isPublic: paper.isPublic,
-          price: paper.price,
-          status: paper.status,
-          totalAttempts: paper.totalAttempts,
-          averageScore: paper.averageScore,
-          averagePercentage,
-          rating,
-          subject: paper.subject,
-          teacher: paper.teacher,
-          questionCount: paper.questions.length,
-          createdAt: paper.createdAt,
-        }
-      })
-    )
-
-    const otherPapersWithRatings = await Promise.all(
-      otherPapers.map(async (paper) => {
-        const { averagePercentage, rating } = await this.getPaperRating(paper.id)
-        return {
-          id: paper.id,
-          title: paper.title,
-          description: paper.description,
-          standard: paper.standard,
-          difficulty: paper.difficulty,
-          type: paper.type,
-          duration: paper.duration,
-          isPublic: paper.isPublic,
-          price: paper.price,
-          status: paper.status,
-          totalAttempts: paper.totalAttempts,
-          averageScore: paper.averageScore,
-          averagePercentage,
-          rating,
-          subject: paper.subject,
-          teacher: paper.teacher,
-          questionCount: paper.questions.length,
-          createdAt: paper.createdAt,
-        }
-      })
-    )
-
-    // Apply rating filter and pagination for filtered results
-    let filteredOtherPapers = otherPapersWithRatings
-
-    if (filters?.rating === "4 ★ & above") {
-      // Filter by rating >= 4
-      filteredOtherPapers = filteredOtherPapers.filter(p => p.rating >= 4)
-    } else if (filters?.rating === "Most Popular") {
-      // Sort by attempts for "Most Popular"
-      filteredOtherPapers = filteredOtherPapers.sort((a, b) => b.totalAttempts - a.totalAttempts)
+    const paperInclude = {
+      subject: true,
+      teacher: { select: { id: true, firstName: true, lastName: true, email: true } },
+      questions: { select: { id: true } },
     }
 
-    // Apply pagination to filtered results if rating filter was used
-    let finalOtherPapers = filteredOtherPapers
-    let finalTotal = shouldGetAllPapers ? filteredOtherPapers.length : totalOtherPapers
+    // Count own and other papers
+    const totalOwn = await prisma.paper.count({ where: { ...publicPapersWhere, teacherId } })
+    const totalOther = await prisma.paper.count({ where: { ...publicPapersWhere, teacherId: { not: teacherId } } })
+    const totalAll = totalOwn + totalOther
+    const totalPages = Math.ceil(totalAll / limit)
 
-    if (shouldGetAllPapers) {
-      // Apply pagination after filtering
-      const paginatedStart = (page - 1) * limit
-      finalOtherPapers = filteredOtherPapers.slice(paginatedStart, paginatedStart + limit)
+    // Own papers come first. Figure out which own/other papers belong to this page.
+    const globalStart = (page - 1) * limit  // 0-indexed start index in the combined list
+    const globalEnd = globalStart + limit    // exclusive end
+
+    // Own papers occupy indices 0..totalOwn-1, others occupy totalOwn..totalAll-1
+    const ownStart = Math.min(globalStart, totalOwn)
+    const ownEnd = Math.min(globalEnd, totalOwn)
+    const ownTake = ownEnd - ownStart
+
+    const otherStart = Math.max(0, globalStart - totalOwn)
+    const otherEnd = Math.max(0, globalEnd - totalOwn)
+    const otherTake = otherEnd - otherStart
+
+    const ownPapersRaw = ownTake > 0
+      ? await prisma.paper.findMany({
+          where: { ...publicPapersWhere, teacherId },
+          include: paperInclude,
+          orderBy: { createdAt: "desc" },
+          skip: ownStart,
+          take: ownTake,
+        })
+      : []
+
+    const otherPapersRaw = otherTake > 0
+      ? await prisma.paper.findMany({
+          where: { ...publicPapersWhere, teacherId: { not: teacherId } },
+          include: paperInclude,
+          orderBy: { createdAt: "desc" },
+          skip: otherStart,
+          take: otherTake,
+        })
+      : []
+
+    const mapPaper = async (paper: any, isOwn: boolean) => {
+      const { averagePercentage, rating } = await this.getPaperRating(paper.id)
+      return {
+        id: paper.id,
+        title: paper.title,
+        description: paper.description,
+        standard: paper.standard,
+        difficulty: paper.difficulty,
+        type: paper.type,
+        duration: paper.duration,
+        isPublic: paper.isPublic,
+        price: paper.price,
+        status: paper.status,
+        totalAttempts: paper.totalAttempts,
+        averageScore: paper.averageScore,
+        averagePercentage,
+        rating,
+        subject: paper.subject,
+        teacher: paper.teacher,
+        questionCount: paper.questions.length,
+        createdAt: paper.createdAt,
+        isOwnPaper: isOwn,
+      }
     }
 
-    // Get teacher's available subjects and standards
-    const teacherStandards = await prisma.standard.findMany({
-      where: { teacherId },
-      orderBy: { name: "asc" }
-    })
+    const ownPapersWithRatings = await Promise.all(ownPapersRaw.map(p => mapPaper(p, true)))
+    const otherPapersWithRatings = await Promise.all(otherPapersRaw.map(p => mapPaper(p, false)))
 
+    // Get teacher's available subjects and standards for filters
+    const teacherStandards = await prisma.standard.findMany({ where: { teacherId }, orderBy: { name: "asc" } })
     const teacherSubjects = await prisma.subject.findMany({
-      where: {
-        standard: {
-          teacherId
-        }
-      },
+      where: { standard: { teacherId } },
       select: { name: true },
       distinct: ['name'],
       orderBy: { name: "asc" }
     })
 
-    const availableSubjects = teacherSubjects
-      .map(s => s.name)
-      .filter((value, index, self) => self.indexOf(value) === index)
-
-    const availableStandards = teacherStandards
-      .map(s => `${s.name}th`)
-
     return {
       ownPapers: ownPapersWithRatings,
-      otherPapers: finalOtherPapers,
+      otherPapers: otherPapersWithRatings,
       pagination: {
         page,
         limit,
-        total: finalTotal,
-        pages: Math.ceil(finalTotal / limit),
+        total: totalAll,
+        pages: totalPages,
       },
       filters: {
-        subjects: availableSubjects,
-        standards: availableStandards
+        subjects: teacherSubjects.map(s => s.name),
+        standards: teacherStandards.map(s => `${s.name}th`),
       }
     }
   }

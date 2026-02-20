@@ -11,7 +11,7 @@ router.use(roleMiddleware(ROLES.STUDENT, ROLES.TEACHER, ROLES.SUPER_ADMIN))
 
 
 router.get("/dashboard", studentController.getDashboard)
-router.get("/public-papers", studentController.getPublicPapers)
+router.get("/published-papers", studentController.getPublicPapers)
 router.get("/practice-exams", studentController.getPracticeExams)
 router.get("/exam-history", studentController.getExamHistory)
 router.get("/exam-result/:attemptId", studentController.getExamResult)

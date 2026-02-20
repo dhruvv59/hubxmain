@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { ArrowLeft, Search, SlidersHorizontal, ChevronDown, Filter } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Search, SlidersHorizontal } from "lucide-react";
 import { FilterSidebar } from "@/components/teacher/papers/FilterSidebar";
 import { MobileFilterSidebar } from "@/components/teacher/papers/MobileFilterSidebar";
 import { TeacherPaperCard } from "@/components/teacher/papers/TeacherPaperCard";
@@ -60,16 +60,20 @@ function transformPaperForCard(paper: Paper): any {
         subject: paper.subject?.name || 'General',
         standard: `${paper.standard}th`,
         questions: paper.questionCount,
-        duration: paper.duration || 0,
+        duration: `${paper.duration || 0} min`,
         price: paper.price || 0,
         rating: paper.averageScore / 20, // Convert 0-100 to 0-5 scale
         badges: [
             paper.difficulty.charAt(0) + paper.difficulty.slice(1).toLowerCase(),
             paper.subject?.name || 'General'
         ],
+        attempts: paper.totalAttempts || 0,
+        date: new Date(paper.createdAt).toLocaleDateString('en-IN'),
+        idTag: paper.id.slice(-4).toUpperCase(),
         teacher: {
             name: `${paper.teacher.firstName} ${paper.teacher.lastName}`,
-            email: paper.teacher.email
+            email: paper.teacher.email,
+            avatar: '' // Teachers don't have avatars in response - will use default icon
         }
     };
 }
@@ -80,7 +84,6 @@ export default function PublicPapersPage() {
         subject: "All",
         standard: "All",
         difficulty: "All",
-        rating: "All",
         search: ""
     });
     const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
@@ -94,42 +97,29 @@ export default function PublicPapersPage() {
     const [availableSubjects, setAvailableSubjects] = useState<string[]>([]);
     const [availableStandards, setAvailableStandards] = useState<string[]>([]);
 
-    const ITEMS_PER_PAGE = 9;
+    const ITEMS_PER_PAGE = 10;
 
-    // Fetch papers from backend
-    useEffect(() => {
-        fetchPapers();
-    }, [currentPage, filters]);
-
-    const fetchPapers = async () => {
+    const fetchPapers = async (page: number, activeFilters: typeof filters) => {
         try {
             setIsLoading(true);
             setError(null);
 
-            // Build query parameters
             const params = new URLSearchParams();
-            params.append('page', String(currentPage));
+            params.append('page', String(page));
             params.append('limit', String(ITEMS_PER_PAGE));
 
-            if (filters.subject && filters.subject !== "All") {
-                params.append('subject', filters.subject);
+            if (activeFilters.subject && activeFilters.subject !== "All") {
+                params.append('subject', activeFilters.subject);
             }
-            if (filters.standard && filters.standard !== "All") {
-                // Extract number from "9th", "10th" etc and send as query param
-                const stdNum = filters.standard.replace(/\D/g, '');
-                if (stdNum) {
-                    params.append('std', stdNum);
-                }
+            if (activeFilters.standard && activeFilters.standard !== "All") {
+                const stdNum = activeFilters.standard.replace(/\D/g, '');
+                if (stdNum) params.append('std', stdNum);
             }
-            if (filters.difficulty && filters.difficulty !== "All") {
-                params.append('difficulty', filters.difficulty.toUpperCase());
+            if (activeFilters.difficulty && activeFilters.difficulty !== "All") {
+                params.append('difficulty', activeFilters.difficulty.toUpperCase());
             }
-            if (filters.rating && filters.rating !== "All") {
-                // Handle rating filter - convert to backend format
-                params.append('rating', filters.rating);
-            }
-            if (filters.search) {
-                params.append('search', filters.search);
+            if (activeFilters.search) {
+                params.append('search', activeFilters.search);
             }
 
             const response = await http.get<BackendResponse>(
@@ -141,7 +131,6 @@ export default function PublicPapersPage() {
             setTotalItems(response.data.pagination.total);
             setTotalPages(response.data.pagination.pages);
 
-            // Set available filters from backend
             if (response.data.filters) {
                 setAvailableSubjects(response.data.filters.subjects);
                 setAvailableStandards(response.data.filters.standards);
@@ -155,37 +144,52 @@ export default function PublicPapersPage() {
         }
     };
 
+    // Fetch papers from backend whenever page or filters change
+    useEffect(() => {
+        fetchPapers(currentPage, filters);
+    }, [currentPage, filters]);
+
     const handleFilterChange = (key: string, value: string) => {
         setFilters(prev => ({ ...prev, [key]: value }));
         setCurrentPage(1); // Reset to page 1 on filter change
     };
 
-    // Combine own papers (always shown first) with other papers
+    // Backend already slices correctly: ownPapers first, then otherPapers, exactly 10 total per page
+    const displayedOwnPapers = ownPapers;
+    const displayedOtherPapers = papers;
     const allPapers = [...ownPapers, ...papers];
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
 
     const handlePageChange = (page: number) => {
-        if (page >= 1 && page <= totalPages) {
+        if (page >= 1 && page <= (totalPages || 1)) {
             setCurrentPage(page);
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
     };
 
-    // Smart Pagination Generator
+    // Smart Pagination Generator — never shows more pages than actually exist
     const getPageNumbers = () => {
+        if (totalPages <= 1) return [];
+
         const pages = [];
         const maxVisible = 5;
 
         if (totalPages <= maxVisible) {
+            // Show all pages if total is within maxVisible
             for (let i = 1; i <= totalPages; i++) pages.push(i);
         } else {
-            if (currentPage <= 3) {
-                for (let i = 1; i <= 5; i++) pages.push(i);
-            } else if (currentPage >= totalPages - 2) {
-                for (let i = totalPages - 4; i <= totalPages; i++) pages.push(i);
-            } else {
-                for (let i = currentPage - 2; i <= currentPage + 2; i++) pages.push(i);
+            let start = Math.max(1, currentPage - 2);
+            let end = Math.min(totalPages, currentPage + 2);
+
+            // Adjust window so we always show exactly maxVisible pages
+            if (end - start < maxVisible - 1) {
+                if (start === 1) {
+                    end = Math.min(totalPages, start + maxVisible - 1);
+                } else {
+                    start = Math.max(1, end - maxVisible + 1);
+                }
             }
+
+            for (let i = start; i <= end; i++) pages.push(i);
         }
         return pages;
     };
@@ -205,7 +209,7 @@ export default function PublicPapersPage() {
             <div className="mb-6 mt-4">
                 <div className="flex items-center gap-3 mb-1">
                     <h1 className="text-xl font-bold text-gray-900">
-                        Public Papers {!isLoading && `(${ownPapers.length + totalItems})`}
+                        Published Papers {!isLoading && `(${totalItems})`}
                     </h1>
                 </div>
                 <p className="text-gray-500 text-sm ml-8">Discover and access quality papers created by expert teachers</p>
@@ -292,7 +296,7 @@ export default function PublicPapersPage() {
                             <h3 className="text-lg font-bold text-gray-900">Failed to Load Papers</h3>
                             <p className="text-gray-500 text-sm mt-1">{error}</p>
                             <button
-                                onClick={() => fetchPapers()}
+                                onClick={() => fetchPapers(currentPage, filters)}
                                 className="mt-4 px-6 py-2 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700"
                             >
                                 Retry
@@ -300,22 +304,25 @@ export default function PublicPapersPage() {
                         </div>
                     ) : allPapers.length > 0 ? (
                         <div className="space-y-4">
-                            {ownPapers.length > 0 && (
+                            {/* Page 1: Show own papers */}
+                            {displayedOwnPapers.length > 0 && (
                                 <div className="mb-6">
-                                    <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-3">Your Public Papers</h2>
-                                    {ownPapers.map((paper) => (
+                                    <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-3">Your Published Papers</h2>
+                                    {displayedOwnPapers.map((paper) => (
                                         <div key={paper.id} className="mb-4">
-                                            <TeacherPaperCard paper={transformPaperForCard(paper)} />
+                                            <TeacherPaperCard
+                                                paper={{ ...transformPaperForCard(paper), isOwnPaper: true }}
+                                                onUpdate={() => fetchPapers(currentPage, filters)}
+                                            />
                                         </div>
                                     ))}
                                 </div>
                             )}
-                            {papers.length > 0 && (
+                            {/* Page 2+: Show other teachers' papers */}
+                            {displayedOtherPapers.length > 0 && (
                                 <div>
-                                    {ownPapers.length > 0 && (
-                                        <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-3">Other Teachers' Papers</h2>
-                                    )}
-                                    {papers.map((paper) => (
+                                    <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-3">Other Teachers' Papers</h2>
+                                    {displayedOtherPapers.map((paper) => (
                                         <div key={paper.id} className="mb-4">
                                             <TeacherPaperCard paper={transformPaperForCard(paper)} />
                                         </div>
@@ -331,7 +338,7 @@ export default function PublicPapersPage() {
                             <h3 className="text-lg font-bold text-gray-900">No papers found</h3>
                             <p className="text-gray-500 text-sm mt-1">Try adjusting your filters</p>
                             <button
-                                onClick={() => setFilters({ subject: "All", standard: "All", difficulty: "All", rating: "All", search: "" })}
+                                onClick={() => setFilters({ subject: "All", standard: "All", difficulty: "All", search: "" })}
                                 className="mt-4 text-indigo-600 font-bold text-sm hover:underline"
                             >
                                 Clear all filters
@@ -340,7 +347,7 @@ export default function PublicPapersPage() {
                     )}
 
                     {/* Pagination */}
-                    {(totalItems > 0 || ownPapers.length > 0) && !isLoading && (
+                    {totalPages > 1 && !isLoading && (
                         <div className="mt-10 flex flex-col items-center gap-4">
                             <div className="flex items-center justify-center gap-1 sm:gap-2">
                                 <button
@@ -377,8 +384,8 @@ export default function PublicPapersPage() {
                             </div>
 
                             <p className="text-sm text-gray-400 font-medium">
-                                Showing <span className="text-gray-900 font-bold">{papers.length}</span> of <span className="text-gray-900 font-bold">{totalItems}</span> other papers
-                                {ownPapers.length > 0 && <span> (+ {ownPapers.length} your own)</span>}
+                                Page <span className="text-gray-900 font-bold">{currentPage}</span> of <span className="text-gray-900 font-bold">{totalPages}</span>
+                                {totalItems > 0 && <span> • {totalItems} total papers</span>}
                             </p>
                         </div>
                     )}

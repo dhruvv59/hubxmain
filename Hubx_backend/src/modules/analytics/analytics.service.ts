@@ -27,6 +27,12 @@ export class AnalyticsService {
     // Calculate statistics
     const totalAttempts = papers.reduce((sum, p) => sum + (p._count.examAttempts || 0), 0)
 
+    // Date calculations for trend analysis
+    const now = new Date()
+    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+    const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59)
+
     // Trending Papers: papers that have at least 1 attempt in the last 30 days
     const thirtyDaysAgo = new Date()
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
@@ -38,6 +44,51 @@ export class AnalyticsService {
           some: {
             createdAt: { gte: thirtyDaysAgo }
           }
+        }
+      }
+    })
+
+    // Calculate last month's metrics for trend comparison
+    const lastMonthPurchases = await prisma.paperPurchase.findMany({
+      where: {
+        paper: { teacherId },
+        createdAt: {
+          gte: lastMonthStart,
+          lte: lastMonthEnd
+        }
+      }
+    })
+    const lastMonthEarnings = lastMonthPurchases.reduce((sum, p) => sum + p.price, 0)
+    const lastMonthPurchaseCount = lastMonthPurchases.length
+
+    const lastMonthTrendingPapersCount = await prisma.paper.count({
+      where: {
+        teacherId,
+        examAttempts: {
+          some: {
+            createdAt: {
+              gte: lastMonthStart,
+              lte: lastMonthEnd
+            }
+          }
+        }
+      }
+    })
+
+    // Papers created this month vs last month
+    const thisMonthPapersCreated = await prisma.paper.count({
+      where: {
+        teacherId,
+        createdAt: { gte: currentMonthStart }
+      }
+    })
+
+    const lastMonthPapersCreated = await prisma.paper.count({
+      where: {
+        teacherId,
+        createdAt: {
+          gte: lastMonthStart,
+          lte: lastMonthEnd
         }
       }
     })
@@ -155,6 +206,13 @@ export class AnalyticsService {
       totalEarnings,
       studentPerformance,
       recentActivities,
+
+      // Previous month metrics for trend comparison
+      lastMonthEarnings,
+      lastMonthPurchaseCount,
+      lastMonthTrendingPapersCount,
+      thisMonthPapersCreated,
+      lastMonthPapersCreated,
 
       // Keep old fields just in case
       totalAttempts,

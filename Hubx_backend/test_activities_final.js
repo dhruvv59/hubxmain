@@ -175,7 +175,7 @@ async function runActivitiesTest() {
 
         // 1. Get Public Papers
         console.log('Fetching Public Papers...');
-        const papersRes = await get('/student/public-papers', studentToken);
+        const papersRes = await get('/student/published-papers', studentToken);
         if (papersRes.status === 200) {
             const paperFound = papersRes.data.data.papers.find(p => p.id === paperId);
             if (paperFound) {

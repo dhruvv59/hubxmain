@@ -184,7 +184,7 @@ export function PrivatePaperCard({ paper, onUpdate }: PrivatePaperCardProps) {
                         Questions
                     </button>
                     <button
-                        onClick={() => router.push(`/teacher/paper-assessments/${paper.id}`)}
+                        onClick={() => router.push(`/teacher/paper/${paper.id}`)}
                         className="px-6 py-2 rounded-lg border border-gray-200 text-xs font-bold text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all"
                     >
                         Manage
