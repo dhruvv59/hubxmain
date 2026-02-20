@@ -226,13 +226,19 @@ async function main() {
 
   // --- 6. Exam Attempts & Analytics ---
   console.log("Seeding Analytics...");
+
+  // Calculate last month date range
+  const now = new Date();
+  const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+
   // Each student attempts 2 papers
   for (const student of students) {
     // Pick 2 random papers
     const papersToAttempt = papers.slice(0, 2);
 
     for (const paper of papersToAttempt) {
-      // Purchase
+      // Purchase (this month)
       const payment = await prisma.payment.create({
         data: {
           userId: student.id, amount: paper.price || 499, status: PaymentStatus.SUCCESS,
@@ -243,7 +249,7 @@ async function main() {
         data: { paperId: paper.id, studentId: student.id, paymentId: payment.id, price: paper.price || 499 }
       });
 
-      // Attempt
+      // Attempt (this month)
       const attempt = await prisma.examAttempt.create({
         data: {
           paperId: paper.id,
@@ -266,6 +272,52 @@ async function main() {
           message: `${student.firstName} submitted ${paper.title}`,
           type: "SUCCESS",
           isRead: false
+        }
+      });
+    }
+
+    // Add historical data from LAST MONTH for trend comparison
+    const papersForLastMonth = papers.slice(2, 4);
+    for (const paper of papersForLastMonth) {
+      // Random date in last month
+      const randomDayInLastMonth = new Date(
+        lastMonthStart.getTime() + Math.random() * (lastMonthEnd.getTime() - lastMonthStart.getTime())
+      );
+
+      // Purchase from last month
+      const lastMonthPayment = await prisma.payment.create({
+        data: {
+          userId: student.id,
+          amount: paper.price || 499,
+          status: PaymentStatus.SUCCESS,
+          orderId: `ord_${getRandomInt(10000, 99999)}`,
+          paymentId: `pay_${getRandomInt(10000, 99999)}`,
+          createdAt: randomDayInLastMonth
+        }
+      });
+      await prisma.paperPurchase.create({
+        data: {
+          paperId: paper.id,
+          studentId: student.id,
+          paymentId: lastMonthPayment.id,
+          price: paper.price || 499,
+          createdAt: randomDayInLastMonth
+        }
+      });
+
+      // Exam attempt from last month
+      await prisma.examAttempt.create({
+        data: {
+          paperId: paper.id,
+          studentId: student.id,
+          status: ExamStatus.SUBMITTED,
+          startedAt: new Date(randomDayInLastMonth.getTime() - 7200000),
+          submittedAt: randomDayInLastMonth,
+          totalMarks: 10,
+          totalScore: getRandomInt(4, 10),
+          percentage: getRandomInt(40, 100),
+          timeSpent: getRandomInt(1200, 3600),
+          createdAt: randomDayInLastMonth
         }
       });
     }

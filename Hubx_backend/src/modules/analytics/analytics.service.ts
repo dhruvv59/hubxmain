@@ -29,9 +29,9 @@ export class AnalyticsService {
 
     // Date calculations for trend analysis
     const now = new Date()
-    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1)
-    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-    const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59)
+    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0)
+    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0)
+    const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999)
 
     // Trending Papers: papers that have at least 1 attempt in the last 30 days
     const thirtyDaysAgo = new Date()
