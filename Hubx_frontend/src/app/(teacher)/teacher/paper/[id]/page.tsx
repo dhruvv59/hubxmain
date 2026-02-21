@@ -11,11 +11,13 @@ import { teacherDoubtService, Doubt } from "@/services/teacher-doubts";
 import { PrivatePaper } from "@/types/private-paper";
 import { QuestionForm } from "@/components/teacher/questions/QuestionForm";
 import { QuestionBankModal } from "@/components/teacher/questions/QuestionBankModal";
+import { useToast } from "@/components/ui/ToastContainer";
 
 export default function PaperDetailsPage() {
     const params = useParams();
     const router = useRouter();
     const paperId = params.id as string;
+    const { addToast } = useToast();
 
     const [activeTab, setActiveTab] = useState<"overview" | "questions" | "doubts">("overview");
     const [paper, setPaper] = useState<any>(null); // Using any for now to match backend response roughly
@@ -78,11 +80,11 @@ export default function PaperDetailsPage() {
         setIsBulkUploading(true);
         try {
             await teacherQuestionService.bulkUpload(paperId, file);
-            alert("Questions uploaded successfully!");
+            addToast("Questions uploaded successfully!", "success");
             loadQuestions();
         } catch (error) {
             console.error("Bulk upload failed:", error);
-            alert("Failed to upload questions. Please check the file format.");
+            addToast("Failed to upload questions. Please check the file format.", "error");
         } finally {
             setIsBulkUploading(false);
             e.target.value = ""; // Reset input
@@ -111,7 +113,7 @@ export default function PaperDetailsPage() {
 
     const handlePublish = async () => {
         if (paper.status === 'PUBLISHED') {
-            alert("This paper is already published!");
+            addToast("This paper is already published!", "warning");
             return;
         }
 
@@ -122,11 +124,11 @@ export default function PaperDetailsPage() {
         setIsPublishing(true);
         try {
             await http.patch<any>(TEACHER_ENDPOINTS.publishPaper(paperId));
-            alert("Paper published successfully!");
+            addToast("Paper published successfully!", "success");
             loadPaperDetails();
         } catch (error: any) {
             console.error("Failed to publish paper:", error);
-            alert(error.response?.data?.message || "Failed to publish paper. Please try again.");
+            addToast(error.response?.data?.message || "Failed to publish paper. Please try again.", "error");
         } finally {
             setIsPublishing(false);
         }

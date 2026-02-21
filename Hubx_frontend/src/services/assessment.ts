@@ -163,20 +163,23 @@ function transformExamDataToDetail(
         level: "Intermediate",
         totalScore: data.attempt.totalMarks,
         durationSeconds: paper.duration ? paper.duration * 60 : 0,
-        questions: paper.questions.map((q, index) => ({
-            // CRITICAL FIX: Use real backend question ID (UUID) instead of index
-            id: q.id, // ✅ Now uses real Prisma CUID like "clxxx..."
-            text: q.questionText,
-            type: q.type === "MCQ" ? "MCQ" as const : "Text" as const,
-            points: q.marks,
-            // ✅ Options now include numeric index for backend compatibility
-            options: (q.options || []).map((opt, i) => ({
-                id: String.fromCharCode(65 + i), // A, B, C, D for display
-                text: opt,
-                index: i, // ✅ NEW: Numeric index (0-3) for backend API
-            })),
-            order: q.order, // ✅ Preserve original order
-        })),
+        questions: paper.questions.map((q, index) => {
+            const rawOptions = q.options || [];
+            const optionsArray = Array.isArray(rawOptions) ? rawOptions : [];
+            return {
+                id: q.id,
+                text: q.questionText,
+                type: (q.type === "MCQ" ? "MCQ" : q.type === "FILL_IN_THE_BLANKS" ? "FILL_IN_THE_BLANKS" : "Text") as "MCQ" | "Text" | "FILL_IN_THE_BLANKS",
+                points: q.marks,
+                questionImage: q.questionImage || null,
+                options: optionsArray.map((opt: string, i: number) => ({
+                    id: String.fromCharCode(65 + i),
+                    text: typeof opt === "string" ? opt : String(opt),
+                    index: i,
+                })),
+                order: q.order,
+            };
+        }),
     };
 }
 

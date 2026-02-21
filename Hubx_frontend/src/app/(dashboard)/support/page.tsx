@@ -2,8 +2,10 @@
 
 import React, { useState } from "react";
 import { HelpCircle, Mail, MessageCircle, Phone, Send, ChevronDown, ChevronUp, Search } from "lucide-react";
+import { useToast } from "@/components/ui/ToastContainer";
 
 export default function SupportPage() {
+    const { addToast } = useToast();
     const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
     const [searchQuery, setSearchQuery] = useState("");
     const [message, setMessage] = useState("");
@@ -58,7 +60,7 @@ export default function SupportPage() {
             setMessage("");
             setName("");
             setEmail("");
-            alert("Support request submitted successfully!");
+            addToast("Support request submitted successfully!", "success");
         }, 1500);
     };
 

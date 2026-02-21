@@ -18,11 +18,13 @@ import { cn } from "@/lib/utils";
 import { getAssessmentDetail, submitAssessment, startAssessment } from "@/services/assessment";
 import { AssessmentDetail } from "@/types/assessment";
 import { useExamState } from "@/hooks/useExamState";
+import { useToast } from "@/components/ui/ToastContainer";
 
 export default function TakeAssessmentPage() {
     const router = useRouter();
     const params = useParams();
     const paperId = params.id as string;
+    const { addToast } = useToast();
 
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -75,14 +77,19 @@ export default function TakeAssessmentPage() {
         if (!assessment || !attemptId) return;
         const currentQuestion = assessment.questions[examState.currentQuestionIndex];
 
-        // CRITICAL FIX: For MCQ, send numeric index (0-3) to backend, not letter (A/B/C/D)
+        // For MCQ and FILL_IN_THE_BLANKS with options: send numeric index (0-3) to backend
         const selectedOption = currentQuestion.options.find(opt => opt.id === optionId);
         const answerValue = selectedOption?.index !== undefined
-            ? selectedOption.index  // MCQ: send 0, 1, 2, or 3
-            : optionId;             // Text: send the text answer
+            ? selectedOption.index
+            : optionId;
 
-        // Auto-save to backend immediately with correct question UUID + numeric option
         examState.saveAnswer(currentQuestion.id, answerValue, currentQuestion.type);
+    };
+
+    const handleTextAnswer = (value: string) => {
+        if (!assessment || !attemptId) return;
+        const currentQuestion = assessment.questions[examState.currentQuestionIndex];
+        examState.saveAnswer(currentQuestion.id, value, currentQuestion.type);
     };
 
     const nextQuestion = () => {
@@ -111,7 +118,7 @@ export default function TakeAssessmentPage() {
             router.push(`/assessments/results/${attemptId}`);
         } catch (err) {
             console.error("Submission failed", err);
-            alert("Submission failed. Please try again.");
+            addToast("Submission failed. Please try again.", "error");
             setIsSubmitting(false);
             setShowSubmitModal(false);
         }
@@ -254,46 +261,79 @@ export default function TakeAssessmentPage() {
                             </div>
                         </div>
 
+                        {/* Question Image */}
+                        {currentQuestion.questionImage && (
+                            <div className="mb-6">
+                                <img
+                                    src={currentQuestion.questionImage}
+                                    alt="Question"
+                                    className="max-w-full h-auto rounded-lg border border-gray-200"
+                                />
+                            </div>
+                        )}
+
                         {/* Question Text */}
                         <h2 className="text-xl md:text-2xl font-semibold text-gray-800 mb-8 leading-relaxed">
                             {currentQuestion.text}
                         </h2>
 
-                        {/* Options */}
+                        {/* Answer Area: MCQ, FILL_IN_THE_BLANKS (options or text), TEXT */}
                         <div className="space-y-4 flex-1">
-                            {currentQuestion.options.map((option) => {
-                                const isSelected = examState.answers[currentQuestion.id] === option.id;
-                                return (
-                                    <div
-                                        key={option.id}
-                                        onClick={() => handleOptionSelect(option.id)}
-                                        className={cn(
-                                            "flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all group",
-                                            isSelected
-                                                ? "border-green-400 bg-green-50/50"
-                                                : "border-gray-100 bg-gray-50/50 hover:border-gray-300 hover:bg-gray-100"
-                                        )}
-                                    >
-                                        <div className={cn(
-                                            "h-6 w-6 rounded-full border-2 flex items-center justify-center mr-4 transition-colors",
-                                            isSelected
-                                                ? "border-green-500 bg-green-500"
-                                                : "border-gray-300 group-hover:border-gray-400"
-                                        )}>
-                                            {isSelected && <div className="h-2.5 w-2.5 bg-white rounded-full" />}
+                            {(currentQuestion.type === "MCQ" || (currentQuestion.type === "FILL_IN_THE_BLANKS" && currentQuestion.options.length > 0)) && (
+                                currentQuestion.options.map((option) => {
+                                    const isSelected = examState.answers[currentQuestion.id] === option.index || examState.answers[currentQuestion.id] === option.id;
+                                    return (
+                                        <div
+                                            key={option.id}
+                                            onClick={() => handleOptionSelect(option.id)}
+                                            className={cn(
+                                                "flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all group",
+                                                isSelected
+                                                    ? "border-green-400 bg-green-50/50"
+                                                    : "border-gray-100 bg-gray-50/50 hover:border-gray-300 hover:bg-gray-100"
+                                            )}
+                                        >
+                                            <div className={cn(
+                                                "h-6 w-6 rounded-full border-2 flex items-center justify-center mr-4 transition-colors",
+                                                isSelected
+                                                    ? "border-green-500 bg-green-500"
+                                                    : "border-gray-300 group-hover:border-gray-400"
+                                            )}>
+                                                {isSelected && <div className="h-2.5 w-2.5 bg-white rounded-full" />}
+                                            </div>
+                                            <span className={cn("font-semibold mr-4 text-lg", isSelected ? "text-green-700" : "text-gray-500")}>
+                                                {option.id}.
+                                            </span>
+                                            <span className={cn("text-lg", isSelected ? "text-gray-900 font-medium" : "text-gray-700")}>
+                                                {option.text}
+                                            </span>
+                                            {isSelected && (
+                                                <CheckCircle2 className="h-6 w-6 text-green-500 ml-auto" />
+                                            )}
                                         </div>
-                                        <span className={cn("font-semibold mr-4 text-lg", isSelected ? "text-green-700" : "text-gray-500")}>
-                                            {option.id}.
-                                        </span>
-                                        <span className={cn("text-lg", isSelected ? "text-gray-900 font-medium" : "text-gray-700")}>
-                                            {option.text}
-                                        </span>
-                                        {isSelected && (
-                                            <CheckCircle2 className="h-6 w-6 text-green-500 ml-auto" />
-                                        )}
-                                    </div>
-                                );
-                            })}
+                                    );
+                                })
+                            )}
+
+                            {(currentQuestion.type === "Text" || (currentQuestion.type === "FILL_IN_THE_BLANKS" && currentQuestion.options.length === 0)) && (
+                                currentQuestion.type === "Text" ? (
+                                    <textarea
+                                        value={String(examState.answers[currentQuestion.id] ?? "")}
+                                        onChange={(e) => handleTextAnswer(e.target.value)}
+                                        placeholder="Type your answer here..."
+                                        rows={6}
+                                        className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                    />
+                                ) : (
+                                    <input
+                                        type="text"
+                                        value={String(examState.answers[currentQuestion.id] ?? "")}
+                                        onChange={(e) => handleTextAnswer(e.target.value)}
+                                        placeholder="Type your answer here..."
+                                        className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                    />
+                                )
+                            )}
                         </div>
 
                         {/* Footer Buttons */}

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { Bell, Lock, Shield, Globe, Moon, Smartphone, Mail, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/components/ui/ToastContainer";
 
 interface SettingsState {
     notifications: {
@@ -25,6 +26,7 @@ interface SettingsState {
 
 export default function SettingsPage() {
     const { user } = useAuth();
+    const { addToast } = useToast();
     const [settings, setSettings] = useState<SettingsState>({
         notifications: {
             email: true,
@@ -77,10 +79,10 @@ export default function SettingsPage() {
                 privacy: settings.privacy,
                 preferences: settings.preferences,
             });
-            alert("Settings saved successfully!");
+            addToast("Settings saved successfully!", "success");
         } catch (error: any) {
             console.error("Failed to save settings:", error);
-            alert(error?.message || "Failed to save settings. Please try again.");
+            addToast(error?.message || "Failed to save settings. Please try again.", "error");
         } finally {
             setIsSaving(false);
         }

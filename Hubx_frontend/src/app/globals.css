@@ -119,7 +119,7 @@
 
   --animate-slide-in-left: slide-in-left 0.3s ease-out;
   --animate-slide-in-right: slide-in-right 0.3s ease-out;
-  /* Added slide-in-right support */
+  --animate-slide-up-fade: slide-up-fade 0.3s ease-out;
   --animate-fade-in: fade-in 0.2s ease-out;
 
   @keyframes slide-in-left {
@@ -133,14 +133,24 @@
   }
 
   @keyframes slide-in-right {
-
-    /* Added slide-in-right keyframes */
     from {
       transform: translateX(100%);
     }
 
     to {
       transform: translateX(0);
+    }
+  }
+
+  @keyframes slide-up-fade {
+    from {
+      transform: translateY(16px);
+      opacity: 0;
+    }
+
+    to {
+      transform: translateY(0);
+      opacity: 1;
     }
   }
 

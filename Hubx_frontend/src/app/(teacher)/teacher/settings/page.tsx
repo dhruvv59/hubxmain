@@ -20,7 +20,7 @@ interface SettingsState {
     };
     preferences: {
         language: "en" | "gu" | "hi";
-        theme: "light" | "dark" | "auto";
+        theme: "light" | "dark";
     };
 }
 
@@ -324,14 +324,13 @@ export default function TeacherSettingsPage() {
                             onChange={(e) =>
                                 setSettings({
                                     ...settings,
-                                    preferences: { ...settings.preferences, theme: e.target.value as "light" | "dark" | "auto" },
+                                    preferences: { ...settings.preferences, theme: e.target.value as "light" | "dark" },
                                 })
                             }
                             className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
                         >
                             <option value="light">Light</option>
                             <option value="dark">Dark</option>
-                            <option value="auto">Auto (System)</option>
                         </select>
                     </div>
                 </div>

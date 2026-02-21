@@ -3,10 +3,12 @@
 import React, { useState, useEffect } from "react";
 import { User, Mail, Phone, MapPin, Calendar, Edit2, Save, X, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/components/ui/ToastContainer";
 import { cn } from "@/lib/utils";
 
 export default function ProfilePage() {
     const { user } = useAuth();
+    const { addToast } = useToast();
     const [isEditing, setIsEditing] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [formData, setFormData] = useState({
@@ -56,10 +58,10 @@ export default function ProfilePage() {
 
             setIsEditing(false);
             // Show success toast
-            alert("Profile updated successfully!");
+            addToast("Profile updated successfully!", "success");
         } catch (error: any) {
             console.error("Failed to save profile:", error);
-            alert(error?.message || "Failed to save profile. Please try again.");
+            addToast(error?.message || "Failed to save profile. Please try again.", "error");
         } finally {
             setIsSaving(false);
         }

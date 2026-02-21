@@ -7,6 +7,7 @@ import { QuestionForm } from "@/components/teacher/questions/QuestionForm";
 import { QuestionBankModal } from "@/components/teacher/questions/QuestionBankModal";
 import { API_BASE_URL } from "@/lib/api-config";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/components/ui/ToastContainer";
 
 interface Question {
   id: string;
@@ -35,6 +36,7 @@ export default function PaperQuestionsPage() {
   const params = useParams();
   const router = useRouter();
   const paperId = params.paperId as string;
+  const { addToast } = useToast();
 
   const [paper, setPaper] = useState<Paper | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -95,14 +97,14 @@ export default function PaperQuestionsPage() {
       if (response.ok) {
         // Optimistically update status
         setPaper(prev => prev ? { ...prev, status: "PUBLISHED" } : null);
-        alert("Paper published successfully!");
+        addToast("Paper published successfully!", "success");
       } else {
         const error = await response.json();
-        alert(`Error: ${error.message}`);
+        addToast(`Error: ${error.message}`, "error");
       }
     } catch (error) {
       console.error("Error publishing paper:", error);
-      alert("Error publishing paper");
+      addToast("Error publishing paper", "error");
     } finally {
       setIsPublishing(false);
     }

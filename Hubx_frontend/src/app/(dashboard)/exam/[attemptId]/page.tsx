@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Loader2, ChevronLeft, ChevronRight, HelpCircle } from "lucide-react";
+import { Loader2, ChevronLeft, ChevronRight, HelpCircle, Clock } from "lucide-react";
 import { API_BASE_URL } from "@/lib/api-config";
 import { DoubtSubmitModal } from "@/components/exam/DoubtSubmitModal";
+import { useToast } from "@/components/ui/ToastContainer";
 
 interface Question {
   id: string;
@@ -29,12 +30,14 @@ interface ExamData {
     title: string;
     duration: number;
   };
+  timeRemaining?: number | null;
 }
 
 export default function ExamPage() {
   const params = useParams();
   const router = useRouter();
   const attemptId = params.attemptId as string;
+  const { addToast } = useToast();
 
   const [examData, setExamData] = useState<ExamData | null>(null);
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
@@ -43,6 +46,8 @@ export default function ExamPage() {
   const [selectedAnswer, setSelectedAnswer] = useState<string | number | null>(null);
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [isDoubtModalOpen, setIsDoubtModalOpen] = useState(false);
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  const hasAutoSubmitted = useRef(false);
 
   const loadExamData = async () => {
     try {
@@ -53,12 +58,15 @@ export default function ExamPage() {
 
       if (response.ok) {
         const data = await response.json();
-        setExamData(data.data);
+        const d = data.data;
+        setExamData(d);
+        const remaining = d.timeRemaining ?? (d.paper?.duration ? d.paper.duration * 60 : null);
+        setTimeLeft(remaining);
         loadQuestion(0);
       }
     } catch (error) {
       console.error("Error loading exam:", error);
-      alert("Error loading exam");
+      addToast("Failed to load exam. Please try again.", "error");
     }
   };
 
@@ -72,9 +80,12 @@ export default function ExamPage() {
 
       if (response.ok) {
         const data = await response.json();
-        setCurrentQuestion(data.data);
+        const q = data.data;
+        const saved = q.studentAnswer;
+        const initial = saved?.selectedOption ?? saved?.answerText ?? answers[q.id] ?? null;
+        setCurrentQuestion(q);
         setQuestionIndex(index);
-        setSelectedAnswer(null);
+        setSelectedAnswer(initial);
         setIsLoading(false);
       }
     } catch (error) {
@@ -85,7 +96,7 @@ export default function ExamPage() {
 
   const saveAnswer = async () => {
     if (selectedAnswer === null || selectedAnswer === "") {
-      alert("Please select or enter an answer");
+      addToast("Please select or enter an answer", "warning");
       return;
     }
 
@@ -133,11 +144,11 @@ export default function ExamPage() {
       } else {
         const error = await response.json();
         console.error("❌ Error saving answer:", error);
-        alert("Error saving answer: " + (error.message || "Unknown error"));
+        addToast("Failed to save answer: " + (error.message || "Unknown error"), "error");
       }
     } catch (error) {
       console.error("❌ Error saving answer:", error);
-      alert("Error saving answer");
+      addToast("Failed to save answer", "error");
     }
   };
 
@@ -155,8 +166,8 @@ export default function ExamPage() {
     }
   };
 
-  const handleSubmit = async () => {
-    if (!confirm("Submit exam? You cannot change answers after submission.")) return;
+  const doSubmit = async (skipConfirm = false) => {
+    if (!skipConfirm && !confirm("Submit exam? You cannot change answers after submission.")) return;
 
     try {
       const token = localStorage.getItem("hubx_access_token");
@@ -167,18 +178,36 @@ export default function ExamPage() {
       });
 
       if (response.ok) {
-        alert("Exam submitted successfully!");
+        addToast(skipConfirm ? "Time's up! Exam auto-submitted." : "Exam submitted successfully!", "success");
         router.push(`/exam/${attemptId}/result`);
       }
     } catch (error) {
       console.error("Error submitting exam:", error);
-      alert("Error submitting exam");
+      addToast("Failed to submit exam", "error");
     }
   };
+
+  const handleSubmit = () => doSubmit(false);
 
   useEffect(() => {
     loadExamData();
   }, [attemptId]);
+
+  // Timer countdown and auto-submit when time expires
+  useEffect(() => {
+    if (timeLeft === null || timeLeft <= 0) return;
+    const interval = setInterval(() => {
+      setTimeLeft((prev) => (prev === null || prev <= 1 ? 0 : prev - 1));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [timeLeft]);
+
+  useEffect(() => {
+    if (timeLeft === 0 && examData && !hasAutoSubmitted.current) {
+      hasAutoSubmitted.current = true;
+      doSubmit(true);
+    }
+  }, [timeLeft, examData]);
 
   if (isLoading || !examData || !examData.paper || !currentQuestion) {
     return (
@@ -199,12 +228,22 @@ export default function ExamPage() {
               Question {currentQuestion.questionNumber} of {currentQuestion.totalQuestions}
             </p>
           </div>
-          <button
-            onClick={handleSubmit}
-            className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
-          >
-            Submit Exam
-          </button>
+          <div className="flex items-center gap-4">
+            {timeLeft !== null && (
+              <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg ${timeLeft < 300 ? "bg-red-50 text-red-600" : "bg-orange-50 text-orange-600"}`}>
+                <Clock className={`h-4 w-4 ${timeLeft < 300 ? "animate-pulse" : ""}`} />
+                <span className="font-mono font-bold">
+                  {Math.floor(timeLeft / 3600)}:{(Math.floor(timeLeft / 60) % 60).toString().padStart(2, "0")}:{(timeLeft % 60).toString().padStart(2, "0")}
+                </span>
+              </div>
+            )}
+            <button
+              onClick={handleSubmit}
+              className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
+            >
+              Submit Exam
+            </button>
+          </div>
         </div>
       </div>
 

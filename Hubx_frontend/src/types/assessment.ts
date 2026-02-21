@@ -9,8 +9,9 @@ export interface AnswerOption {
 export interface Question {
     id: string; // ✅ CHANGED: Now string (UUID) instead of number
     text: string;
-    type: "MCQ" | "Text"; // Expandable for future
+    type: "MCQ" | "Text" | "FILL_IN_THE_BLANKS";
     options: AnswerOption[];
+    questionImage?: string | null; // S3 URL for question attachment
     correctAnswer?: string; // Should be hidden in a real safe exam browser, but fetched here for immediate feedback if allowed
     points: number;
     order?: number; // ✅ NEW: Original question order from paper

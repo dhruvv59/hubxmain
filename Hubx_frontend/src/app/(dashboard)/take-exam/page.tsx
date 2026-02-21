@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { API_BASE_URL } from "@/lib/api-config";
 import { Loader2, Play } from "lucide-react";
+import { useToast } from "@/components/ui/ToastContainer";
 
 interface Paper {
   id: string;
@@ -17,6 +18,7 @@ interface Paper {
 
 export default function TakeExamPage() {
   const router = useRouter();
+  const { addToast } = useToast();
   const [papers, setPapers] = useState<Paper[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [startingExam, setStartingExam] = useState<string | null>(null);
@@ -61,12 +63,12 @@ export default function TakeExamPage() {
         router.push(`/exam/${data.data.attemptId}`);
       } else {
         const error = await response.json();
-        alert(`Error: ${error.message}`);
+        addToast(`Error: ${error.message}`, "error");
         setStartingExam(null);
       }
     } catch (error) {
       console.error("Error starting exam:", error);
-      alert("Error starting exam");
+      addToast("Error starting exam", "error");
       setStartingExam(null);
     }
   };

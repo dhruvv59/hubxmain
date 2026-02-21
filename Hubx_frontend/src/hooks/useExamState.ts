@@ -141,9 +141,11 @@ export function useExamState({ attemptId, totalQuestions, durationSeconds }: Use
         const saveTask = async () => {
             try {
                 setIsSaving(true);
-                const payload = questionType === 'MCQ'
+                // MCQ and FILL_IN_THE_BLANKS with options use selectedOption (numeric index)
+                const useSelectedOption = questionType === 'MCQ' || (questionType === 'FILL_IN_THE_BLANKS' && typeof answer === 'number');
+                const payload = useSelectedOption
                     ? { selectedOption: answer }
-                    : { answerText: answer };
+                    : { answerText: String(answer) };
 
                 await http.post(
                     EXAM_ENDPOINTS.answerQuestion(attemptId, questionId),
