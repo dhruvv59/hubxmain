@@ -247,6 +247,9 @@ export function AssessmentForm({ initialSubjects = [] }: AssessmentFormProps) {
                             <div className="border-t border-gray-50 pt-4">
                                 <p className="text-xs font-semibold text-[#6366f1] uppercase tracking-wide mb-1">TOTAL NO OF QUESTIONS</p>
                                 <p className="text-xl font-bold text-gray-900">{totalQuestions}</p>
+                                {totalQuestions < 5 && (
+                                    <p className="text-xs text-red-600 mt-2 font-medium">⚠️ Need at least 5 questions to generate assessment</p>
+                                )}
                             </div>
 
                             <div className="border-t border-gray-50 pt-4">
@@ -271,6 +274,11 @@ export function AssessmentForm({ initialSubjects = [] }: AssessmentFormProps) {
                                         return;
                                     }
 
+                                    if (totalQuestions < 5) {
+                                        alert(`Not enough questions available (${totalQuestions} found, need at least 5). Please:\n• Select more chapters\n• Choose different subjects\n• Try a different difficulty level`);
+                                        return;
+                                    }
+
                                     try {
                                         setIsGenerating(true);
                                         const result = await generateAdaptiveAssessment({
@@ -283,11 +291,16 @@ export function AssessmentForm({ initialSubjects = [] }: AssessmentFormProps) {
                                         // Navigate to the generated assessment
                                         router.push(`/assessments/${result.paperId}/take`);
                                     } catch (error: any) {
-                                        alert(error.message || "Failed to generate assessment");
+                                        const errorMessage = error.message || "Failed to generate assessment";
+                                        if (errorMessage.includes("Not enough questions")) {
+                                            alert("Not enough questions available for your selection. Please try:\n• Adding more chapters\n• Selecting different subjects\n• Choosing a different difficulty level");
+                                        } else {
+                                            alert(errorMessage);
+                                        }
                                         setIsGenerating(false);
                                     }
                                 }}
-                                disabled={isGenerating || selectedSubjectIds.length === 0}
+                                disabled={isGenerating || selectedSubjectIds.length === 0 || totalQuestions < 5}
                                 className="w-full py-3.5 bg-[#5b5bd6] hover:bg-[#4f4fbe] text-white rounded-xl font-bold text-sm shadow-lg shadow-indigo-200 transition-all transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                             >
                                 {isGenerating ? (
